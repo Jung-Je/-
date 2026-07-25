@@ -3,8 +3,9 @@ Production settings for Matching API project.
 This module contains all settings specific to production environment.
 """
 
-import environ
 from pathlib import Path
+
+import environ
 
 # Load production environment variables
 env = environ.Env()
@@ -42,9 +43,7 @@ CSRF_COOKIE_SAMESITE = "Strict"
 X_FRAME_OPTIONS = "DENY"
 
 # Database connection pooling
-DATABASES["default"]["CONN_MAX_AGE"] = env.int(  # noqa: F405
-    "DB_CONN_MAX_AGE", default=600
-)
+DATABASES["default"]["CONN_MAX_AGE"] = env.int("DB_CONN_MAX_AGE", default=600)  # noqa: F405
 
 # Gunicorn configuration is handled in gunicorn_config.py
 # This is just for reference
@@ -114,10 +113,12 @@ LOGGING = {
 
 # Static files handling (whitenoise or cloud storage)
 # Using whitenoise for static files serving
-MIDDLEWARE = [  # noqa: F405
+from .base import MIDDLEWARE as BASE_MIDDLEWARE  # noqa: F401, E402
+
+MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",  # Add whitenoise
-] + MIDDLEWARE[1:]  # noqa: F405
+] + BASE_MIDDLEWARE[1:]
 
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 

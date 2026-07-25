@@ -3,8 +3,9 @@ Development settings for Matching API project.
 This module contains all settings specific to development environment.
 """
 
-import environ
 from pathlib import Path
+
+import environ
 
 # Load development environment variables
 env = environ.Env()

@@ -3,7 +3,6 @@ Base settings for Matching API project.
 This module contains all settings that are common across all environments.
 """
 
-import os
 from pathlib import Path
 
 import environ

@@ -68,3 +68,4 @@ docs/_build/
 
 # Poetry
 # poetry.lock - 주석 처리: lock 파일은 의존성 고정을 위해 커밋하는 것이 권장됨
+schema.yml

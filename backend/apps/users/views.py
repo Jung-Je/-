@@ -1,3 +1,148 @@
-from django.shortcuts import render
+from django.contrib.auth import update_session_auth_hash
+from rest_framework import status, viewsets
+from rest_framework.decorators import action
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
 
-# Create your views here.
+from drf_spectacular.utils import extend_schema, extend_schema_view
+
+from .models import User, UserPersonality
+from .serializers import (
+    PasswordChangeSerializer,
+    UserCreateSerializer,
+    UserPersonalitySerializer,
+    UserSerializer,
+    UserUpdateSerializer,
+)
+
+
+@extend_schema_view(
+    list=extend_schema(summary="사용자 목록 조회", tags=["Users"]),
+    retrieve=extend_schema(summary="사용자 상세 조회", tags=["Users"]),
+    create=extend_schema(summary="사용자 생성 (회원가입)", tags=["Users"]),
+    update=extend_schema(summary="사용자 정보 수정", tags=["Users"]),
+    partial_update=extend_schema(summary="사용자 정보 부분 수정", tags=["Users"]),
+    destroy=extend_schema(summary="사용자 삭제 (회원탈퇴)", tags=["Users"]),
+)
+class UserViewSet(viewsets.ModelViewSet):
+    """사용자 관리 ViewSet"""
+
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+
+    def get_permissions(self):
+        """액션별 권한 설정"""
+        if self.action == "create":
+            return [AllowAny()]
+        return [IsAuthenticated()]
+
+    def get_serializer_class(self):
+        """액션별 시리얼라이저 설정"""
+        if self.action == "create":
+            return UserCreateSerializer
+        elif self.action in ["update", "partial_update"]:
+            return UserUpdateSerializer
+        return UserSerializer
+
+    def get_queryset(self):
+        """현재 사용자만 조회 가능"""
+        if self.request.user.is_staff:
+            return User.objects.all()
+        return User.objects.filter(id=self.request.user.id)
+
+    @extend_schema(
+        summary="현재 로그인한 사용자 정보 조회",
+        tags=["Users"],
+    )
+    @action(detail=False, methods=["get"])
+    def me(self, request):
+        """현재 로그인한 사용자 정보"""
+        serializer = self.get_serializer(request.user)
+        return Response(serializer.data)
+
+    @extend_schema(
+        summary="비밀번호 변경",
+        tags=["Users"],
+        request=PasswordChangeSerializer,
+    )
+    @action(detail=False, methods=["post"])
+    def change_password(self, request):
+        """비밀번호 변경"""
+        serializer = PasswordChangeSerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+
+        # 비밀번호 변경
+        user = request.user
+        user.set_password(serializer.validated_data["new_password"])
+        user.save()
+
+        # 세션 유지
+        update_session_auth_hash(request, user)
+
+        return Response(
+            {"detail": "비밀번호가 성공적으로 변경되었습니다."},
+            status=status.HTTP_200_OK,
+        )
+
+    @extend_schema(
+        summary="프로필 완성도 확인 및 업데이트",
+        tags=["Users"],
+    )
+    @action(detail=False, methods=["post"])
+    def check_profile_completion(self, request):
+        """프로필 완성도 확인"""
+        user = request.user
+
+        # 프로필 완성 조건 체크
+        required_fields = [
+            user.email,
+            user.gender,
+            user.date_of_birth,
+            user.location,
+            user.bio,
+        ]
+
+        has_personality = hasattr(user, "personality") and user.personality is not None
+        has_interests = user.user_interests.exists()
+
+        is_complete = all(required_fields) and has_personality and has_interests
+
+        # 상태 업데이트
+        if user.is_profile_complete != is_complete:
+            user.is_profile_complete = is_complete
+            user.save(update_fields=["is_profile_complete"])
+
+        return Response(
+            {
+                "is_complete": is_complete,
+                "missing_fields": {
+                    "basic_info": not all(required_fields),
+                    "personality": not has_personality,
+                    "interests": not has_interests,
+                },
+            }
+        )
+
+
+@extend_schema_view(
+    list=extend_schema(summary="사용자 성격 목록 조회", tags=["User Personality"]),
+    retrieve=extend_schema(summary="사용자 성격 상세 조회", tags=["User Personality"]),
+    create=extend_schema(summary="사용자 성격 생성", tags=["User Personality"]),
+    update=extend_schema(summary="사용자 성격 수정", tags=["User Personality"]),
+    partial_update=extend_schema(summary="사용자 성격 부분 수정", tags=["User Personality"]),
+    destroy=extend_schema(summary="사용자 성격 삭제", tags=["User Personality"]),
+)
+class UserPersonalityViewSet(viewsets.ModelViewSet):
+    """사용자 성격 정보 ViewSet"""
+
+    queryset = UserPersonality.objects.all()
+    serializer_class = UserPersonalitySerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        """현재 사용자의 성격 정보만 조회"""
+        return UserPersonality.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        """사용자 성격 정보 생성 시 현재 사용자 자동 설정"""
+        serializer.save(user=self.request.user)

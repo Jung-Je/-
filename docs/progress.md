@@ -1,5 +1,16 @@
 # 매칭 API 프로젝트 진행 상황
 
+## 🚦 현재 상태 (마지막 업데이트: 2026-08-04)
+- 우선순위 1~3 (Admin 커스터마이징 / 매칭 알고리즘 / 서버 실행·E2E 테스트) 완료
+- **다음 시작 지점: 우선순위 4 — CI/CD 구축** (아래 "남은 작업" 참고)
+- ⚠️ **커밋 필요:** 아래 변경사항이 아직 git에 커밋되지 않은 상태 (`git status`로 확인)
+  - `backend/apps/matching/services.py` (신규 — 매칭 알고리즘)
+  - `backend/apps/matching/admin.py`, `backend/apps/users/admin.py` (Admin 등록)
+  - `backend/apps/matching/views.py` (매칭 요청 생성 시 알고리즘 자동 실행 연결)
+  - `backend/config/urls.py` (debug_toolbar URL 누락으로 인한 500 에러 버그 수정)
+  - `docs/progress.md` (본 문서)
+  - 로컬 개발 DB에 슈퍼유저 `admin` 계정 생성됨 (코드 변경 아님, 커밋 대상 아님)
+
 ## 프로젝트 개요
 Headless 매칭 API 서버 및 자동화된 문서화 시스템
 - 친구/네트워킹 매칭 시스템
@@ -135,81 +146,71 @@ scripts/check-all.sh
 
 ## 📋 남은 작업
 
-### 우선순위 1: Admin 패널 커스터마이징 ⭐
+### 우선순위 1: Admin 패널 커스터마이징 ⭐ ✅ 완료
 **목적:** Django Admin을 통해 데이터를 쉽게 관리
 
 **작업 내용:**
-- [ ] User, UserPersonality Admin 등록
-- [ ] Interest, InterestCategory Admin 등록
-- [ ] MatchingRequest, MatchingResult Admin 등록
-- [ ] Connection Admin 등록
-- [ ] 검색, 필터, 정렬 기능 추가
-- [ ] Inline 편집 기능 (예: User 편집 시 Personality도 함께)
-- [ ] 커스텀 액션 추가 (예: 일괄 승인/거절)
-- [ ] 읽기 쉬운 표시 형식 설정
+- [x] User, UserPersonality Admin 등록
+- [x] Interest, InterestCategory Admin 등록
+- [x] MatchingRequest, MatchingResult Admin 등록
+- [x] Connection Admin 등록
+- [x] 검색, 필터, 정렬 기능 추가
+- [x] Inline 편집 기능 (User 편집 시 Personality, InterestCategory 편집 시 Interest, MatchingRequest 편집 시 MatchingResult)
+- [x] 커스텀 액션 추가 (매칭 활성/비활성, 매칭 요청 취소, 연결 수락/거절)
+- [x] 읽기 쉬운 표시 형식 설정 (list_display, autocomplete_fields)
 
-**예상 소요 시간:** 1-2시간
+**완료 내용:** `backend/apps/users/admin.py`, `backend/apps/matching/admin.py` 작성 완료. `python manage.py check`로 admin.E039(autocomplete 대상 search_fields 누락) 등 검증 통과. `scripts/format.sh`, `scripts/lint.sh` 통과.
 
 ---
 
-### 우선순위 2: 매칭 알고리즘 구현 ⭐⭐⭐
+### 우선순위 2: 매칭 알고리즘 구현 ⭐⭐⭐ ✅ 완료
 **목적:** 세밀한 취향 기반 가중치 매칭 로직
 
 **작업 내용:**
-- [ ] 매칭 알고리즘 서비스 클래스 생성
-  - `apps/matching/services.py` 또는 `apps/matching/algorithms.py`
+- [x] 매칭 알고리즘 서비스 클래스 생성
+  - `apps/matching/services.py`
 
-- [ ] 점수 계산 로직 구현
-  - [ ] 관심사 일치도 계산 (공통 관심사 개수, 레벨 유사도)
-  - [ ] 성격 호환성 점수 (MBTI, 성향 척도)
-  - [ ] 위치 기반 점수 (같은 지역 우대)
-  - [ ] 최종 가중치 매칭 점수 산출
+- [x] 점수 계산 로직 구현
+  - [x] 관심사 일치도 계산 (공통 관심사 커버리지 60% + 레벨 유사도 40%)
+  - [x] 성격 호환성 점수 (MBTI 일치도 40% + 성향 척도 유사도 60%, 정보 없으면 중립 50점)
+  - [x] 위치 기반 점수 (같은 지역이면 100점, 아니면 0점)
+  - [x] 최종 가중치 매칭 점수 산출 (관심사 50% + 성격 30% + 위치 20%)
 
-- [ ] 매칭 요청 처리 로직
-  - [ ] MatchingRequest 상태를 PROCESSING으로 변경
-  - [ ] 조건에 맞는 후보 사용자 필터링
-  - [ ] 각 후보에 대한 점수 계산
-  - [ ] MatchingResult 생성 (상위 N명)
-  - [ ] MatchingRequest 상태를 COMPLETED로 변경
+- [x] 매칭 요청 처리 로직 (`process_matching_request`)
+  - [x] MatchingRequest 상태를 PROCESSING으로 변경
+  - [x] 조건에 맞는 후보 사용자 필터링 (본인/차단 관계 제외, 나이 범위, `is_active_for_matching`)
+  - [x] 각 후보에 대한 점수 계산
+  - [x] MatchingResult 생성 (상위 N명, `bulk_create`)
+  - [x] MatchingRequest 상태를 COMPLETED로 변경
 
-- [ ] 쿼리 최적화
-  - [ ] select_related, prefetch_related 적용
-  - [ ] N+1 쿼리 문제 해결
-  - [ ] 데이터베이스 레벨 계산 활용 (F(), annotate)
+- [x] 쿼리 최적화
+  - [x] select_related("personality"), prefetch_related("user_interests") 적용
+  - [x] N+1 쿼리 문제 해결 (요청자 관심사는 dict로 1회 조회, 후보별 재조회 없음)
 
-**예상 소요 시간:** 3-4시간
+- [x] `MatchingRequestViewSet.perform_create`에서 생성 즉시 알고리즘 실행하도록 연결
+
+**완료 내용:** `backend/apps/matching/services.py` 작성. `python manage.py check` 통과, `scripts/format.sh`/`scripts/lint.sh` 통과. Django shell에서 트랜잭션 롤백 방식으로 실제 DB 스키마 대상 동작 검증 완료 (비활성 사용자 제외, 나이 필터 적용, 유사도 높은 후보가 더 높은 점수를 받는 것 확인).
+
+**참고:** 현재는 요청/응답 사이클 내에서 동기 처리됨. 후보 수가 많아지면 Celery 등 비동기 처리로 전환 고려 필요 (선택 사항).
 
 ---
 
-### 우선순위 3: 서버 실행 및 테스트
+### 우선순위 3: 서버 실행 및 테스트 ✅ 완료
 **작업 내용:**
-- [ ] 슈퍼유저 생성
-  ```bash
-  cd backend
-  python manage.py createsuperuser
-  ```
+- [x] 슈퍼유저 생성 (`admin` / `jjlee030415@gmail.com`, 비밀번호는 로컬에만 전달됨 — 필요시 `changepassword`로 변경)
 
-- [ ] 개발 서버 실행
-  ```bash
-  python manage.py runserver
-  ```
+- [x] 개발 서버 실행 및 확인
+  - `/admin/`, `/api/docs/`, `/api/redoc/`, `/api/schema/` 모두 200 OK 확인
 
-- [ ] Admin 패널 접속 및 테스트 데이터 입력
-  - http://localhost:8000/admin/
-  - InterestCategory, Interest 생성
-  - 테스트 유저 생성 및 관심사 설정
+- [x] 매칭 기능 E2E 테스트 (Django test client + 트랜잭션 롤백으로 DB 오염 없이 검증)
+  - 회원가입 (`POST /api/v1/users/users/`) → 로그인 → 익명 접근 차단(403) 확인
+  - 프로필 완성 (`PATCH /api/v1/users/users/{id}/`, 성격/관심사 등록) → `check_profile_completion`으로 완성 여부 확인
+  - 매칭 요청 생성 (`POST /api/v1/matching/requests/`) → 즉시 `COMPLETED` 상태로 전환, 알고리즘 정상 채점 확인
+  - 매칭 결과 조회 (`GET /api/v1/matching/results/`) → 동일 관심사/성격/지역 후보가 100점(관심 100/성격 100/위치 100)으로 매칭됨을 확인
+  - 연결 요청 생성 → 상대방 `received` 목록 노출 → `respond`(accept) 처리 후 상태 `ACCEPTED` 확인
 
-- [ ] API 엔드포인트 테스트
-  - Swagger UI: http://localhost:8000/api/docs/
-  - ReDoc: http://localhost:8000/api/redoc/
-  - 각 엔드포인트 동작 확인
-
-- [ ] 매칭 기능 E2E 테스트
-  - 사용자 생성
-  - 프로필 완성 (성격, 관심사)
-  - 매칭 요청 생성
-  - 매칭 결과 확인
-  - 연결 요청 및 응답
+**진행 중 발견 및 수정한 버그:**
+- `config/urls.py`에 `debug_toolbar` 미들웨어는 등록돼 있었지만 `djdt` 네임스페이스 URL(`__debug__/`)이 urlconf에 없어 `DEBUG=True`인 모든 요청이 500 에러를 반환하던 문제 발견 → `DEBUG`이고 `debug_toolbar`가 설치된 경우에만 `path("__debug__/", include(debug_toolbar.urls))`를 조건부로 추가해 해결.
 
 **예상 소요 시간:** 1-2시간
 
@@ -352,6 +353,7 @@ matching-api/
 4. 작업 완료 후 체크박스 업데이트
 
 **추천 순서:**
-1. Admin 패널 커스터마이징 (빠르게 완성)
-2. 매칭 알고리즘 구현 (핵심 기능)
-3. 서버 실행 및 테스트
+1. ~~Admin 패널 커스터마이징 (빠르게 완성)~~ ✅ 완료
+2. ~~매칭 알고리즘 구현 (핵심 기능)~~ ✅ 완료
+3. ~~서버 실행 및 테스트~~ ✅ 완료
+4. CI/CD 구축 ← 다음 작업

@@ -25,6 +25,7 @@ from .serializers import (
     UserInterestCreateSerializer,
     UserInterestSerializer,
 )
+from .services import process_matching_request
 
 
 @extend_schema_view(
@@ -99,6 +100,11 @@ class MatchingRequestViewSet(viewsets.ModelViewSet):
         return MatchingRequest.objects.filter(requester=self.request.user).select_related(
             "requester"
         )
+
+    def perform_create(self, serializer):
+        """매칭 요청 생성 직후 매칭 알고리즘 실행"""
+        matching_request = serializer.save()
+        process_matching_request(matching_request)
 
     @extend_schema(
         summary="매칭 요청 취소",

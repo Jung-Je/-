@@ -1,0 +1,46 @@
+# Run with:
+#   docker compose --env-file .envs/.env.prod -f docker-compose.prod.yml up -d --build
+#
+# --env-file is required so DB_NAME/DB_USER/DB_PASSWORD from .envs/.env.prod
+# are available for the ${...} substitutions below (env_file: alone only
+# injects vars into a container, it does not feed compose-file interpolation).
+#
+# Building on Apple Silicon for an amd64 server? Add --platform linux/amd64
+# to the `docker compose ... build` step (some arm64 wheels SIGILL under
+# Docker Desktop's Apple Silicon VM).
+services:
+  db:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:?DB_NAME is required}
+      POSTGRES_USER: ${DB_USER:?DB_USER is required}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+    volumes:
+      - pgdata_prod:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .envs/.env.prod
+    environment:
+      # The bundled db service above is reachable as "db", regardless of
+      # whatever host .envs/.env.prod points at for non-Docker deployments.
+      DB_HOST: db
+      DB_PORT: 5432
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata_prod:

@@ -1516,7 +1516,7 @@ version = "6.12.0"
 description = "Radically simplified static file serving for WSGI applications"
 optional = false
 python-versions = ">=3.10"
-groups = ["dev"]
+groups = ["main"]
 files = [
     {file = "whitenoise-6.12.0-py3-none-any.whl", hash = "sha256:fc5e8c572e33ebf24795b47b6a7da8da3c00cff2349f5b04c02f28d0cc5a3cc2"},
     {file = "whitenoise-6.12.0.tar.gz", hash = "sha256:f723ebb76a112e98816ff80fcea0a6c9b8ecde835f8ddda25df7a30a3c2db6ad"},
@@ -1528,4 +1528,4 @@ brotli = ["brotli"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "f9d42d9073549aebd715d5aae894e200b6932e439eab9e93c82d346a256b23b6"
+content-hash = "b0aba833e80eead1e914560da2915528da7bb81ce38b57e87795941a0a5bfd82"

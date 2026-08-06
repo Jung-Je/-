@@ -43,6 +43,9 @@ INTERNAL_IPS = [
 DEBUG_TOOLBAR_CONFIG = {
     "SHOW_TOOLBAR_CALLBACK": lambda request: DEBUG,  # noqa: F405
     "SHOW_TEMPLATE_CONTEXT": True,
+    # manage.py test forces DEBUG=False, which the toolbar treats as a
+    # misconfiguration unless told this is expected during test runs.
+    "IS_RUNNING_TESTS": False,
 }
 
 # Django REST Framework - Development overrides

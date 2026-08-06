@@ -1,16 +1,16 @@
 # 매칭 API 프로젝트 진행 상황
 
-## 🚦 현재 상태 (마지막 업데이트: 2026-08-05)
+## 🚦 현재 상태 (마지막 업데이트: 2026-08-06)
 - 우선순위 1~4 (Admin 커스터마이징 / 매칭 알고리즘 / 서버 실행·E2E 테스트 / CI·CD) 완료
-- **다음 시작 지점: 선택 사항 (단위 테스트, 캐싱 등)** — 아래 "남은 작업" 참고
+- 추가로 로그인 브루트포스 방어(django-axes), 모델-마이그레이션 드리프트 해소, 단위/통합 테스트 작성(61개, 커버리지 89%) 완료
+- **다음 시작 지점: 선택 사항 (캐싱, 로깅 고도화 등)** — 아래 "남은 작업" 참고
 - ⚠️ **커밋 필요:** 아래 변경사항이 아직 git에 커밋되지 않은 상태 (`git status`로 확인)
-  - `.github/workflows/ci.yml` (신규 — CI 워크플로우)
-  - `docker/Dockerfile`, `docker/entrypoint.sh` (신규 — 컨테이너 이미지)
-  - `docker-compose.yml`, `docker-compose.prod.yml`, `.dockerignore` (신규)
-  - `pyproject.toml`, `poetry.lock` (whitenoise를 dev 그룹에서 main 의존성으로 이동 — 프로덕션 이미지 부팅 실패 버그 수정)
-  - `backend/config/settings/dev.py` (테스트 실행 시 debug_toolbar 충돌 수정)
-  - `backend/config/wsgi.py`, `backend/config/asgi.py` (DJANGO_SETTINGS_MODULE 기본값을 `config.settings.prod`로 수정)
-  - `README.md`, `docs/progress.md` (본 문서)
+  - `backend/apps/users/tests/`, `backend/apps/matching/tests/` (신규 — pytest 테스트 스위트, 기존 빈 `tests.py` 스텁 대체)
+  - `backend/conftest.py` (신규 — 공용 `auth_client` fixture)
+  - `pyproject.toml` (pytest가 `config`/`apps`를 못 찾던 `pythonpath` 누락 수정, 커버리지 대상 명시)
+  - `backend/config/settings/dev.py` (테스트 중 debug_toolbar가 `NoReverseMatch`로 죽던 버그 수정 — `SHOW_TOOLBAR_CALLBACK`이 고정된 모듈 상수 대신 실시간 `settings.DEBUG`를 보도록 변경)
+  - `.github/workflows/ci.yml` (테스트 실행을 `manage.py test` → `pytest`로 교체 — 새 테스트가 pytest 스타일이라 `manage.py test`는 인식하지 못함)
+  - `docs/progress.md` (본 문서)
 
 ## 프로젝트 개요
 Headless 매칭 API 서버 및 자동화된 문서화 시스템
@@ -221,7 +221,7 @@ scripts/check-all.sh
 **작업 내용:**
 - [x] GitHub Actions 워크플로우 설정
   - `.github/workflows/ci.yml` 생성 (push to main/feature, PR to main에서 트리거)
-  - postgres:15 서비스 컨테이너 위에서 black/isort/flake8 → `manage.py check` → `coverage run manage.py test` 순으로 실행
+  - postgres:15 서비스 컨테이너 위에서 black/isort/flake8 → `manage.py check` → `pytest`(커버리지 포함) 순으로 실행
   - 커버리지 리포트를 아티팩트로 업로드
 
 - [x] Docker 컨테이너화
@@ -246,8 +246,28 @@ scripts/check-all.sh
 
 ---
 
+### 추가 작업: 로그인 브루트포스 방어 (django-axes) ✅ 완료
+**목적:** 세션 기반 로그인(`/api/v1/auth/login/`)에 무차별 대입 공격 방어 추가
+
+**작업 내용:**
+- [x] `django-axes` 도입 (main 의존성)
+- [x] username+IP **조합** 기준 5회 실패 시 1시간 잠금 (`AXES_LOCKOUT_PARAMETERS = [["username", "ip_address"]]`)
+- [x] 성공 로그인 시 실패 카운트 초기화 (`AXES_RESET_ON_SUCCESS`)
+
+**진행 중 발견 및 수정한 버그:**
+- `AXES_LOCKOUT_PARAMETERS`를 처음에 `["username", "ip_address"]`(flat list)로 설정했는데, 이는 django-axes에서 "username 단독 OR IP 단독" 잠금을 의미하는 레거시 문법(`AXES_LOCK_OUT_BY_USER_OR_IP`)이었음. 실제로 재현해보니 한 계정이 잠기면 **같은 IP를 쓰는 다른 계정까지 함께 잠기는** 문제가 있어, "조합" 잠금을 뜻하는 중첩 리스트 `[["username", "ip_address"]]`로 수정.
+
+**검증:** 로컬 서버에 대해 회원가입→로그인→인증 요청→로그아웃, 임계치 미만 실패 후 정상 로그인, 5회 실패 시 잠금(429)과 정답 비밀번호도 거부됨, 같은 IP의 다른 계정은 영향 없음, admin 로그인 정상, `axes_reset`/`axes_reset_username` 복구까지 직접 재현해 확인함. 이후 `apps/users/tests/test_auth_api.py`에 회귀 테스트로 고정.
+
+---
+
+### 추가 작업: 모델-마이그레이션 드리프트 해소 ✅ 완료
+`manage.py makemigrations --check`로 확인해보니 `matching`/`users` 모델(verbose_name 한글 라벨, choices 표시 텍스트, help_text, validators)이 마이그레이션에 반영되지 않은 채 남아있던 상태 발견. `status` 필드 2곳(`connection`, `matchingrequest`)에 `db_index=True`가 추가되어 인덱스가 새로 생기는 것 외에는 전부 비파괴적 변경. `makemigrations`로 정리 후 `--check --dry-run`으로 드리프트 없음 확인.
+
+---
+
 ### 선택 사항: 추가 기능
-- [ ] 단위 테스트 작성 (pytest)
+- [x] 단위 테스트 작성 (pytest) — `apps/users/tests/`, `apps/matching/tests/`에 61개 테스트, 커버리지 89% (`apps`/`config` 기준). 모델, 회원가입/로그인/로그아웃, 로그인 잠금 회귀, 비밀번호 변경, 프로필 완성도, 매칭 알고리즘 점수 계산 + `process_matching_request` 통합, 매칭 요청 생성/취소/조회, 연결(친구) 요청/응답 API 커버. CI도 `manage.py test`(새 pytest 스타일 테스트를 인식 못 함) 대신 `pytest`를 실행하도록 변경.
 - [ ] API 응답 캐싱 (Redis)
 - [ ] 로깅 시스템 강화
 - [ ] 이메일 알림 기능
@@ -285,6 +305,15 @@ scripts/check-all.sh
 # 개별 실행
 scripts/format.sh  # 포맷팅
 scripts/lint.sh    # 린트
+```
+
+### 테스트
+```bash
+# 저장소 루트에서 실행 (pyproject.toml의 pythonpath 설정 기준)
+poetry run pytest
+
+# 특정 파일/테스트만
+poetry run pytest backend/apps/users/tests/test_auth_api.py -q
 ```
 
 ### Docker
@@ -374,4 +403,5 @@ matching-api/
 2. ~~매칭 알고리즘 구현 (핵심 기능)~~ ✅ 완료
 3. ~~서버 실행 및 테스트~~ ✅ 완료
 4. ~~CI/CD 구축~~ ✅ 완료
-5. (선택) 단위 테스트, API 캐싱 등 "선택 사항" 항목 중 우선순위 선택 ← 다음 작업
+5. ~~로그인 브루트포스 방어, 마이그레이션 드리프트 해소, 단위 테스트 작성~~ ✅ 완료
+6. (선택) API 응답 캐싱, 로깅 고도화, 이메일 알림, 프로필 이미지 최적화 중 우선순위 선택 ← 다음 작업

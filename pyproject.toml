@@ -72,8 +72,9 @@ ensure_newline_before_comments = true
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings.dev"
+pythonpath = ["backend"]
 python_files = ["tests.py", "test_*.py", "*_tests.py"]
-addopts = "--cov=backend --cov-report=html --cov-report=term-missing"
+addopts = "--cov=apps --cov=config --cov-report=html --cov-report=term-missing"
 
 [tool.coverage.run]
 source = ["apps", "config"]

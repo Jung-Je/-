@@ -15,6 +15,7 @@ from .models import (
     MatchingResult,
     UserInterest,
 )
+from .notifications import notify_connection_accepted, notify_connection_requested
 from .serializers import (
     ConnectionResponseSerializer,
     ConnectionSerializer,
@@ -183,6 +184,11 @@ class ConnectionViewSet(viewsets.ModelViewSet):
             models.Q(from_user=user) | models.Q(to_user=user)
         ).select_related("from_user", "to_user")
 
+    def perform_create(self, serializer):
+        """연결 요청 생성 시 상대방에게 이메일 알림"""
+        connection = serializer.save()
+        notify_connection_requested(connection)
+
     @extend_schema(
         summary="받은 연결 요청 목록",
         tags=["Connections"],
@@ -245,5 +251,8 @@ class ConnectionViewSet(viewsets.ModelViewSet):
         connection.status = status_map[action_type]
         connection.responded_at = timezone.now()
         connection.save(update_fields=["status", "responded_at", "updated_at"])
+
+        if action_type == "accept":
+            notify_connection_accepted(connection)
 
         return Response(self.get_serializer(connection).data)

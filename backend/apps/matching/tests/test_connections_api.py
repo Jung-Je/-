@@ -119,3 +119,53 @@ class TestConnectionRespond:
             f"{CONNECTIONS_URL}{connection.id}/respond/", {"action": "reject"}, format="json"
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+@pytest.mark.django_db
+class TestConnectionEmailNotifications:
+    def test_creating_a_connection_emails_the_recipient(self, auth_client, mailoutbox):
+        client, from_user = auth_client
+        to_user = UserFactory()
+
+        client.post(CONNECTIONS_URL, {"to_user": to_user.id}, format="json")
+
+        assert len(mailoutbox) == 1
+        assert mailoutbox[0].to == [to_user.email]
+        assert from_user.username in mailoutbox[0].body
+
+    def test_accepting_emails_the_original_sender(self, auth_client, mailoutbox):
+        client, to_user = auth_client
+        from_user = UserFactory()
+        connection = Connection.objects.create(from_user=from_user, to_user=to_user)
+
+        client.post(
+            f"{CONNECTIONS_URL}{connection.id}/respond/", {"action": "accept"}, format="json"
+        )
+
+        assert len(mailoutbox) == 1
+        assert mailoutbox[0].to == [from_user.email]
+        assert to_user.username in mailoutbox[0].body
+
+    def test_rejecting_does_not_send_an_email(self, auth_client, mailoutbox):
+        client, to_user = auth_client
+        from_user = UserFactory()
+        connection = Connection.objects.create(from_user=from_user, to_user=to_user)
+
+        client.post(
+            f"{CONNECTIONS_URL}{connection.id}/respond/", {"action": "reject"}, format="json"
+        )
+
+        assert len(mailoutbox) == 0
+
+    def test_email_failure_does_not_break_connection_creation(self, auth_client, monkeypatch):
+        def _broken_send_mail(*args, **kwargs):
+            raise RuntimeError("smtp down")
+
+        client, _from_user = auth_client
+        to_user = UserFactory()
+        monkeypatch.setattr("apps.matching.notifications.send_mail", _broken_send_mail)
+
+        response = client.post(CONNECTIONS_URL, {"to_user": to_user.id}, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert Connection.objects.filter(to_user=to_user).exists()

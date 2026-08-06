@@ -1,4 +1,9 @@
+from django.conf import settings
 from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import send_mail
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -9,6 +14,8 @@ from drf_spectacular.utils import extend_schema, extend_schema_view
 from .models import User, UserPersonality
 from .serializers import (
     PasswordChangeSerializer,
+    PasswordResetConfirmSerializer,
+    PasswordResetRequestSerializer,
     UserCreateSerializer,
     UserPersonalitySerializer,
     UserSerializer,
@@ -32,7 +39,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         """액션별 권한 설정"""
-        if self.action == "create":
+        if self.action in ["create", "password_reset", "password_reset_confirm"]:
             return [AllowAny()]
         return [IsAuthenticated()]
 
@@ -122,6 +129,55 @@ class UserViewSet(viewsets.ModelViewSet):
                 },
             }
         )
+
+    @extend_schema(
+        summary="비밀번호 재설정 이메일 요청",
+        tags=["Users"],
+        request=PasswordResetRequestSerializer,
+    )
+    @action(detail=False, methods=["post"])
+    def password_reset(self, request):
+        """비밀번호 재설정 이메일 발송 요청"""
+        serializer = PasswordResetRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = User.objects.filter(email__iexact=serializer.validated_data["email"]).first()
+        if user is not None:
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            token = default_token_generator.make_token(user)
+            reset_url = f"{settings.FRONTEND_URL}/reset-password?uid={uid}&token={token}"
+            send_mail(
+                subject="[매칭 API] 비밀번호 재설정 안내",
+                message=(
+                    "비밀번호를 재설정하려면 아래 링크를 방문하세요.\n\n"
+                    f"{reset_url}\n\n"
+                    "본인이 요청하지 않았다면 이 이메일을 무시하셔도 됩니다."
+                ),
+                from_email=None,
+                recipient_list=[user.email],
+            )
+
+        # 등록 여부와 무관하게 동일한 응답을 반환해 이메일 존재 여부가 노출되지 않도록 함
+        return Response(
+            {"detail": "등록된 이메일이라면 비밀번호 재설정 안내 메일이 발송되었습니다."}
+        )
+
+    @extend_schema(
+        summary="비밀번호 재설정 확인",
+        tags=["Users"],
+        request=PasswordResetConfirmSerializer,
+    )
+    @action(detail=False, methods=["post"])
+    def password_reset_confirm(self, request):
+        """이메일로 받은 uid/token으로 새 비밀번호 설정"""
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = serializer.validated_data["user"]
+        user.set_password(serializer.validated_data["new_password"])
+        user.save()
+
+        return Response({"detail": "비밀번호가 성공적으로 재설정되었습니다."})
 
 
 @extend_schema_view(

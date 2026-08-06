@@ -2,14 +2,12 @@
 
 ## 🚦 현재 상태 (마지막 업데이트: 2026-08-06)
 - 우선순위 1~4 (Admin 커스터마이징 / 매칭 알고리즘 / 서버 실행·E2E 테스트 / CI·CD) 완료
-- 추가로 로그인 브루트포스 방어(django-axes), 모델-마이그레이션 드리프트 해소, 단위/통합 테스트 작성(61개, 커버리지 89%) 완료
-- **다음 시작 지점: 선택 사항 (캐싱, 로깅 고도화 등)** — 아래 "남은 작업" 참고
+- 추가로 로그인 브루트포스 방어(django-axes), 모델-마이그레이션 드리프트 해소, 단위/통합 테스트 작성(72개, 커버리지 89%), 비밀번호 재설정(이메일) 기능 완료
+- **다음 시작 지점: 선택 사항 (캐싱, 로깅 고도화, 이메일 알림, 프로필 이미지 최적화)** — 아래 "남은 작업" 참고
 - ⚠️ **커밋 필요:** 아래 변경사항이 아직 git에 커밋되지 않은 상태 (`git status`로 확인)
-  - `backend/apps/users/tests/`, `backend/apps/matching/tests/` (신규 — pytest 테스트 스위트, 기존 빈 `tests.py` 스텁 대체)
-  - `backend/conftest.py` (신규 — 공용 `auth_client` fixture)
-  - `pyproject.toml` (pytest가 `config`/`apps`를 못 찾던 `pythonpath` 누락 수정, 커버리지 대상 명시)
-  - `backend/config/settings/dev.py` (테스트 중 debug_toolbar가 `NoReverseMatch`로 죽던 버그 수정 — `SHOW_TOOLBAR_CALLBACK`이 고정된 모듈 상수 대신 실시간 `settings.DEBUG`를 보도록 변경)
-  - `.github/workflows/ci.yml` (테스트 실행을 `manage.py test` → `pytest`로 교체 — 새 테스트가 pytest 스타일이라 `manage.py test`는 인식하지 못함)
+  - `backend/apps/users/serializers.py`, `backend/apps/users/views.py` (비밀번호 재설정 요청/확인 엔드포인트 추가)
+  - `backend/config/settings/base.py` (이메일 링크 생성을 위한 `FRONTEND_URL` 설정 추가)
+  - `backend/apps/users/tests/test_password_reset_api.py` (신규 — 비밀번호 재설정 테스트 11개)
   - `docs/progress.md` (본 문서)
 
 ## 프로젝트 개요
@@ -266,11 +264,26 @@ scripts/check-all.sh
 
 ---
 
+### 추가 작업: 비밀번호 재설정 기능 ✅ 완료
+**목적:** 로그인 상태에서만 가능했던 `change_password` 외에, 로그인하지 못하는 상황("비밀번호를 잊어버렸어요")을 위한 이메일 기반 재설정 플로우 추가
+
+**작업 내용:**
+- [x] `POST /api/v1/users/users/password_reset/` — 이메일로 재설정 링크 발송 요청 (`AllowAny`)
+  - Django의 `default_token_generator` + `urlsafe_base64_encode(user.pk)`로 uid/token 생성, `FRONTEND_URL`(env, 기본값 `http://localhost:3000`) 기준 링크를 이메일 본문에 포함
+  - 등록되지 않은 이메일이어도 **동일한 응답**을 반환해 이메일 존재 여부가 노출되지 않도록 함 (이메일 열거 공격 방지)
+- [x] `POST /api/v1/users/users/password_reset_confirm/` — uid/token/새 비밀번호로 재설정 확정 (`AllowAny`)
+  - 토큰은 비밀번호 해시가 바뀌면 자동 무효화되므로(Django 기본 동작) 1회용으로 동작
+  - 비밀번호 변경 시 다른 기기의 기존 세션도 자동 무효화됨 (세션 인증 해시가 비밀번호에서 파생되기 때문, 별도 구현 불필요)
+
+**검증:** `apps/users/tests/test_password_reset_api.py` 테스트 11개(정상 재설정, 미등록 이메일 응답 비교, 잘못된/재사용 토큰 거부, 비밀번호 불일치 거부, 재설정 후 기존 비밀번호 로그인 불가) + 로컬 개발 서버에서 실제 회원가입 → 재설정 요청 → 콘솔에 출력된 이메일의 실제 uid/token으로 재설정 확정까지 수동 재현.
+
+---
+
 ### 선택 사항: 추가 기능
-- [x] 단위 테스트 작성 (pytest) — `apps/users/tests/`, `apps/matching/tests/`에 61개 테스트, 커버리지 89% (`apps`/`config` 기준). 모델, 회원가입/로그인/로그아웃, 로그인 잠금 회귀, 비밀번호 변경, 프로필 완성도, 매칭 알고리즘 점수 계산 + `process_matching_request` 통합, 매칭 요청 생성/취소/조회, 연결(친구) 요청/응답 API 커버. CI도 `manage.py test`(새 pytest 스타일 테스트를 인식 못 함) 대신 `pytest`를 실행하도록 변경.
+- [x] 단위 테스트 작성 (pytest) — `apps/users/tests/`, `apps/matching/tests/`에 72개 테스트, 커버리지 89% (`apps`/`config` 기준). 모델, 회원가입/로그인/로그아웃, 로그인 잠금 회귀, 비밀번호 변경/재설정, 프로필 완성도, 매칭 알고리즘 점수 계산 + `process_matching_request` 통합, 매칭 요청 생성/취소/조회, 연결(친구) 요청/응답 API 커버. CI도 `manage.py test`(새 pytest 스타일 테스트를 인식 못 함) 대신 `pytest`를 실행하도록 변경.
 - [ ] API 응답 캐싱 (Redis)
 - [ ] 로깅 시스템 강화
-- [ ] 이메일 알림 기능
+- [ ] 이메일 알림 기능 (매칭/연결 요청 등 — 비밀번호 재설정 메일 발송 인프라는 이미 구축됨)
 - [ ] 프로필 이미지 최적화
 
 ---
@@ -404,4 +417,5 @@ matching-api/
 3. ~~서버 실행 및 테스트~~ ✅ 완료
 4. ~~CI/CD 구축~~ ✅ 완료
 5. ~~로그인 브루트포스 방어, 마이그레이션 드리프트 해소, 단위 테스트 작성~~ ✅ 완료
-6. (선택) API 응답 캐싱, 로깅 고도화, 이메일 알림, 프로필 이미지 최적화 중 우선순위 선택 ← 다음 작업
+6. ~~비밀번호 재설정 기능~~ ✅ 완료
+7. (선택) API 응답 캐싱, 로깅 고도화, 이메일 알림, 프로필 이미지 최적화 중 우선순위 선택 ← 다음 작업

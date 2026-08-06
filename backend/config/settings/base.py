@@ -280,3 +280,7 @@ CORS_ALLOW_HEADERS = [
     "x-csrftoken",
     "x-requested-with",
 ]
+
+
+# Frontend URL used to build links sent in emails (e.g. password reset)
+FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:3000")

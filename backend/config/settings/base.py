@@ -47,6 +47,7 @@ THIRD_PARTY_APPS = [
     "django_filters",
     "corsheaders",
     "drf_spectacular",
+    "axes",
 ]
 
 LOCAL_APPS = [
@@ -65,6 +66,15 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    # Must come after AuthenticationMiddleware; tracks failed logins for axes.
+    "axes.middleware.AxesMiddleware",
+]
+
+# django-axes checks credentials before the normal auth backend, so it must
+# be listed first to be able to block a login attempt outright.
+AUTHENTICATION_BACKENDS = [
+    "axes.backends.AxesStandaloneBackend",
+    "django.contrib.auth.backends.ModelBackend",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -122,6 +132,18 @@ AUTH_PASSWORD_VALIDATORS = [
         "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
+
+
+# django-axes: brute-force login protection
+# https://django-axes.readthedocs.io/
+AXES_FAILURE_LIMIT = 5
+AXES_COOLOFF_TIME = 1  # hours
+# Nested list = lock on the (username, ip_address) COMBINATION. A flat list
+# here (["username", "ip_address"]) would instead OR two independent
+# dimensions, so one leaked/guessed username failing from many IPs would
+# also block every other user sharing an IP (school/office NAT) with it.
+AXES_LOCKOUT_PARAMETERS = [["username", "ip_address"]]
+AXES_RESET_ON_SUCCESS = True
 
 
 # Internationalization

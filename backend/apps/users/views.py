@@ -1,3 +1,5 @@
+import logging
+
 from django.conf import settings
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.tokens import default_token_generator
@@ -21,6 +23,8 @@ from .serializers import (
     UserSerializer,
     UserUpdateSerializer,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @extend_schema_view(
@@ -57,6 +61,11 @@ class UserViewSet(viewsets.ModelViewSet):
             return User.objects.all()
         return User.objects.filter(id=self.request.user.id)
 
+    def perform_create(self, serializer):
+        """회원가입 완료 로깅"""
+        user = serializer.save()
+        logger.info("회원가입 완료: user_id=%s", user.id)
+
     @extend_schema(
         summary="현재 로그인한 사용자 정보 조회",
         tags=["Users"],
@@ -85,6 +94,8 @@ class UserViewSet(viewsets.ModelViewSet):
 
         # 세션 유지
         update_session_auth_hash(request, user)
+
+        logger.info("비밀번호 변경 완료: user_id=%s", user.id)
 
         return Response(
             {"detail": "비밀번호가 성공적으로 변경되었습니다."},
@@ -156,6 +167,9 @@ class UserViewSet(viewsets.ModelViewSet):
                 from_email=None,
                 recipient_list=[user.email],
             )
+            logger.info("비밀번호 재설정 이메일 발송: user_id=%s", user.id)
+        else:
+            logger.info("비밀번호 재설정 요청: 미등록 이메일")
 
         # 등록 여부와 무관하게 동일한 응답을 반환해 이메일 존재 여부가 노출되지 않도록 함
         return Response(
@@ -176,6 +190,8 @@ class UserViewSet(viewsets.ModelViewSet):
         user = serializer.validated_data["user"]
         user.set_password(serializer.validated_data["new_password"])
         user.save()
+
+        logger.info("비밀번호 재설정 완료: user_id=%s", user.id)
 
         return Response({"detail": "비밀번호가 성공적으로 재설정되었습니다."})
 

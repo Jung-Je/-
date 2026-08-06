@@ -169,3 +169,29 @@ class TestConnectionEmailNotifications:
 
         assert response.status_code == status.HTTP_201_CREATED
         assert Connection.objects.filter(to_user=to_user).exists()
+
+
+@pytest.mark.django_db
+class TestConnectionLogging:
+    def test_creating_a_connection_is_logged(self, auth_client, apps_caplog):
+        client, from_user = auth_client
+        to_user = UserFactory()
+
+        response = client.post(CONNECTIONS_URL, {"to_user": to_user.id}, format="json")
+
+        connection_id = response.data["id"]
+        assert f"connection_id={connection_id}" in apps_caplog.text
+        assert f"from_user_id={from_user.id}" in apps_caplog.text
+        assert f"to_user_id={to_user.id}" in apps_caplog.text
+
+    def test_responding_to_a_connection_is_logged(self, auth_client, apps_caplog):
+        client, to_user = auth_client
+        from_user = UserFactory()
+        connection = Connection.objects.create(from_user=from_user, to_user=to_user)
+
+        client.post(
+            f"{CONNECTIONS_URL}{connection.id}/respond/", {"action": "accept"}, format="json"
+        )
+
+        assert f"connection_id={connection.id}" in apps_caplog.text
+        assert "action=accept" in apps_caplog.text

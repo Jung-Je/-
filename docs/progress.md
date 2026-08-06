@@ -2,12 +2,13 @@
 
 ## 🚦 현재 상태 (마지막 업데이트: 2026-08-06)
 - 우선순위 1~4 (Admin 커스터마이징 / 매칭 알고리즘 / 서버 실행·E2E 테스트 / CI·CD) 완료
-- 추가로 로그인 브루트포스 방어(django-axes), 모델-마이그레이션 드리프트 해소, 단위/통합 테스트 작성(76개, 커버리지 90%), 비밀번호 재설정(이메일), 연결 요청 이메일 알림 기능 완료
-- **다음 시작 지점: 선택 사항 (캐싱, 로깅 고도화, 프로필 이미지 최적화)** — 아래 "남은 작업" 참고
+- 추가로 로그인 브루트포스 방어(django-axes), 모델-마이그레이션 드리프트 해소, 단위/통합 테스트 작성(80개, 커버리지 90%), 비밀번호 재설정(이메일), 연결 요청 이메일 알림, 로깅 시스템 강화 완료
+- **다음 시작 지점: 선택 사항 (API 응답 캐싱, 프로필 이미지 최적화)** — 아래 "남은 작업" 참고
 - ⚠️ **커밋 필요:** 아래 변경사항이 아직 git에 커밋되지 않은 상태 (`git status`로 확인)
-  - `backend/apps/matching/notifications.py` (신규 — 연결 요청/수락 이메일 알림)
-  - `backend/apps/matching/views.py` (`ConnectionViewSet`에 알림 발송 연결)
-  - `backend/apps/matching/tests/test_connections_api.py` (알림 발송/미발송/실패 시 무영향 테스트 4개 추가)
+  - `docker/Dockerfile` (gunicorn `--access-logfile -`/`--error-logfile -` 추가 — 이전엔 프로덕션에서 HTTP 액세스 로그가 전혀 없었음)
+  - `backend/apps/matching/services.py`, `backend/apps/matching/views.py`, `backend/apps/users/views.py` (주요 이벤트 — 회원가입, 비밀번호 변경/재설정, 매칭 처리 시작/완료, 매칭 요청 취소, 연결 요청/응답 — 에 `apps.*` 로거로 INFO 로그 추가)
+  - `backend/conftest.py` (신규 `apps_caplog` fixture — `apps` 로거의 `propagate=False` 때문에 일반 `caplog`로는 캡처가 안 되는 문제 해결)
+  - 관련 테스트 4개 추가
   - `docs/progress.md` (본 문서)
 
 ## 프로젝트 개요
@@ -293,11 +294,28 @@ scripts/check-all.sh
 
 ---
 
+### 추가 작업: 로깅 시스템 강화 ✅ 완료
+**목적:** 프로덕션에서 HTTP 요청과 주요 비즈니스 이벤트를 추적할 수 있도록 로깅 보강
+
+**작업 내용:**
+- [x] `docker/Dockerfile`의 gunicorn 실행 커맨드에 `--access-logfile - --error-logfile -` 추가
+  - 기존엔 gunicorn 액세스/에러 로그가 전혀 출력되지 않아, 프로덕션에서 어떤 요청이 들어왔는지 확인할 방법이 없었음. `-`는 stdout/stderr를 의미하며, Docker가 그대로 수집함
+- [x] 주요 비즈니스 이벤트에 `apps.*` 로거로 INFO 로그 추가 (기존엔 `notifications.py`의 발송 실패 warning 로그 하나뿐이었음)
+  - `apps/matching/services.py`: 매칭 요청 처리 시작/완료(후보 수, 결과 수)
+  - `apps/users/views.py`: 회원가입 완료, 비밀번호 변경/재설정 요청·완료
+  - `apps/matching/views.py`: 매칭 요청 취소, 연결 요청 생성/응답
+
+**진행 중 발견 및 수정한 문제:** 위 로그들을 `pytest`의 `caplog`로 검증하려는데 아무것도 잡히지 않는 문제 발견. 원인은 `apps` 로거가 `propagate=False`로 설정돼 있어(중복 stderr 출력을 막기 위한 기존 설계) `caplog`가 기본으로 붙는 루트 로거까지 레코드가 전파되지 않기 때문. `backend/conftest.py`에 `apps_caplog` fixture를 추가해 `caplog.handler`를 `apps` 로거에 직접 붙이는 방식으로 해결 (전파 경로에 의존하지 않음).
+
+**검증:** 새 로그 4곳에 대해 `apps_caplog` fixture로 로그 내용(사용자 ID, 요청/연결 ID, 후보·결과 수 등)을 검증하는 테스트 추가 + 로컬에서 실제 prod 이미지를 gunicorn으로 띄우고 요청을 보내 액세스 로그(`"GET /admin/ HTTP/1.1" 301 ...`)가 stdout에 찍히는 것 확인.
+
+---
+
 ### 선택 사항: 추가 기능
-- [x] 단위 테스트 작성 (pytest) — `apps/users/tests/`, `apps/matching/tests/`에 76개 테스트, 커버리지 90% (`apps`/`config` 기준). 모델, 회원가입/로그인/로그아웃, 로그인 잠금 회귀, 비밀번호 변경/재설정, 프로필 완성도, 매칭 알고리즘 점수 계산 + `process_matching_request` 통합, 매칭 요청 생성/취소/조회, 연결(친구) 요청/응답 및 이메일 알림 API 커버. CI도 `manage.py test`(새 pytest 스타일 테스트를 인식 못 함) 대신 `pytest`를 실행하도록 변경.
+- [x] 단위 테스트 작성 (pytest) — `apps/users/tests/`, `apps/matching/tests/`에 80개 테스트, 커버리지 90% (`apps`/`config` 기준). 모델, 회원가입/로그인/로그아웃, 로그인 잠금 회귀, 비밀번호 변경/재설정, 프로필 완성도, 매칭 알고리즘 점수 계산 + `process_matching_request` 통합, 매칭 요청 생성/취소/조회, 연결(친구) 요청/응답 및 이메일 알림, 로깅 API 커버. CI도 `manage.py test`(새 pytest 스타일 테스트를 인식 못 함) 대신 `pytest`를 실행하도록 변경.
 - [x] 이메일 알림 기능 — 연결 요청/수락 이메일 알림 (위 참고). 매칭 결과 알림은 동기 처리 특성상 불필요해 범위에서 제외.
+- [x] 로깅 시스템 강화 (위 참고)
 - [ ] API 응답 캐싱 (Redis)
-- [ ] 로깅 시스템 강화
 - [ ] 프로필 이미지 최적화
 
 ---
@@ -433,4 +451,5 @@ matching-api/
 5. ~~로그인 브루트포스 방어, 마이그레이션 드리프트 해소, 단위 테스트 작성~~ ✅ 완료
 6. ~~비밀번호 재설정 기능~~ ✅ 완료
 7. ~~이메일 알림 기능 (연결 요청/수락)~~ ✅ 완료
-8. (선택) API 응답 캐싱, 로깅 고도화, 프로필 이미지 최적화 중 우선순위 선택 ← 다음 작업
+8. ~~로깅 시스템 강화~~ ✅ 완료
+9. (선택) API 응답 캐싱, 프로필 이미지 최적화 중 우선순위 선택 ← 다음 작업

@@ -184,3 +184,14 @@ class TestProcessMatchingRequest:
         matching_request.refresh_from_db()
         assert matching_request.status == MatchingRequest.StatusChoices.COMPLETED
         assert matching_request.completed_at is not None
+
+    def test_logs_completion_with_candidate_and_result_counts(self, apps_caplog):
+        interest = InterestFactory()
+        requester = self._make_requester_with_interest(interest)
+        self._make_requester_with_interest(interest)  # one matching candidate
+
+        matching_request = MatchingRequest.objects.create(requester=requester, max_results=10)
+        process_matching_request(matching_request)
+
+        assert f"request_id={matching_request.id}" in apps_caplog.text
+        assert "candidates=1 results=1" in apps_caplog.text

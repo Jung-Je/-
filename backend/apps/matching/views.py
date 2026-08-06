@@ -1,3 +1,5 @@
+import logging
+
 from django.db import models
 from django.utils import timezone
 from rest_framework import status, viewsets
@@ -27,6 +29,8 @@ from .serializers import (
     UserInterestSerializer,
 )
 from .services import process_matching_request
+
+logger = logging.getLogger(__name__)
 
 
 @extend_schema_view(
@@ -128,6 +132,8 @@ class MatchingRequestViewSet(viewsets.ModelViewSet):
         matching_request.status = MatchingRequest.StatusChoices.CANCELLED
         matching_request.save(update_fields=["status", "updated_at"])
 
+        logger.info("매칭 요청 취소: request_id=%s", matching_request.id)
+
         serializer = self.get_serializer(matching_request)
         return Response(serializer.data)
 
@@ -187,6 +193,12 @@ class ConnectionViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """연결 요청 생성 시 상대방에게 이메일 알림"""
         connection = serializer.save()
+        logger.info(
+            "연결 요청 생성: connection_id=%s from_user_id=%s to_user_id=%s",
+            connection.id,
+            connection.from_user_id,
+            connection.to_user_id,
+        )
         notify_connection_requested(connection)
 
     @extend_schema(
@@ -251,6 +263,8 @@ class ConnectionViewSet(viewsets.ModelViewSet):
         connection.status = status_map[action_type]
         connection.responded_at = timezone.now()
         connection.save(update_fields=["status", "responded_at", "updated_at"])
+
+        logger.info("연결 요청 응답: connection_id=%s action=%s", connection.id, action_type)
 
         if action_type == "accept":
             notify_connection_accepted(connection)

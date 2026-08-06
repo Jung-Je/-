@@ -52,3 +52,9 @@ class TestSignup:
         client = APIClient()
         response = client.post(SIGNUP_URL, self._payload(), format="json")
         assert response.status_code == status.HTTP_201_CREATED
+
+    def test_signup_logs_completion(self, apps_caplog):
+        client = APIClient()
+        response = client.post(SIGNUP_URL, self._payload(), format="json")
+
+        assert f"user_id={response.data['id']}" in apps_caplog.text

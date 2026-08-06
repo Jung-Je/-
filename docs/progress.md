@@ -1,15 +1,16 @@
 # 매칭 API 프로젝트 진행 상황
 
-## 🚦 현재 상태 (마지막 업데이트: 2026-08-04)
-- 우선순위 1~3 (Admin 커스터마이징 / 매칭 알고리즘 / 서버 실행·E2E 테스트) 완료
-- **다음 시작 지점: 우선순위 4 — CI/CD 구축** (아래 "남은 작업" 참고)
+## 🚦 현재 상태 (마지막 업데이트: 2026-08-05)
+- 우선순위 1~4 (Admin 커스터마이징 / 매칭 알고리즘 / 서버 실행·E2E 테스트 / CI·CD) 완료
+- **다음 시작 지점: 선택 사항 (단위 테스트, 캐싱 등)** — 아래 "남은 작업" 참고
 - ⚠️ **커밋 필요:** 아래 변경사항이 아직 git에 커밋되지 않은 상태 (`git status`로 확인)
-  - `backend/apps/matching/services.py` (신규 — 매칭 알고리즘)
-  - `backend/apps/matching/admin.py`, `backend/apps/users/admin.py` (Admin 등록)
-  - `backend/apps/matching/views.py` (매칭 요청 생성 시 알고리즘 자동 실행 연결)
-  - `backend/config/urls.py` (debug_toolbar URL 누락으로 인한 500 에러 버그 수정)
-  - `docs/progress.md` (본 문서)
-  - 로컬 개발 DB에 슈퍼유저 `admin` 계정 생성됨 (코드 변경 아님, 커밋 대상 아님)
+  - `.github/workflows/ci.yml` (신규 — CI 워크플로우)
+  - `docker/Dockerfile`, `docker/entrypoint.sh` (신규 — 컨테이너 이미지)
+  - `docker-compose.yml`, `docker-compose.prod.yml`, `.dockerignore` (신규)
+  - `pyproject.toml`, `poetry.lock` (whitenoise를 dev 그룹에서 main 의존성으로 이동 — 프로덕션 이미지 부팅 실패 버그 수정)
+  - `backend/config/settings/dev.py` (테스트 실행 시 debug_toolbar 충돌 수정)
+  - `backend/config/wsgi.py`, `backend/config/asgi.py` (DJANGO_SETTINGS_MODULE 기본값을 `config.settings.prod`로 수정)
+  - `README.md`, `docs/progress.md` (본 문서)
 
 ## 프로젝트 개요
 Headless 매칭 API 서버 및 자동화된 문서화 시스템
@@ -216,25 +217,32 @@ scripts/check-all.sh
 
 ---
 
-### 우선순위 4: CI/CD 구축 (5단계)
+### 우선순위 4: CI/CD 구축 ⭐⭐ ✅ 완료
 **작업 내용:**
-- [ ] GitHub Actions 워크플로우 설정
-  - `.github/workflows/ci.yml` 생성
-  - 테스트 자동 실행
-  - 린트 체크
-  - 코드 커버리지
+- [x] GitHub Actions 워크플로우 설정
+  - `.github/workflows/ci.yml` 생성 (push to main/feature, PR to main에서 트리거)
+  - postgres:15 서비스 컨테이너 위에서 black/isort/flake8 → `manage.py check` → `coverage run manage.py test` 순으로 실행
+  - 커버리지 리포트를 아티팩트로 업로드
 
-- [ ] Docker 컨테이너화
-  - `Dockerfile` 생성
-  - `docker-compose.yml` 생성
-  - 개발/프로덕션 환경 분리
+- [x] Docker 컨테이너화
+  - `docker/Dockerfile` — poetry 기반 멀티스테이지 빌드 (`builder`/`builder-dev` → `base` → `dev`/`runtime` 타깃), non-root 유저로 실행
+  - `docker/entrypoint.sh` — DB 연결 대기 → (prod만) 보안 체크 → migrate → collectstatic → 커맨드 실행
+  - `docker-compose.yml`(개발용, `target: dev`, runserver + 코드 볼륨 마운트) / `docker-compose.prod.yml`(운영용, `target: runtime`, gunicorn, `.envs/.env.prod` 사용)
+  - `.dockerignore` 추가
+  - 로컬(Apple Silicon)에서 `docker build`/`docker compose up`으로 dev·prod 이미지 모두 직접 빌드·기동해 `/admin/`, `/api/docs/`, `/api/schema/` 200 OK 확인 완료
 
-- [ ] 프로덕션 배포 준비
-  - 정적 파일 수집 (collectstatic)
-  - 환경 변수 검증
-  - 보안 체크리스트
+- [x] 프로덕션 배포 준비
+  - `collectstatic`은 entrypoint에서 컨테이너 기동 시 자동 실행
+  - 환경 변수 검증: django-environ이 `SECRET_KEY`/`DB_*` 등 필수값 누락 시 즉시 `ImproperlyConfigured`로 실패 (기존 구조 활용)
+  - 보안 체크리스트: entrypoint가 prod 설정일 때 `manage.py check --deploy --tag security --fail-level WARNING`을 실행해 약한 `SECRET_KEY`, `SECURE_SSL_REDIRECT` 미설정 등을 컨테이너 기동 전에 차단하도록 검증 완료
 
-**예상 소요 시간:** 2-3시간
+**진행 중 발견 및 수정한 버그:**
+- `whitenoise`가 `pyproject.toml`의 dev 그룹에만 있어서, dev 의존성을 제외한 프로덕션 이미지가 `ModuleNotFoundError: No module named 'whitenoise'`로 기동 실패하는 문제 발견 → main 의존성으로 이동, `poetry.lock` 재생성.
+- `dev.py`로 `manage.py test`/CI 테스트 실행 시 `debug_toolbar.E001`(DEBUG=False로 강제되는 테스트 환경과 충돌)로 실패하는 문제 발견 → `DEBUG_TOOLBAR_CONFIG["IS_RUNNING_TESTS"] = False` 추가로 해결.
+- `wsgi.py`/`asgi.py`가 `DJANGO_SETTINGS_MODULE` 미설정 시 존재하지 않는 `config.settings` 모듈로 폴백하던 문제 발견 → `config.settings.prod`로 수정 (실제 배포 시 이 파일들이 쓰이는 진입점이므로).
+- Apple Silicon(Docker Desktop) 환경에서 arm64용 `rpds-py` 휠이 `Illegal instruction`으로 크래시하는 문제 발견 → 이미지 빌드/실행을 `linux/amd64`(에뮬레이션)로 고정해 회피 (docker-compose 파일에 주석으로 근거 명시).
+
+**참고:** `docker-compose.prod.yml`은 `docker compose --env-file .envs/.env.prod -f docker-compose.prod.yml up -d --build`로 실행해야 함 (`--env-file`이 있어야 compose 파일의 `${DB_NAME}` 등 변수 치환이 동작).
 
 ---
 
@@ -277,6 +285,15 @@ scripts/check-all.sh
 # 개별 실행
 scripts/format.sh  # 포맷팅
 scripts/lint.sh    # 린트
+```
+
+### Docker
+```bash
+# 개발 환경 (runserver + PostgreSQL)
+docker compose up -d --build
+
+# 프로덕션 환경 (gunicorn + PostgreSQL, .envs/.env.prod 사용)
+docker compose --env-file .envs/.env.prod -f docker-compose.prod.yml up -d --build
 ```
 
 ### 데이터베이스
@@ -356,4 +373,5 @@ matching-api/
 1. ~~Admin 패널 커스터마이징 (빠르게 완성)~~ ✅ 완료
 2. ~~매칭 알고리즘 구현 (핵심 기능)~~ ✅ 완료
 3. ~~서버 실행 및 테스트~~ ✅ 완료
-4. CI/CD 구축 ← 다음 작업
+4. ~~CI/CD 구축~~ ✅ 완료
+5. (선택) 단위 테스트, API 캐싱 등 "선택 사항" 항목 중 우선순위 선택 ← 다음 작업

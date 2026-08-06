@@ -1,0 +1,17 @@
+.git
+.github
+.idea
+.venv
+.envs
+docs
+scripts
+**/__pycache__
+**/*.pyc
+**/migrations/**/__pycache__
+backend/logs
+backend/media
+backend/staticfiles
+.coverage
+htmlcov
+.pytest_cache
+docker-compose*.yml

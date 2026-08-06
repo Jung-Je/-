@@ -77,15 +77,45 @@ scripts/format.sh  # 포맷팅만
 scripts/lint.sh    # 린트만
 ```
 
+같은 체크(포맷팅/린트/Django check/테스트+커버리지)는 `.github/workflows/ci.yml`을 통해 push/PR마다 자동으로도 실행됩니다.
+
+## Docker로 실행하기
+
+### 개발 환경
+
+```bash
+docker compose up -d --build
+```
+
+`web`(runserver, 코드 변경 즉시 반영)과 `db`(PostgreSQL 15) 컨테이너가 뜨고, http://localhost:8000 에서 접속할 수 있습니다.
+
+### 프로덕션 환경
+
+```bash
+docker compose --env-file .envs/.env.prod -f docker-compose.prod.yml up -d --build
+```
+
+`.envs/.env.prod`에 정의된 값으로 gunicorn + PostgreSQL이 실행됩니다. 컨테이너 시작 시 `docker/entrypoint.sh`가 다음을 순서대로 수행합니다:
+1. DB 연결 대기
+2. `manage.py check --deploy --tag security` (보안 설정 검증, 문제 있으면 기동 중단)
+3. `manage.py migrate`
+4. `manage.py collectstatic`
+
+Apple Silicon에서 amd64 서버용 이미지를 빌드해야 한다면 `--platform linux/amd64`를 build 단계에 추가하세요.
+
 ## 프로젝트 구조
 
 ```
 matching-api/
+├── .github/workflows/   # CI (GitHub Actions)
 ├── backend/
 │   ├── apps/
 │   │   ├── users/       # 사용자 관리
 │   │   └── matching/    # 매칭 시스템
 │   └── config/          # Django 설정
+├── docker/              # Dockerfile, entrypoint.sh
+├── docker-compose.yml       # 개발 환경
+├── docker-compose.prod.yml  # 프로덕션 환경
 ├── scripts/             # 자동화 스크립트
 ├── docs/               # 프로젝트 문서
 │   └── progress.md     # 진행 상황

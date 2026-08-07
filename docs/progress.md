@@ -2,16 +2,14 @@
 
 ## 🚦 현재 상태 (마지막 업데이트: 2026-08-07)
 - 우선순위 1~4 (Admin 커스터마이징 / 매칭 알고리즘 / 서버 실행·E2E 테스트 / CI·CD) 완료
-- 추가로 로그인 브루트포스 방어(django-axes), 모델-마이그레이션 드리프트 해소, 단위/통합 테스트 작성(87개, 커버리지 90%), 비밀번호 재설정(이메일), 연결 요청 이메일 알림, 로깅 시스템 강화, API 응답 캐싱(Redis) 완료
-- **다음 시작 지점: 선택 사항 (프로필 이미지 최적화)** — 아래 "남은 작업" 참고
+- 추가로 로그인 브루트포스 방어(django-axes), 모델-마이그레이션 드리프트 해소, 단위/통합 테스트 작성(97개, 커버리지 90%), 비밀번호 재설정(이메일), 연결 요청 이메일 알림, 로깅 시스템 강화, API 응답 캐싱(Redis), 프로필 이미지 최적화 완료
+- **"남은 작업" 목록의 선택 사항 항목이 모두 완료됨** — 다음은 새로운 기능/요구사항이 생기면 그때 우선순위를 다시 정하면 됨
 - ⚠️ **커밋 필요:** 아래 변경사항이 아직 git에 커밋되지 않은 상태 (`git status`로 확인)
-  - `backend/apps/matching/caching.py` (신규 — `cache_response` 데코레이터, 버전 기반 무효화)
-  - `backend/apps/matching/signals.py` (신규 — `InterestCategory`/`Interest` 변경 시 캐시 무효화)
-  - `backend/apps/matching/views.py` (`InterestCategoryViewSet`/`InterestViewSet`의 list/retrieve에 캐싱 적용), `backend/apps/matching/apps.py` (시그널 연결)
-  - `backend/config/settings/base.py` (`CACHES` 설정 — `django-redis`, `REDIS_URL` env)
-  - `docker-compose.yml`, `docker-compose.prod.yml` (`redis` 서비스 추가)
-  - `pyproject.toml`/`poetry.lock` (`django-redis` 추가)
-  - `backend/apps/matching/tests/test_caching.py` (신규 — 캐시 히트/무효화/권한 우회 방지 테스트 7개)
+  - `backend/apps/users/image_processing.py` (신규 — `optimize_profile_image`: 리사이즈/EXIF 보정/JPEG 재인코딩)
+  - `backend/apps/users/models.py` (`User.save()`에서 프로필 이미지가 바뀐 경우에만 최적화 수행 — API든 Admin이든 어떤 경로로 저장해도 항상 적용됨)
+  - `backend/apps/users/serializers.py` (`UserUpdateSerializer`에 업로드 파일 크기 상한 검증 추가)
+  - `backend/config/settings/base.py` (`DEFAULT_PARSER_CLASSES`에 `MultiPartParser`/`FormParser` 추가 — 이전엔 JSON만 허용돼 있어 API로 파일을 업로드할 방법 자체가 없었음)
+  - `backend/apps/users/tests/test_profile_image.py` (신규 — 리사이즈/EXIF/투명도/용량 제한/모델·API 경로 테스트 10개)
   - `docs/progress.md` (본 문서)
 
 ## 프로젝트 개요
@@ -334,12 +332,29 @@ scripts/check-all.sh
 
 ---
 
+### 추가 작업: 프로필 이미지 최적화 ✅ 완료
+**목적:** 업로드된 프로필 사진을 리사이즈/재인코딩해 저장 용량과 전송 크기를 줄이고, EXIF 회전 문제와 개인정보(위치정보 등 EXIF 메타데이터)를 함께 처리
+
+**작업 내용:**
+- [x] `apps/users/image_processing.py` — `optimize_profile_image(uploaded_file)`
+  - EXIF Orientation을 반영해 회전시킨 뒤 EXIF 자체는 제거 (파일 용량 절감 + 위치정보 등 개인정보 유출 방지)
+  - 가로/세로 중 큰 쪽을 1024px 이하로 축소 (원본이 더 작으면 확대하지 않음)
+  - 투명 배경(RGBA/팔레트)은 흰 배경에 합성 후 항상 JPEG(품질 85)로 통일 저장
+- [x] `User.save()`에서 `profile_image`가 실제로 바뀐 경우에만 최적화 수행 — **API 시리얼라이저가 아니라 모델 레벨**에 둔 이유는 Django Admin에서도 `profile_image`를 직접 업로드/수정할 수 있기 때문에(`UserAdmin`), 시리얼라이저에만 넣으면 Admin 업로드 경로가 최적화를 우회함. 인스턴스 로드 시점의 원본 값을 `__init__`에서 기억해뒀다가 비교해서, 이미지와 무관한 필드만 바뀐 저장에서는 재인코딩하지 않도록 함
+- [x] `UserUpdateSerializer.validate_profile_image` — 업로드 자체를 막는 파일 크기 상한(10MB) 검증 (실제 리사이즈는 모델에서 수행)
+
+**진행 중 발견하고 수정한 더 근본적인 문제:** 테스트를 multipart 업로드로 작성하다가 API가 `415 Unsupported Media Type`을 반환하는 것을 발견. 원인은 `REST_FRAMEWORK["DEFAULT_PARSER_CLASSES"]`가 `JSONParser` 하나만 있었던 것 — DRF 기본 `FileField`/`ImageField`는 실제 `UploadedFile` 객체(멀티파트로만 전달됨)를 요구하고 base64 등 순수 JSON 입력은 지원하지 않으므로, 이 설정으로는 **API를 통한 파일 업로드가 처음부터 아예 불가능했음** (프로필 이미지 필드 자체는 있었지만 Admin으로만 채울 수 있었던 셈). `MultiPartParser`/`FormParser`를 기본 파서에 추가해 해결.
+
+**검증:** `apps/users/tests/test_profile_image.py` 테스트 10개 — 순수 함수 단위 테스트(리사이즈 상한/축소 방지, 항상 JPEG 출력, 투명 배경 처리, EXIF 회전 보정 후 EXIF 제거, 용량 압축), 모델 레벨 테스트(어떤 경로로 저장해도 최적화됨, 무관한 필드 저장은 재인코딩하지 않음), API 레벨 테스트(용량 초과 거부, 정상 업로드 시 저장·최적화). 로컬 개발 서버에 실제 HTTP 멀티파트 요청으로 2000×1000 PNG를 업로드해 응답의 `profile_image` URL을 직접 GET으로 재조회, 실제 저장된 파일이 1024×512 JPEG(3.3KB)로 축소·재인코딩된 것을 확인.
+
+---
+
 ### 선택 사항: 추가 기능
-- [x] 단위 테스트 작성 (pytest) — `apps/users/tests/`, `apps/matching/tests/`에 87개 테스트, 커버리지 90% (`apps`/`config` 기준). 모델, 회원가입/로그인/로그아웃, 로그인 잠금 회귀, 비밀번호 변경/재설정, 프로필 완성도, 매칭 알고리즘 점수 계산 + `process_matching_request` 통합, 매칭 요청 생성/취소/조회, 연결(친구) 요청/응답 및 이메일 알림, 로깅, 캐싱 API 커버. CI도 `manage.py test`(새 pytest 스타일 테스트를 인식 못 함) 대신 `pytest`를 실행하도록 변경.
+- [x] 단위 테스트 작성 (pytest) — `apps/users/tests/`, `apps/matching/tests/`에 97개 테스트, 커버리지 90% (`apps`/`config` 기준). 모델, 회원가입/로그인/로그아웃, 로그인 잠금 회귀, 비밀번호 변경/재설정, 프로필 완성도, 매칭 알고리즘 점수 계산 + `process_matching_request` 통합, 매칭 요청 생성/취소/조회, 연결(친구) 요청/응답 및 이메일 알림, 로깅, 캐싱, 프로필 이미지 최적화 API 커버. CI도 `manage.py test`(새 pytest 스타일 테스트를 인식 못 함) 대신 `pytest`를 실행하도록 변경.
 - [x] 이메일 알림 기능 — 연결 요청/수락 이메일 알림 (위 참고). 매칭 결과 알림은 동기 처리 특성상 불필요해 범위에서 제외.
 - [x] 로깅 시스템 강화 (위 참고)
 - [x] API 응답 캐싱 (Redis) — 관심사 카테고리/관심사 목록·상세 조회만 캐싱 (위 참고)
-- [ ] 프로필 이미지 최적화
+- [x] 프로필 이미지 최적화 (위 참고)
 
 ---
 
@@ -485,4 +500,6 @@ matching-api/
 7. ~~이메일 알림 기능 (연결 요청/수락)~~ ✅ 완료
 8. ~~로깅 시스템 강화~~ ✅ 완료
 9. ~~API 응답 캐싱 (Redis)~~ ✅ 완료
-10. (선택) 프로필 이미지 최적화 ← 다음 작업
+10. ~~프로필 이미지 최적화~~ ✅ 완료
+
+모든 계획된 작업이 완료되었습니다. 다음 세션은 새로운 요구사항이 생기면 그때 이 문서에 추가해서 시작하면 됩니다.

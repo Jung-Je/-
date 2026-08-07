@@ -197,6 +197,11 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_PARSER_CLASSES": [
         "rest_framework.parsers.JSONParser",
+        # 프로필 이미지 등 파일 업로드에 필요. DRF의 기본 FileField/ImageField는
+        # 순수 JSON(base64 등)을 지원하지 않고 실제 UploadedFile 객체를 요구하므로,
+        # 이게 없으면 API로는 어떤 파일도 업로드할 방법이 없었음.
+        "rest_framework.parsers.MultiPartParser",
+        "rest_framework.parsers.FormParser",
     ],
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework.authentication.SessionAuthentication",

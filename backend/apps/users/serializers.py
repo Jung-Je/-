@@ -4,6 +4,7 @@ from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
 from rest_framework import serializers
 
+from .image_processing import MAX_UPLOAD_SIZE
 from .models import User, UserPersonality
 
 
@@ -116,6 +117,14 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             "profile_image",
             "is_active_for_matching",
         ]
+
+    def validate_profile_image(self, value):
+        """업로드 자체를 막을 파일 크기 상한 확인 (실제 리사이즈/재인코딩은 User.save()에서 수행)"""
+        if value and value.size > MAX_UPLOAD_SIZE:
+            raise serializers.ValidationError(
+                f"이미지 파일은 {MAX_UPLOAD_SIZE // (1024 * 1024)}MB를 초과할 수 없습니다."
+            )
+        return value
 
 
 class UserDetailSerializer(serializers.ModelSerializer):

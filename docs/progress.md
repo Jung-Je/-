@@ -1,16 +1,17 @@
 # 매칭 API 프로젝트 진행 상황
 
 ## 🚦 현재 상태 (마지막 업데이트: 2026-08-07)
-계획했던 작업이 모두 완료된 상태. 다음 세션은 새 요구사항이 생기면 "📋 다음 작업"에 추가해서 시작.
+프론트엔드 착수 — React+Vite 스캐폴드와 로그인 화면 1개 완성. 백엔드에 로그인 API가 아직 없어 프론트-백엔드 연동은 미완성(계약은 확정, `frontend/src/api/auth.ts` 참고). 다음 세션은 "📋 다음 작업"에서 이어서 시작.
 
-- 커밋 상태: 깨끗함 (`git status` clean)
+- 커밋 상태: 프론트엔드 신규 파일 + `PRODUCT.md`/`DESIGN.md` 추가·수정 있음, 아직 커밋 전
 - 각 기능의 상세 구현 배경/발견한 버그/검증 방법은 `git log`의 커밋 메시지 참고 (커밋 메시지에 자세히 적어둠)
+- 프론트엔드 화면 설계 방향은 `PRODUCT.md`/`DESIGN.md` 참고 (impeccable shape 브리프로 확정한 "포토카드 바인더" 세계관)
 
 ## 프로젝트 개요
-Headless 매칭 API 서버 및 자동화된 문서화 시스템
+매칭 API 서버 + 프론트엔드
 - 친구/네트워킹 매칭 시스템
-- Django + DRF 기반, PostgreSQL, Redis
-- OpenAPI 3.0 자동 문서화 (drf-spectacular)
+- 백엔드: Django + DRF, PostgreSQL, Redis, OpenAPI 3.0 자동 문서화 (drf-spectacular)
+- 프론트엔드: React + Vite + TypeScript (`frontend/`, 착수 단계)
 
 ---
 
@@ -39,16 +40,28 @@ Headless 매칭 API 서버 및 자동화된 문서화 시스템
 - [x] API 응답 캐싱 (Redis, 관심사 카테고리/관심사 목록·상세만)
 - [x] 프로필 이미지 최적화 (리사이즈/EXIF 보정/JPEG 재인코딩)
 
+**프론트엔드**
+- [x] React + Vite + TypeScript 스캐폴드 (`frontend/`), dev 서버 포트 3000
+- [x] 로그인 화면 — 폼/에러/로딩/성공 상태, WCAG AA 대비, 키보드 포커스
+- [x] API 클라이언트 (`frontend/src/api/`) — 로그인 API 계약을 먼저 확정해 백엔드 구현 전에 맞춰 짜둠
+- [x] 디자인 시스템 기록 (`DESIGN.md`, `.impeccable/design.json`) — "포토카드 바인더" 세계관
+
 ---
 
 ## 📋 다음 작업
-_(현재 없음 — 새 요구사항이 생기면 여기에 추가)_
+- [ ] 백엔드: JSON 로그인/로그아웃 API 구현 — `GET /api/v1/auth/csrf/`, `POST /api/v1/auth/login/`, `POST /api/v1/auth/logout/` (계약은 `frontend/src/api/auth.ts` 참고)
+- [ ] 프론트: 회원가입 화면
+- [ ] 프론트: 비밀번호 재설정 화면
+- [ ] 프론트: 온보딩 — 내 카드 만들기 (프로필/관심사/성격 입력)
+- [ ] 프론트: 매칭 요청·결과 화면
+- [ ] 프론트: 연결(요청/수락/거절/차단) 화면
+- [ ] 프론트: 설정 화면
 
 ---
 
 ## 📝 중요 명령어
 
-### 개발 환경
+### 개발 환경 (백엔드)
 ```bash
 cd backend
 python manage.py runserver
@@ -57,6 +70,14 @@ python manage.py makemigrations
 python manage.py migrate
 python manage.py createsuperuser
 python manage.py shell
+```
+
+### 개발 환경 (프론트엔드)
+```bash
+cd frontend
+npm install
+npm run dev      # http://localhost:3000
+npm run build
 ```
 
 ### 코드 품질
@@ -115,9 +136,17 @@ matching-api/
 ├── docker/                   # Dockerfile, entrypoint.sh
 ├── docker-compose.yml            # 개발 환경
 ├── docker-compose.prod.yml       # 프로덕션 환경
+├── frontend/                 # React + Vite + TypeScript (신규, 착수 단계)
+│   └── src/
+│       ├── api/               # 백엔드 API 클라이언트
+│       ├── components/        # 공용 컴포넌트 (아이콘, 워드마크 등)
+│       ├── pages/              # 화면 단위 (LoginPage 등)
+│       └── styles/            # 디자인 토큰 (tokens.css)
 ├── scripts/                  # format.sh, lint.sh, check-all.sh
 ├── docs/progress.md          # 이 파일
 ├── var/                      # 테스트/빌드 산출물 (Git 제외 — staticfiles, logs, htmlcov, .pytest_cache, .coverage)
+├── PRODUCT.md                 # 프로덕트 컨텍스트 (impeccable)
+├── DESIGN.md                  # 디자인 시스템 기록 (impeccable)
 └── pyproject.toml
 ```
 
@@ -127,3 +156,5 @@ matching-api/
 - Django: https://docs.djangoproject.com/en/5.0/
 - DRF: https://www.django-rest-framework.org/
 - drf-spectacular: https://drf-spectacular.readthedocs.io/
+- Vite: https://vite.dev/
+- React: https://react.dev/

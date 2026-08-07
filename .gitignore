@@ -14,6 +14,7 @@ lib/
 lib64/
 parts/
 sdist/
+# 테스트/빌드 산출물(staticfiles, 로그, 커버리지 리포트, pytest 캐시)을 모아두는 곳
 var/
 wheels/
 *.egg-info/
@@ -29,12 +30,10 @@ env/
 
 # Django
 *.log
-backend/logs/
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
 media/
-staticfiles/
 static/
 
 # Environment variables

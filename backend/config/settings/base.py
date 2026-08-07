@@ -47,6 +47,7 @@ THIRD_PARTY_APPS = [
     "django_filters",
     "corsheaders",
     "drf_spectacular",
+    "axes",
 ]
 
 LOCAL_APPS = [
@@ -65,6 +66,15 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    # Must come after AuthenticationMiddleware; tracks failed logins for axes.
+    "axes.middleware.AxesMiddleware",
+]
+
+# django-axes checks credentials before the normal auth backend, so it must
+# be listed first to be able to block a login attempt outright.
+AUTHENTICATION_BACKENDS = [
+    "axes.backends.AxesStandaloneBackend",
+    "django.contrib.auth.backends.ModelBackend",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -105,6 +115,21 @@ DATABASES = {
 }
 
 
+# Cache (Redis)
+# https://github.com/jazzband/django-redis
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": env("REDIS_URL", default="redis://localhost:6379/0"),
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
+        "KEY_PREFIX": "matching_api",
+    }
+}
+
+
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
 
@@ -124,6 +149,18 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
+# django-axes: brute-force login protection
+# https://django-axes.readthedocs.io/
+AXES_FAILURE_LIMIT = 5
+AXES_COOLOFF_TIME = 1  # hours
+# Nested list = lock on the (username, ip_address) COMBINATION. A flat list
+# here (["username", "ip_address"]) would instead OR two independent
+# dimensions, so one leaked/guessed username failing from many IPs would
+# also block every other user sharing an IP (school/office NAT) with it.
+AXES_LOCKOUT_PARAMETERS = [["username", "ip_address"]]
+AXES_RESET_ON_SUCCESS = True
+
+
 # Internationalization
 # https://docs.djangoproject.com/en/5.0/topics/i18n/
 
@@ -140,7 +177,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
 STATIC_URL = "static/"
-STATIC_ROOT = BASE_DIR / "staticfiles"
+# 테스트/빌드 산출물(collectstatic 결과물)은 소스 트리 밖 var/ 한 곳에 모아서 관리
+STATIC_ROOT = ROOT_DIR / "var" / "staticfiles"
 
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
@@ -160,6 +198,11 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_PARSER_CLASSES": [
         "rest_framework.parsers.JSONParser",
+        # 프로필 이미지 등 파일 업로드에 필요. DRF의 기본 FileField/ImageField는
+        # 순수 JSON(base64 등)을 지원하지 않고 실제 UploadedFile 객체를 요구하므로,
+        # 이게 없으면 API로는 어떤 파일도 업로드할 방법이 없었음.
+        "rest_framework.parsers.MultiPartParser",
+        "rest_framework.parsers.FormParser",
     ],
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework.authentication.SessionAuthentication",
@@ -258,3 +301,7 @@ CORS_ALLOW_HEADERS = [
     "x-csrftoken",
     "x-requested-with",
 ]
+
+
+# Frontend URL used to build links sent in emails (e.g. password reset)
+FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:3000")

@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 from decimal import Decimal
 
@@ -7,6 +8,8 @@ from django.utils import timezone
 from apps.users.models import User
 
 from .models import Connection, MatchingRequest, MatchingResult, UserInterest
+
+logger = logging.getLogger(__name__)
 
 # 최종 점수 가중치 (관심사 > 성격 > 위치)
 INTEREST_WEIGHT = Decimal("0.5")
@@ -150,6 +153,12 @@ def _get_candidate_queryset(matching_request: MatchingRequest):
 
 def process_matching_request(matching_request: MatchingRequest) -> list[MatchingResult]:
     """매칭 요청을 처리하여 점수 상위 N명의 MatchingResult를 생성한다."""
+    logger.info(
+        "매칭 요청 처리 시작: request_id=%s requester_id=%s",
+        matching_request.id,
+        matching_request.requester_id,
+    )
+
     matching_request.status = MatchingRequest.StatusChoices.PROCESSING
     matching_request.save(update_fields=["status", "updated_at"])
 
@@ -201,5 +210,12 @@ def process_matching_request(matching_request: MatchingRequest) -> list[Matching
     matching_request.status = MatchingRequest.StatusChoices.COMPLETED
     matching_request.completed_at = timezone.now()
     matching_request.save(update_fields=["status", "completed_at", "updated_at"])
+
+    logger.info(
+        "매칭 요청 처리 완료: request_id=%s candidates=%d results=%d",
+        matching_request.id,
+        len(scored_candidates),
+        len(results),
+    )
 
     return results

@@ -1,0 +1,72 @@
+/*
+  디자인 토큰 — "포토카드 바인더" 세계관 (impeccable shape 브리프, 시드 d7ca52ec)
+
+  라이트 전용: 이 세계관의 물리적 원형(바인더/포토카드)은 밝은 실내광 아래에서
+  다뤄지는 사물이라 다크 배경이 오히려 낯설다. 다크 테마는 이후 별도 브리프로.
+
+  색 전략: Full palette (3~4 named roles) — 관심사·성격·위치라는 실제 제품
+  구조를 3색이 각각 대변한다. 장식이 아니라 알고리즘 가중치(50/30/20)를
+  채도/색온도 순서로도 인코딩한 기능색이다.
+
+  대비: 채도 높은 원색(coral/violet/teal)은 그래픽·스탯 바 전용이며,
+  텍스트로 쓸 때는 각 role의 "-text" 변형(WCAG AA 4.5:1 이상 검증됨)을 쓴다.
+*/
+
+:root {
+  /* 배경 · 표면 · 잉크 */
+  --color-bg: #edeef2;
+  --color-surface: #ffffff;
+  --color-ink: #1b1d29;
+  --color-ink-muted: rgba(27, 29, 41, 0.7); /* 본문 보조 텍스트, 대비 ≥5.7:1 */
+  --color-ink-placeholder: rgba(27, 29, 41, 0.64); /* 플레이스홀더 전용, 대비 ≥4.8:1 (AA) */
+  --color-ink-disabled: rgba(27, 29, 41, 0.38); /* 비활성 컨트롤 전용 — WCAG는 비활성 요소 대비를 요구하지 않음 */
+  --color-border: rgba(27, 29, 41, 0.12);
+  --color-border-strong: rgba(27, 29, 41, 0.22);
+
+  /* 관심사 (가중치 50%) — 가장 따뜻하고 진한 색, 주 CTA 채움 */
+  --color-coral: #ff5a36;
+  --color-coral-soft: rgba(255, 90, 54, 0.12);
+  --color-on-coral: #1b1d29; /* 코랄 위 텍스트, 대비 5.4:1 */
+
+  /* 성격 (가중치 30%) */
+  --color-violet: #8c7cf0;
+  --color-violet-soft: rgba(140, 124, 240, 0.14);
+  --color-violet-text: #5b46cc; /* 흰 배경 위 텍스트/링크, 대비 6.58:1 */
+
+  /* 위치 (가중치 20%) — 가장 차분한 색 */
+  --color-teal: #2fb8a6;
+  --color-teal-soft: rgba(47, 184, 166, 0.14);
+  --color-teal-text: #178071; /* 흰 배경 위 텍스트, 대비 4.81:1 */
+
+  /* 상태 */
+  --color-danger: #c81e4d;
+  --color-danger-bg: #fbe7ed;
+  --color-focus-ring: #5b46cc;
+
+  /* 타이포 */
+  --font-ui:
+    'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont,
+    system-ui, sans-serif;
+
+  /* 형태 */
+  --radius-card: 20px;
+  --radius-control: 12px;
+  --radius-pill: 999px;
+
+  /* 그림자 — 오프셋+블러가 있는 진짜 깊이, 컬러 헤일로 장식 아님 */
+  --shadow-card:
+    0 1px 2px rgba(27, 29, 41, 0.04), 0 20px 40px -16px rgba(27, 29, 41, 0.22);
+  --shadow-focus: 0 0 0 3px rgba(91, 70, 204, 0.28);
+
+  /* 간격 스케일 */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  color-scheme: light;
+}

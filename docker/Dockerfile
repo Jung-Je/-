@@ -32,7 +32,7 @@ WORKDIR /app
 COPY backend/ /app/backend/
 COPY docker/entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh \
-    && mkdir -p /app/backend/logs /app/backend/staticfiles /app/backend/media \
+    && mkdir -p /app/var/staticfiles /app/var/logs /app/backend/media \
     && chown -R app:app /app
 
 WORKDIR /app/backend
@@ -49,4 +49,5 @@ CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
 FROM base AS runtime
 COPY --from=builder --chown=app:app /app/.venv /app/.venv
 USER app
-CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000"]
+CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", \
+     "--access-logfile", "-", "--error-logfile", "-"]

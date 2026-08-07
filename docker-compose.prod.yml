@@ -24,6 +24,15 @@ services:
       timeout: 5s
       retries: 10
 
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   web:
     build:
       context: .
@@ -32,14 +41,18 @@ services:
     env_file:
       - .envs/.env.prod
     environment:
-      # The bundled db service above is reachable as "db", regardless of
-      # whatever host .envs/.env.prod points at for non-Docker deployments.
+      # The bundled db/redis services above are reachable as "db"/"redis",
+      # regardless of whatever host .envs/.env.prod points at for non-Docker
+      # deployments.
       DB_HOST: db
       DB_PORT: 5432
+      REDIS_URL: redis://redis:6379/0
     ports:
       - "8000:8000"
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
 volumes:

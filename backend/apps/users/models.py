@@ -2,6 +2,8 @@ from django.contrib.auth.models import AbstractUser
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
+from .image_processing import optimize_profile_image
+
 
 class User(AbstractUser):
     """
@@ -50,6 +52,19 @@ class User(AbstractUser):
             models.Index(fields=["location"]),
             models.Index(fields=["is_active_for_matching", "is_profile_complete"]),
         ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # 인스턴스 로드/생성 시점의 profile_image를 기억해뒀다가 save()에서
+        # 실제로 새 파일이 들어온 경우에만 최적화를 수행한다 (다른 필드만
+        # 바뀐 저장에서 매번 재인코딩하는 낭비를 피하기 위함).
+        self._original_profile_image = self.profile_image
+
+    def save(self, *args, **kwargs):
+        if self.profile_image and self.profile_image != self._original_profile_image:
+            self.profile_image = optimize_profile_image(self.profile_image)
+        super().save(*args, **kwargs)
+        self._original_profile_image = self.profile_image
 
     def __str__(self):
         return f"{self.username} ({self.email})"

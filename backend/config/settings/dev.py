@@ -5,6 +5,8 @@ This module contains all settings specific to development environment.
 
 from pathlib import Path
 
+from django.conf import settings as django_settings
+
 import environ
 
 # Load development environment variables
@@ -41,7 +43,12 @@ INTERNAL_IPS = [
 
 # Django Debug Toolbar settings
 DEBUG_TOOLBAR_CONFIG = {
-    "SHOW_TOOLBAR_CALLBACK": lambda request: DEBUG,  # noqa: F405
+    # Read the live setting (django.conf.settings.DEBUG), not this module's
+    # DEBUG constant: Django's test runner flips settings.DEBUG to False at
+    # runtime, and the toolbar keeps trying to render/reverse its own URLs
+    # (which are only registered when DEBUG was True at urlconf import time)
+    # if this stays pinned to the frozen module-level value.
+    "SHOW_TOOLBAR_CALLBACK": lambda request: django_settings.DEBUG,
     "SHOW_TEMPLATE_CONTEXT": True,
     # manage.py test forces DEBUG=False, which the toolbar treats as a
     # misconfiguration unless told this is expected during test runs.

@@ -16,6 +16,7 @@
 
 - **Backend:** Django 5.0, Django REST Framework 3.14
 - **Database:** PostgreSQL 15
+- **Cache:** Redis (django-redis)
 - **Documentation:** drf-spectacular (OpenAPI 3.0)
 - **Code Quality:** black, isort, flake8
 - **Dependency Management:** Poetry
@@ -87,7 +88,7 @@ scripts/lint.sh    # 린트만
 docker compose up -d --build
 ```
 
-`web`(runserver, 코드 변경 즉시 반영)과 `db`(PostgreSQL 15) 컨테이너가 뜨고, http://localhost:8000 에서 접속할 수 있습니다.
+`web`(runserver, 코드 변경 즉시 반영), `db`(PostgreSQL 15), `redis`(캐시) 컨테이너가 뜨고, http://localhost:8000 에서 접속할 수 있습니다.
 
 ### 프로덕션 환경
 
@@ -129,6 +130,8 @@ matching-api/
 - `GET /api/v1/users/users/me/` - 내 정보 조회
 - `PATCH /api/v1/users/users/{id}/` - 프로필 수정
 - `POST /api/v1/users/users/change_password/` - 비밀번호 변경
+- `POST /api/v1/users/users/password_reset/` - 비밀번호 재설정 이메일 요청
+- `POST /api/v1/users/users/password_reset_confirm/` - 비밀번호 재설정 확인
 
 ### 매칭 (Matching)
 - `GET /api/v1/matching/interests/` - 관심사 목록

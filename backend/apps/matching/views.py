@@ -1,3 +1,5 @@
+import logging
+
 from django.db import models
 from django.utils import timezone
 from rest_framework import status, viewsets
@@ -7,6 +9,7 @@ from rest_framework.response import Response
 
 from drf_spectacular.utils import extend_schema, extend_schema_view
 
+from .caching import cache_response
 from .models import (
     Connection,
     Interest,
@@ -15,6 +18,7 @@ from .models import (
     MatchingResult,
     UserInterest,
 )
+from .notifications import notify_connection_accepted, notify_connection_requested
 from .serializers import (
     ConnectionResponseSerializer,
     ConnectionSerializer,
@@ -27,6 +31,8 @@ from .serializers import (
 )
 from .services import process_matching_request
 
+logger = logging.getLogger(__name__)
+
 
 @extend_schema_view(
     list=extend_schema(summary="관심사 카테고리 목록 조회", tags=["Interest Categories"]),
@@ -38,6 +44,14 @@ class InterestCategoryViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = InterestCategory.objects.all()
     serializer_class = InterestCategorySerializer
     permission_classes = [IsAuthenticated]
+
+    @cache_response("interest_categories")
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @cache_response("interest_categories")
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
 
 
 @extend_schema_view(
@@ -52,6 +66,14 @@ class InterestViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
     filterset_fields = ["category"]
     search_fields = ["name", "description"]
+
+    @cache_response("interests")
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @cache_response("interests")
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
 
 
 @extend_schema_view(
@@ -127,6 +149,8 @@ class MatchingRequestViewSet(viewsets.ModelViewSet):
         matching_request.status = MatchingRequest.StatusChoices.CANCELLED
         matching_request.save(update_fields=["status", "updated_at"])
 
+        logger.info("매칭 요청 취소: request_id=%s", matching_request.id)
+
         serializer = self.get_serializer(matching_request)
         return Response(serializer.data)
 
@@ -182,6 +206,17 @@ class ConnectionViewSet(viewsets.ModelViewSet):
         return Connection.objects.filter(
             models.Q(from_user=user) | models.Q(to_user=user)
         ).select_related("from_user", "to_user")
+
+    def perform_create(self, serializer):
+        """연결 요청 생성 시 상대방에게 이메일 알림"""
+        connection = serializer.save()
+        logger.info(
+            "연결 요청 생성: connection_id=%s from_user_id=%s to_user_id=%s",
+            connection.id,
+            connection.from_user_id,
+            connection.to_user_id,
+        )
+        notify_connection_requested(connection)
 
     @extend_schema(
         summary="받은 연결 요청 목록",
@@ -245,5 +280,10 @@ class ConnectionViewSet(viewsets.ModelViewSet):
         connection.status = status_map[action_type]
         connection.responded_at = timezone.now()
         connection.save(update_fields=["status", "responded_at", "updated_at"])
+
+        logger.info("연결 요청 응답: connection_id=%s action=%s", connection.id, action_type)
+
+        if action_type == "accept":
+            notify_connection_accepted(connection)
 
         return Response(self.get_serializer(connection).data)

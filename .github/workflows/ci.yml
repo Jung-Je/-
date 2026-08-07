@@ -25,6 +25,16 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     env:
       DJANGO_SETTINGS_MODULE: config.settings.dev
       SECRET_KEY: ci-test-secret-key
@@ -33,6 +43,7 @@ jobs:
       DB_PASSWORD: postgres
       DB_HOST: localhost
       DB_PORT: 5432
+      REDIS_URL: redis://localhost:6379/0
 
     steps:
       - uses: actions/checkout@v4
@@ -72,14 +83,11 @@ jobs:
         run: poetry run python manage.py check
 
       - name: Run tests with coverage
-        working-directory: backend
-        run: |
-          poetry run coverage run manage.py test
-          poetry run coverage report
+        run: poetry run pytest
 
       - name: Upload coverage report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
-          path: backend/.coverage
+          path: var/.coverage

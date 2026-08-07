@@ -58,6 +58,11 @@ EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")  # noqa: F405
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")  # noqa: F405
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@example.com")  # noqa: F405
 
+# 로그 파일도 var/ 아래에 모아서 관리 (테스트/빌드 산출물과 동일한 위치).
+# RotatingFileHandler는 상위 디렉터리를 자동으로 만들어주지 않으므로 미리 생성.
+LOG_DIR = ROOT_DIR / "var" / "logs"
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+
 # Logging configuration for production
 LOGGING = {
     "version": 1,
@@ -81,7 +86,7 @@ LOGGING = {
         "file": {
             "level": "ERROR",
             "class": "logging.handlers.RotatingFileHandler",
-            "filename": BASE_DIR / "logs" / "django.log",  # noqa: F405
+            "filename": LOG_DIR / "django.log",
             "maxBytes": 1024 * 1024 * 10,  # 10 MB
             "backupCount": 10,
             "formatter": "verbose",

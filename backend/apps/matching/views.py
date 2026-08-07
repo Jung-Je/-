@@ -9,6 +9,7 @@ from rest_framework.response import Response
 
 from drf_spectacular.utils import extend_schema, extend_schema_view
 
+from .caching import cache_response
 from .models import (
     Connection,
     Interest,
@@ -44,6 +45,14 @@ class InterestCategoryViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = InterestCategorySerializer
     permission_classes = [IsAuthenticated]
 
+    @cache_response("interest_categories")
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @cache_response("interest_categories")
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+
 
 @extend_schema_view(
     list=extend_schema(summary="관심사 목록 조회", tags=["Interests"]),
@@ -57,6 +66,14 @@ class InterestViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
     filterset_fields = ["category"]
     search_fields = ["name", "description"]
+
+    @cache_response("interests")
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @cache_response("interests")
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
 
 
 @extend_schema_view(

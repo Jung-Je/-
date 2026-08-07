@@ -16,6 +16,7 @@
 
 - **Backend:** Django 5.0, Django REST Framework 3.14
 - **Database:** PostgreSQL 15
+- **Cache:** Redis (django-redis)
 - **Documentation:** drf-spectacular (OpenAPI 3.0)
 - **Code Quality:** black, isort, flake8
 - **Dependency Management:** Poetry
@@ -87,7 +88,7 @@ scripts/lint.sh    # 린트만
 docker compose up -d --build
 ```
 
-`web`(runserver, 코드 변경 즉시 반영)과 `db`(PostgreSQL 15) 컨테이너가 뜨고, http://localhost:8000 에서 접속할 수 있습니다.
+`web`(runserver, 코드 변경 즉시 반영), `db`(PostgreSQL 15), `redis`(캐시) 컨테이너가 뜨고, http://localhost:8000 에서 접속할 수 있습니다.
 
 ### 프로덕션 환경
 

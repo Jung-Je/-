@@ -1,14 +1,17 @@
 # 매칭 API 프로젝트 진행 상황
 
-## 🚦 현재 상태 (마지막 업데이트: 2026-08-06)
+## 🚦 현재 상태 (마지막 업데이트: 2026-08-07)
 - 우선순위 1~4 (Admin 커스터마이징 / 매칭 알고리즘 / 서버 실행·E2E 테스트 / CI·CD) 완료
-- 추가로 로그인 브루트포스 방어(django-axes), 모델-마이그레이션 드리프트 해소, 단위/통합 테스트 작성(80개, 커버리지 90%), 비밀번호 재설정(이메일), 연결 요청 이메일 알림, 로깅 시스템 강화 완료
-- **다음 시작 지점: 선택 사항 (API 응답 캐싱, 프로필 이미지 최적화)** — 아래 "남은 작업" 참고
+- 추가로 로그인 브루트포스 방어(django-axes), 모델-마이그레이션 드리프트 해소, 단위/통합 테스트 작성(87개, 커버리지 90%), 비밀번호 재설정(이메일), 연결 요청 이메일 알림, 로깅 시스템 강화, API 응답 캐싱(Redis) 완료
+- **다음 시작 지점: 선택 사항 (프로필 이미지 최적화)** — 아래 "남은 작업" 참고
 - ⚠️ **커밋 필요:** 아래 변경사항이 아직 git에 커밋되지 않은 상태 (`git status`로 확인)
-  - `docker/Dockerfile` (gunicorn `--access-logfile -`/`--error-logfile -` 추가 — 이전엔 프로덕션에서 HTTP 액세스 로그가 전혀 없었음)
-  - `backend/apps/matching/services.py`, `backend/apps/matching/views.py`, `backend/apps/users/views.py` (주요 이벤트 — 회원가입, 비밀번호 변경/재설정, 매칭 처리 시작/완료, 매칭 요청 취소, 연결 요청/응답 — 에 `apps.*` 로거로 INFO 로그 추가)
-  - `backend/conftest.py` (신규 `apps_caplog` fixture — `apps` 로거의 `propagate=False` 때문에 일반 `caplog`로는 캡처가 안 되는 문제 해결)
-  - 관련 테스트 4개 추가
+  - `backend/apps/matching/caching.py` (신규 — `cache_response` 데코레이터, 버전 기반 무효화)
+  - `backend/apps/matching/signals.py` (신규 — `InterestCategory`/`Interest` 변경 시 캐시 무효화)
+  - `backend/apps/matching/views.py` (`InterestCategoryViewSet`/`InterestViewSet`의 list/retrieve에 캐싱 적용), `backend/apps/matching/apps.py` (시그널 연결)
+  - `backend/config/settings/base.py` (`CACHES` 설정 — `django-redis`, `REDIS_URL` env)
+  - `docker-compose.yml`, `docker-compose.prod.yml` (`redis` 서비스 추가)
+  - `pyproject.toml`/`poetry.lock` (`django-redis` 추가)
+  - `backend/apps/matching/tests/test_caching.py` (신규 — 캐시 히트/무효화/권한 우회 방지 테스트 7개)
   - `docs/progress.md` (본 문서)
 
 ## 프로젝트 개요
@@ -311,11 +314,31 @@ scripts/check-all.sh
 
 ---
 
+### 추가 작업: API 응답 캐싱 (Redis) ✅ 완료
+**목적:** DB 부하가 큰 조회를 줄이기 위한 응답 캐싱. 캐싱 대상은 신중하게 선택함 — 아래 "왜 이 두 ViewSet만인가" 참고
+
+**작업 내용:**
+- [x] `django-redis` 도입, `CACHES`를 Redis 백엔드로 설정 (`REDIS_URL` env, 기본값 `redis://localhost:6379/0`)
+- [x] `docker-compose.yml`/`docker-compose.prod.yml`에 `redis` 서비스 추가
+- [x] `apps/matching/caching.py` — `cache_response` 데코레이터
+  - 캐시 키는 요청 전체 경로(쿼리스트링 포함) 기준이라 페이지네이션/검색/필터 조합별로 별도 캐시됨
+  - **버전 기반 무효화**: prefix별 버전 번호를 두고, 데이터가 바뀌면 버전만 올려서 이전 캐시를 한 번에 무효화 (Redis의 `delete_pattern` 같은 백엔드 종속 API 없이도 동작)
+  - `InterestCategoryViewSet`/`InterestViewSet`의 `list`/`retrieve`에 적용
+- [x] `apps/matching/signals.py` — `InterestCategory`/`Interest` 저장·삭제 시 관련 캐시 버전을 올려 무효화 (`InterestCategorySerializer.interests_count`와 `InterestSerializer.category_name`이 서로의 모델에 의존하므로, 둘 중 하나만 바뀌어도 양쪽 다 무효화)
+
+**왜 이 두 ViewSet만인가:** `IsAuthenticated`만 걸려 있고 `get_queryset`이 사용자별로 필터링되지 않아 모든 로그인 사용자에게 동일한 응답을 주는, 그리고 오직 Admin을 통해서만(드물게) 바뀌는 데이터이기 때문에 안전하게 여러 사용자가 캐시를 공유할 수 있음. 반면 `MatchingRequest`/`MatchingResult`/`Connection`/`UserInterest`는 사용자별로 필터링되고 사용자 행동으로 자주 바뀌므로, 잘못 캐싱하면 (a) 사용자 간 데이터 오염 위험이 크고 (b) 캐시 이득도 거의 없어 범위에서 제외함.
+
+**진행 중 신경 쓴 부분 (실수하기 쉬운 지점):** DRF 뷰를 HTTP 레벨 `cache_page`로 캐싱하면, 첫 인증된 사용자의 응답이 캐시된 뒤 **비로그인 사용자의 같은 URL 요청도 권한 체크 없이 그 캐시를 그대로 받아버리는** 보안 문제가 생길 수 있음(cache_page는 뷰 진입 전에 캐시를 확인하므로 permission_classes를 우회함). 이를 피하기 위해 `cache_response`는 DRF의 `list`/`retrieve` 메서드 "안에서" 직렬화된 데이터만 캐싱해, `IsAuthenticated` 권한 체크가 매 요청 항상 먼저 실행되도록 함 — 캐시 히트 시에도 비로그인 요청은 정상적으로 403을 받음.
+
+**검증:** `apps/matching/tests/test_caching.py` 테스트 7개(두 번째 요청은 실제 DB 쿼리 없이 캐시로만 응답, 카테고리/관심사 생성·수정 시 무효화, 서로 다른 쿼리 파라미터는 별도 캐시, **비로그인 요청은 캐시 히트와 무관하게 403**) + 로컬 Redis 및 `docker compose`로 실제 스택을 띄워 두 번째 요청이 캐시로 응답되는 것과 Redis에 실제 키가 생성되는 것을 `redis-cli`로 확인.
+
+---
+
 ### 선택 사항: 추가 기능
-- [x] 단위 테스트 작성 (pytest) — `apps/users/tests/`, `apps/matching/tests/`에 80개 테스트, 커버리지 90% (`apps`/`config` 기준). 모델, 회원가입/로그인/로그아웃, 로그인 잠금 회귀, 비밀번호 변경/재설정, 프로필 완성도, 매칭 알고리즘 점수 계산 + `process_matching_request` 통합, 매칭 요청 생성/취소/조회, 연결(친구) 요청/응답 및 이메일 알림, 로깅 API 커버. CI도 `manage.py test`(새 pytest 스타일 테스트를 인식 못 함) 대신 `pytest`를 실행하도록 변경.
+- [x] 단위 테스트 작성 (pytest) — `apps/users/tests/`, `apps/matching/tests/`에 87개 테스트, 커버리지 90% (`apps`/`config` 기준). 모델, 회원가입/로그인/로그아웃, 로그인 잠금 회귀, 비밀번호 변경/재설정, 프로필 완성도, 매칭 알고리즘 점수 계산 + `process_matching_request` 통합, 매칭 요청 생성/취소/조회, 연결(친구) 요청/응답 및 이메일 알림, 로깅, 캐싱 API 커버. CI도 `manage.py test`(새 pytest 스타일 테스트를 인식 못 함) 대신 `pytest`를 실행하도록 변경.
 - [x] 이메일 알림 기능 — 연결 요청/수락 이메일 알림 (위 참고). 매칭 결과 알림은 동기 처리 특성상 불필요해 범위에서 제외.
 - [x] 로깅 시스템 강화 (위 참고)
-- [ ] API 응답 캐싱 (Redis)
+- [x] API 응답 캐싱 (Redis) — 관심사 카테고리/관심사 목록·상세 조회만 캐싱 (위 참고)
 - [ ] 프로필 이미지 최적화
 
 ---
@@ -363,11 +386,20 @@ poetry run pytest backend/apps/users/tests/test_auth_api.py -q
 
 ### Docker
 ```bash
-# 개발 환경 (runserver + PostgreSQL)
+# 개발 환경 (runserver + PostgreSQL + Redis)
 docker compose up -d --build
 
-# 프로덕션 환경 (gunicorn + PostgreSQL, .envs/.env.prod 사용)
+# 프로덕션 환경 (gunicorn + PostgreSQL + Redis, .envs/.env.prod 사용)
 docker compose --env-file .envs/.env.prod -f docker-compose.prod.yml up -d --build
+```
+
+### Redis (로컬에서 Docker 없이 개발 서버 실행 시)
+```bash
+# macOS (Homebrew)
+brew services start redis   # 또는 redis-server
+
+# 캐시 키 확인
+redis-cli --scan --pattern 'matching_api*'
 ```
 
 ### 데이터베이스
@@ -452,4 +484,5 @@ matching-api/
 6. ~~비밀번호 재설정 기능~~ ✅ 완료
 7. ~~이메일 알림 기능 (연결 요청/수락)~~ ✅ 완료
 8. ~~로깅 시스템 강화~~ ✅ 완료
-9. (선택) API 응답 캐싱, 프로필 이미지 최적화 중 우선순위 선택 ← 다음 작업
+9. ~~API 응답 캐싱 (Redis)~~ ✅ 완료
+10. (선택) 프로필 이미지 최적화 ← 다음 작업

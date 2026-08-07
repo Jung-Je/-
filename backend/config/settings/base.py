@@ -177,7 +177,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
 STATIC_URL = "static/"
-STATIC_ROOT = BASE_DIR / "staticfiles"
+# 테스트/빌드 산출물(collectstatic 결과물)은 소스 트리 밖 var/ 한 곳에 모아서 관리
+STATIC_ROOT = ROOT_DIR / "var" / "staticfiles"
 
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"

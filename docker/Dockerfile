@@ -32,7 +32,7 @@ WORKDIR /app
 COPY backend/ /app/backend/
 COPY docker/entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh \
-    && mkdir -p /app/backend/logs /app/backend/staticfiles /app/backend/media \
+    && mkdir -p /app/var/staticfiles /app/var/logs /app/backend/media \
     && chown -R app:app /app
 
 WORKDIR /app/backend

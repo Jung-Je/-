@@ -28,6 +28,7 @@ Headless 매칭 API 서버 및 자동화된 문서화 시스템
 - [x] GitHub Actions CI (`.github/workflows/ci.yml`) — format/lint/check/pytest, postgres+redis 서비스
 - [x] Docker 컨테이너화 — dev/prod 멀티스테이지, `docker-compose.yml`/`docker-compose.prod.yml`, 프로덕션 보안 체크 게이트
 - [x] pytest 테스트 스위트 97개, 커버리지 90%
+- [x] 테스트/빌드 산출물(staticfiles, 로그, 커버리지, pytest 캐시)을 `var/` 한 곳으로 통합
 
 **보안 & 기능 확장**
 - [x] 로그인 브루트포스 방어 (django-axes)
@@ -116,6 +117,7 @@ matching-api/
 ├── docker-compose.prod.yml       # 프로덕션 환경
 ├── scripts/                  # format.sh, lint.sh, check-all.sh
 ├── docs/progress.md          # 이 파일
+├── var/                      # 테스트/빌드 산출물 (Git 제외 — staticfiles, logs, htmlcov, .pytest_cache, .coverage)
 └── pyproject.toml
 ```
 

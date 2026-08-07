@@ -75,11 +75,14 @@ ensure_newline_before_comments = true
 DJANGO_SETTINGS_MODULE = "config.settings.dev"
 pythonpath = ["backend"]
 python_files = ["tests.py", "test_*.py", "*_tests.py"]
-addopts = "--cov=apps --cov=config --cov-report=html --cov-report=term-missing"
+addopts = "--cov=apps --cov=config --cov-report=html:var/htmlcov --cov-report=term-missing"
+# 테스트 산출물(커버리지, 캐시)을 var/ 한 곳에 모아서 관리
+cache_dir = "var/.pytest_cache"
 
 [tool.coverage.run]
 source = ["apps", "config"]
 omit = ["*/migrations/*", "*/tests.py", "*/test_*.py"]
+data_file = "var/.coverage"
 
 [tool.coverage.report]
 exclude_lines = ["pragma: no cover"]

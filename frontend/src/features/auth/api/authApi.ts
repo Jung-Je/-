@@ -42,3 +42,39 @@ export async function signup(payload: SignupPayload): Promise<void> {
     }),
   })
 }
+
+/**
+ * 비밀번호 재설정 API 계약 (백엔드: apps/users/views.py UserViewSet.password_reset
+ * / password_reset_confirm):
+ *   POST /api/v1/users/users/password_reset/         { email } -> 200 { detail }
+ *     계정 존재 여부와 무관하게 항상 같은 응답 — 이메일이 실재하면 메일 발송.
+ *   POST /api/v1/users/users/password_reset_confirm/ { uid, token, new_password,
+ *     new_password_confirm } -> 200 { detail } | 400 { ...필드별 오류 }
+ * uid/token은 이메일로 발송된 링크(FRONTEND_URL/reset-password?uid=&token=)의
+ * 쿼리 파라미터에서 그대로 읽어 넘긴다.
+ */
+export async function requestPasswordReset(email: string): Promise<void> {
+  await apiFetch<unknown>('/api/v1/users/users/password_reset/', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  })
+}
+
+export type ConfirmPasswordResetPayload = {
+  uid: string
+  token: string
+  newPassword: string
+  newPasswordConfirm: string
+}
+
+export async function confirmPasswordReset(payload: ConfirmPasswordResetPayload): Promise<void> {
+  await apiFetch<unknown>('/api/v1/users/users/password_reset_confirm/', {
+    method: 'POST',
+    body: JSON.stringify({
+      uid: payload.uid,
+      token: payload.token,
+      new_password: payload.newPassword,
+      new_password_confirm: payload.newPasswordConfirm,
+    }),
+  })
+}

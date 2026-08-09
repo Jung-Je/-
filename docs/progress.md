@@ -1,9 +1,9 @@
 # 매칭 API 프로젝트 진행 상황
 
-## 🚦 현재 상태 (마지막 업데이트: 2026-08-07)
-프론트엔드 착수 — React+Vite 스캐폴드와 로그인 화면 1개 완성. 백엔드에 로그인 API가 아직 없어 프론트-백엔드 연동은 미완성(계약은 확정, `frontend/src/api/auth.ts` 참고). 다음 세션은 "📋 다음 작업"에서 이어서 시작.
+## 🚦 현재 상태 (마지막 업데이트: 2026-08-09)
+백엔드 JSON 로그인/로그아웃 API 구현 완료 (`GET /api/v1/auth/csrf/`, `POST /api/v1/auth/login/`, `POST /api/v1/auth/logout/`) — `frontend/src/api/auth.ts`의 계약을 그대로 충족하지만, 프론트에서 실제로 붙여서 로그인 화면이 이 API로 동작하는지는 아직 검증 전. 다음 세션은 "📋 다음 작업"에서 이어서 시작.
 
-- 커밋 상태: 프론트엔드 신규 파일 + `PRODUCT.md`/`DESIGN.md` 추가·수정 있음, 아직 커밋 전
+- 커밋 상태: 이번 세션 변경분(로그인 API + 관련 테스트) 커밋 완료, 워킹트리 클린
 - 각 기능의 상세 구현 배경/발견한 버그/검증 방법은 `git log`의 커밋 메시지 참고 (커밋 메시지에 자세히 적어둠)
 - 프론트엔드 화면 설계 방향은 `PRODUCT.md`/`DESIGN.md` 참고 (impeccable shape 브리프로 확정한 "포토카드 바인더" 세계관)
 
@@ -39,6 +39,7 @@
 - [x] 로깅 강화 (gunicorn 액세스 로그, 주요 비즈니스 이벤트 로그)
 - [x] API 응답 캐싱 (Redis, 관심사 카테고리/관심사 목록·상세만)
 - [x] 프로필 이미지 최적화 (리사이즈/EXIF 보정/JPEG 재인코딩)
+- [x] JSON 로그인/로그아웃 API (`apps/users/auth_views.py`) — axes 브루트포스 잠금 응답을 프론트 계약(403)에 맞춤, DRF Request 래퍼로 인해 axes 잠금 플래그가 미들웨어에 전달되지 않던 버그 수정
 
 **프론트엔드**
 - [x] React + Vite + TypeScript 스캐폴드 (`frontend/`), dev 서버 포트 3000
@@ -49,7 +50,7 @@
 ---
 
 ## 📋 다음 작업
-- [ ] 백엔드: JSON 로그인/로그아웃 API 구현 — `GET /api/v1/auth/csrf/`, `POST /api/v1/auth/login/`, `POST /api/v1/auth/logout/` (계약은 `frontend/src/api/auth.ts` 참고)
+- [ ] 프론트: 로그인 화면을 실제 백엔드 API에 연결하고 동작 확인 (`frontend/src/api/auth.ts`)
 - [ ] 프론트: 회원가입 화면
 - [ ] 프론트: 비밀번호 재설정 화면
 - [ ] 프론트: 온보딩 — 내 카드 만들기 (프로필/관심사/성격 입력)

@@ -154,6 +154,16 @@ class UserDetailSerializer(serializers.ModelSerializer):
         return obj.user_interests.count()
 
 
+class LoginSerializer(serializers.Serializer):
+    """로그인 요청 바디 형식 검증용. 실제 인증(계정 조회/암호 확인/axes 잠금
+    판단)은 LoginView가 authenticate()에 위임해 처리한다."""
+
+    email = serializers.EmailField(required=True)
+    password = serializers.CharField(
+        required=True, trim_whitespace=False, style={"input_type": "password"}
+    )
+
+
 class PasswordChangeSerializer(serializers.Serializer):
     """비밀번호 변경 시리얼라이저"""
 

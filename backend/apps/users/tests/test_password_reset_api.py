@@ -96,11 +96,19 @@ class TestPasswordResetConfirm:
             format="json",
         )
 
-        old_login = client.post(LOGIN_URL, {"username": "resetme", "password": DEFAULT_PASSWORD})
-        assert old_login.status_code == 200  # form re-rendered, not authenticated
+        old_login = client.post(
+            LOGIN_URL,
+            {"email": user.email, "password": DEFAULT_PASSWORD},
+            content_type="application/json",
+        )
+        assert old_login.status_code == 400  # 옛 비밀번호는 더 이상 통하지 않음
 
-        new_login = client.post(LOGIN_URL, {"username": "resetme", "password": NEW_PASSWORD})
-        assert new_login.status_code == 302  # redirected away from the form, authenticated
+        new_login = client.post(
+            LOGIN_URL,
+            {"email": user.email, "password": NEW_PASSWORD},
+            content_type="application/json",
+        )
+        assert new_login.status_code == 200  # 새 비밀번호로 인증됨
 
     def test_token_cannot_be_reused_after_password_already_changed(self):
         user = UserFactory()

@@ -159,6 +159,9 @@ AXES_COOLOFF_TIME = 1  # hours
 # also block every other user sharing an IP (school/office NAT) with it.
 AXES_LOCKOUT_PARAMETERS = [["username", "ip_address"]]
 AXES_RESET_ON_SUCCESS = True
+# axes 기본값은 429지만, 프론트(frontend/src/api/client.ts)가 이미 403을 잠금
+# 상태로 가정하고 안내 메시지를 하드코딩해뒀으므로 그 계약에 맞춘다.
+AXES_HTTP_RESPONSE_CODE = 403
 
 
 # Internationalization

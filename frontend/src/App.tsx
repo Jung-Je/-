@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router-dom'
 import { LoginPage } from './app/login/page'
 import { SignupPage } from './app/signup/page'
 import { ResetPasswordPage } from './app/reset-password/page'
+import { OnboardingPage } from './app/onboarding/page'
 
 function App() {
   return (
@@ -9,6 +10,7 @@ function App() {
       <Route path="/" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/onboarding" element={<OnboardingPage />} />
     </Routes>
   )
 }

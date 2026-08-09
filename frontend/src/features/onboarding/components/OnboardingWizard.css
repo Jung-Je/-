@@ -1,0 +1,395 @@
+/*
+  온보딩("내 카드 만들기") 3단계 마법사. auth-* 화면과 같은 절제된 카드
+  문법을 물려받되, 매칭 알고리즘의 3색 가중치 체계(관심사=코랄 50%,
+  성격=바이올렛 30%, 위치=틸 20% — DESIGN.md 참고)를 각 단계 카드의
+  윗선 색으로 그대로 반영해 "지금 만들고 있는 게 실제로 매칭에 쓰인다"는
+  신호를 은근하게 준다.
+*/
+
+.onboarding-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6) var(--space-4) var(--space-8);
+  gap: var(--space-5);
+}
+
+.onboarding-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.onboarding-brand h1 {
+  font-size: 22px;
+}
+
+.onboarding-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.onboarding-progress__item {
+  display: contents;
+}
+
+.onboarding-progress__step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-ink-placeholder);
+}
+
+.onboarding-progress__dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--color-border-strong);
+  font-size: 12px;
+  color: var(--color-ink-muted);
+}
+
+.onboarding-progress__step--done .onboarding-progress__dot {
+  background: var(--color-teal);
+  border-color: var(--color-teal);
+  color: white;
+}
+
+.onboarding-progress__step--active {
+  color: var(--color-ink);
+}
+
+.onboarding-progress__step--active .onboarding-progress__dot {
+  border-color: var(--color-coral);
+  color: var(--color-coral);
+}
+
+.onboarding-progress__rule {
+  width: 20px;
+  height: 1.5px;
+  background: var(--color-border-strong);
+}
+
+.onboarding-card {
+  width: 100%;
+  max-width: 560px;
+  background: var(--color-surface);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  border-top: 2px solid var(--onboarding-accent, rgba(27, 29, 41, 0.2));
+  padding: var(--space-7) var(--space-6) var(--space-6);
+}
+
+.onboarding-card--profile {
+  --onboarding-accent: rgba(47, 184, 166, 0.5); /* 위치 = 틸 */
+}
+
+.onboarding-card--personality {
+  --onboarding-accent: rgba(140, 124, 240, 0.5); /* 성격 = 바이올렛 */
+}
+
+.onboarding-card--interests {
+  --onboarding-accent: rgba(255, 90, 54, 0.5); /* 관심사 = 코랄 */
+}
+
+.onboarding-step__heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
+}
+
+.onboarding-step__heading h2 {
+  font-size: 26px;
+}
+
+.onboarding-step__heading p {
+  color: var(--color-ink-muted);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.onboarding-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.onboarding-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.onboarding-field label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.onboarding-field input,
+.onboarding-field select,
+.onboarding-field textarea {
+  width: 100%;
+  font: inherit;
+  font-size: 16px;
+  padding: 12px 14px;
+  border-radius: var(--radius-control);
+  border: 1.5px solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.onboarding-field textarea {
+  resize: vertical;
+  min-height: 88px;
+  font-family: inherit;
+}
+
+.onboarding-field input:hover,
+.onboarding-field select:hover,
+.onboarding-field textarea:hover {
+  border-color: rgba(27, 29, 41, 0.32);
+}
+
+.onboarding-field input:focus-visible,
+.onboarding-field select:focus-visible,
+.onboarding-field textarea:focus-visible {
+  outline: none;
+  border-color: var(--color-focus-ring);
+  box-shadow: var(--shadow-focus);
+}
+
+.onboarding-field input:disabled,
+.onboarding-field select:disabled,
+.onboarding-field textarea:disabled {
+  background: var(--color-bg);
+  color: var(--color-ink-disabled);
+  cursor: not-allowed;
+}
+
+.onboarding-field__hint {
+  font-size: 13px;
+  color: var(--color-ink-placeholder);
+}
+
+/* 성격 슬라이더 */
+.onboarding-slider-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.onboarding-slider-field label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.onboarding-slider-field input[type='range'] {
+  width: 100%;
+  accent-color: var(--color-violet);
+}
+
+.onboarding-slider-field__labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--color-ink-muted);
+}
+
+.onboarding-error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  border-radius: var(--radius-control);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.onboarding-error svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.onboarding-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.onboarding-back {
+  border: none;
+  background: transparent;
+  color: var(--color-ink-muted);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px 4px;
+}
+
+.onboarding-back:hover {
+  color: var(--color-ink);
+  text-decoration: underline;
+}
+
+.onboarding-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: 13px 24px;
+  font-size: 16px;
+  font-weight: 700;
+  border: none;
+  border-radius: var(--radius-control);
+  background: var(--color-coral);
+  color: var(--color-on-coral);
+  cursor: pointer;
+  margin-left: auto;
+  transition:
+    filter 0.15s ease,
+    transform 0.05s ease;
+}
+
+.onboarding-submit:hover:not(:disabled) {
+  filter: brightness(0.96);
+}
+
+.onboarding-submit:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.onboarding-submit:disabled {
+  background: rgba(255, 90, 54, 0.45);
+  cursor: not-allowed;
+}
+
+.onboarding-submit .spinner-icon {
+  animation: onboarding-spin 0.8s linear infinite;
+}
+
+@keyframes onboarding-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 관심사 선택 */
+.onboarding-interest-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.onboarding-interest-group + .onboarding-interest-group {
+  margin-top: var(--space-5);
+}
+
+.onboarding-interest-group__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.onboarding-chip-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.onboarding-chip {
+  padding: 8px 16px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.onboarding-chip:hover {
+  border-color: rgba(27, 29, 41, 0.32);
+}
+
+.onboarding-chip[aria-pressed='true'] {
+  background: var(--color-coral-soft);
+  border-color: var(--color-coral);
+  color: var(--color-coral);
+}
+
+.onboarding-interests-loading,
+.onboarding-interests-empty {
+  color: var(--color-ink-muted);
+  font-size: 14px;
+}
+
+/* 완료 화면 */
+.onboarding-done {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  text-align: left;
+}
+
+.onboarding-done__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  align-self: flex-start;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  background: var(--color-teal-soft);
+  color: var(--color-teal-text);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.onboarding-done p {
+  color: var(--color-ink-muted);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+@media (max-width: 420px) {
+  .onboarding-card {
+    padding: var(--space-6) var(--space-4) var(--space-5);
+    border-radius: 16px;
+  }
+
+  .onboarding-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .onboarding-submit {
+    margin-left: 0;
+  }
+}

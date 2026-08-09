@@ -25,6 +25,15 @@ export async function logout(): Promise<void> {
 }
 
 /**
+ * 현재 로그인한 사용자 조회 (백엔드: UserViewSet.me). 세션 쿠키만으로는
+ * 브라우저가 로그인 상태를 알 수 없으므로, 보호된 화면에 들어갈 때마다
+ * 이걸로 실제 인증 여부를 확인한다. 비로그인이면 403.
+ */
+export async function getCurrentUser(): Promise<AuthUser> {
+  return apiFetch<AuthUser>('/api/v1/users/users/me/')
+}
+
+/**
  * 회원가입 API 계약 (백엔드: apps/users/views.py UserViewSet.create,
  * UserCreateSerializer):
  *   POST /api/v1/users/users/ -> 201 { id, username, email, ... } | 400 { ...필드별 오류 }

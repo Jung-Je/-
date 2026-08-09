@@ -1,3 +1,5 @@
+from django.test import Client
+
 import pytest
 
 from apps.users.tests.factories import DEFAULT_PASSWORD, UserFactory
@@ -6,6 +8,7 @@ CSRF_URL = "/api/v1/auth/csrf/"
 LOGIN_URL = "/api/v1/auth/login/"
 LOGOUT_URL = "/api/v1/auth/logout/"
 ME_URL = "/api/v1/users/users/me/"
+FRONTEND_ORIGIN = "http://localhost:3000"  # settings.CORS_ALLOWED_ORIGINS 기본값과 일치
 
 
 @pytest.mark.django_db
@@ -81,6 +84,40 @@ class TestSessionLogin:
     def test_logout_without_session_is_idempotent(self, client):
         response = client.post(LOGOUT_URL)
         assert response.status_code == 204
+
+    def test_authenticated_cross_origin_logout_is_not_blocked_by_csrf(self):
+        """Regression test for a bug caught by manually curling the real dev
+        setup: frontend(:3000)/backend(:8000) differ only by port, but that's
+        still a different origin, and without CSRF_TRUSTED_ORIGINS covering
+        it, DRF's SessionAuthentication.enforce_csrf() rejected every
+        authenticated POST (e.g. logout) with a 403 even with a valid
+        X-CSRFToken. pytest's default client doesn't send an Origin header,
+        so this only ever showed up against a real browser/curl request."""
+        user = UserFactory(username="crossorigin")
+        client = Client(enforce_csrf_checks=True)
+
+        csrf_response = client.get(CSRF_URL, HTTP_ORIGIN=FRONTEND_ORIGIN)
+        csrf_token = csrf_response.cookies["csrftoken"].value
+
+        login_response = client.post(
+            LOGIN_URL,
+            {"email": user.email, "password": DEFAULT_PASSWORD},
+            content_type="application/json",
+            HTTP_ORIGIN=FRONTEND_ORIGIN,
+            HTTP_X_CSRFTOKEN=csrf_token,
+        )
+        assert login_response.status_code == 200
+
+        # 로그인 성공 시 Django가 세션 고정 공격 방지를 위해 CSRF 토큰을
+        # 회전시키므로(rotate_token), 로그아웃에는 로그인 이전 토큰이 아니라
+        # 응답으로 새로 내려온 토큰을 써야 한다.
+        rotated_csrf_token = login_response.cookies["csrftoken"].value
+        logout_response = client.post(
+            LOGOUT_URL,
+            HTTP_ORIGIN=FRONTEND_ORIGIN,
+            HTTP_X_CSRFTOKEN=rotated_csrf_token,
+        )
+        assert logout_response.status_code == 204
 
 
 @pytest.mark.django_db

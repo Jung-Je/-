@@ -18,6 +18,22 @@ function readCookie(name: string): string | null {
   return match ? decodeURIComponent(match[1]) : null
 }
 
+/**
+ * DRF의 기본 시리얼라이저 검증 오류는 {detail: "..."}가 아니라
+ * {필드명: ["메시지", ...]} 형태로 온다 (로그인처럼 우리가 직접 만든 뷰만
+ * detail을 명시적으로 준다). 화면에 필드별 오류를 각각 붙이기 전까지는,
+ * 첫 번째 오류 메시지라도 그대로 보여주는 게 "요청을 처리하지 못했습니다"
+ * 같은 뭉뚱그린 메시지보다 낫다.
+ */
+function firstFieldErrorMessage(payload: unknown): string | null {
+  if (!payload || typeof payload !== 'object') return null
+  for (const value of Object.values(payload as Record<string, unknown>)) {
+    if (typeof value === 'string') return value
+    if (Array.isArray(value) && typeof value[0] === 'string') return value[0]
+  }
+  return null
+}
+
 export async function apiFetch<T>(
   path: string,
   options: RequestInit = {},
@@ -56,6 +72,7 @@ export async function apiFetch<T>(
   if (!response.ok) {
     const detail =
       (payload && (payload.detail as string)) ??
+      firstFieldErrorMessage(payload) ??
       (response.status === 403
         ? '로그인 시도가 너무 많아 잠시 차단되었습니다. 잠시 후 다시 시도해 주세요.'
         : '요청을 처리하지 못했습니다.')

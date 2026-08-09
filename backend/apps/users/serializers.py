@@ -3,6 +3,7 @@ from django.contrib.auth.tokens import default_token_generator
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
 from rest_framework import serializers
+from rest_framework.validators import UniqueValidator
 
 from .image_processing import MAX_UPLOAD_SIZE
 from .models import User, UserPersonality
@@ -86,7 +87,24 @@ class UserCreateSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id"]
         extra_kwargs = {
-            "email": {"required": True},
+            # DRF의 UniqueValidator 기본 메시지("사용자 with this 이메일 already
+            # exists.")는 모델 verbose_name만 번역되고 나머지는 영어로 남아
+            # 뒤섞이므로, 화면에 그대로 노출되는 두 필드는 메시지를 직접 준다.
+            "email": {
+                "required": True,
+                "validators": [
+                    UniqueValidator(
+                        queryset=User.objects.all(), message="이미 사용 중인 이메일입니다."
+                    )
+                ],
+            },
+            "username": {
+                "validators": [
+                    UniqueValidator(
+                        queryset=User.objects.all(), message="이미 사용 중인 닉네임입니다."
+                    )
+                ],
+            },
         }
 
     def validate(self, attrs):

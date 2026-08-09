@@ -3,18 +3,29 @@ import { Link } from 'react-router-dom'
 import { CardStackMark } from '../components/CardStackMark'
 import { AlertIcon, EyeIcon, EyeOffIcon, SpinnerIcon } from '../components/icons'
 import { ApiError } from '../api/client'
-import { login, primeCsrf, type AuthUser } from '../api/auth'
+import { login, primeCsrf, signup, type AuthUser } from '../api/auth'
 import '../styles/AuthForm.css'
 
 type Status = 'idle' | 'submitting' | 'error' | 'success'
 
-export function LoginPage() {
+/**
+ * 회원가입은 계정(닉네임/이메일/비밀번호)만 만든다. 이름·관심사·성격 같은
+ * 프로필 정보는 다음 단계인 온보딩("내 카드 만들기")에서 따로 받는다 —
+ * 백엔드 UserCreateSerializer가 요구하는 필드도 딱 이만큼뿐이다.
+ * 가입에 성공하면 같은 자격증명으로 바로 로그인까지 이어서, 사용자가
+ * 방금 입력한 비밀번호를 다시 치지 않아도 되게 한다.
+ */
+export function SignupPage() {
+  const usernameId = useId()
   const emailId = useId()
   const passwordId = useId()
+  const passwordConfirmId = useId()
   const errorId = useId()
 
+  const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [passwordConfirm, setPasswordConfirm] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [status, setStatus] = useState<Status>('idle')
   const [errorMessage, setErrorMessage] = useState('')
@@ -24,11 +35,19 @@ export function LoginPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setStatus('submitting')
     setErrorMessage('')
+
+    if (password !== passwordConfirm) {
+      setErrorMessage('비밀번호가 일치하지 않습니다.')
+      setStatus('error')
+      return
+    }
+
+    setStatus('submitting')
 
     try {
       await primeCsrf()
+      await signup({ username, email, password, passwordConfirm })
       const loggedInUser = await login(email, password)
       setUser(loggedInUser)
       setStatus('success')
@@ -52,21 +71,40 @@ export function LoginPage() {
       <div className="auth-card">
         {status === 'success' && user ? (
           <div className="auth-success">
-            <span className="auth-success__badge">로그인 완료</span>
-            <h2>{user.username}님, 다시 오셨네요</h2>
+            <span className="auth-success__badge">가입 완료</span>
+            <h2>{user.username}님, 반가워요</h2>
             <p>
-              바인더 화면은 다음 단계에서 이어서 만듭니다. 지금은 로그인 계약이
-              정상 동작하는 것까지 확인된 상태예요.
+              계정이 만들어지고 바로 로그인까지 됐어요. 카드 만들기(프로필/관심사/성격
+              입력)는 다음 단계에서 이어서 만듭니다.
             </p>
           </div>
         ) : (
           <>
             <div className="auth-card__heading">
-              <h2>로그인</h2>
-              <p>바인더로 돌아가려면 이메일과 비밀번호를 입력하세요.</p>
+              <h2>회원가입</h2>
+              <p>닉네임, 이메일, 비밀번호만 있으면 바로 시작할 수 있어요.</p>
             </div>
 
             <form className="auth-form" onSubmit={handleSubmit} noValidate>
+              <div className="auth-field">
+                <label htmlFor={usernameId}>닉네임</label>
+                <div className="auth-field__control">
+                  <input
+                    id={usernameId}
+                    name="username"
+                    type="text"
+                    autoComplete="username"
+                    placeholder="바인더에서 쓸 이름"
+                    value={username}
+                    onChange={(event) => setUsername(event.target.value)}
+                    aria-invalid={status === 'error'}
+                    aria-describedby={status === 'error' ? errorId : undefined}
+                    disabled={isSubmitting}
+                    required
+                  />
+                </div>
+              </div>
+
               <div className="auth-field">
                 <label htmlFor={emailId}>이메일</label>
                 <div className="auth-field__control">
@@ -93,8 +131,8 @@ export function LoginPage() {
                     id={passwordId}
                     name="password"
                     type={showPassword ? 'text' : 'password'}
-                    autoComplete="current-password"
-                    placeholder="비밀번호"
+                    autoComplete="new-password"
+                    placeholder="8자 이상"
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
                     aria-invalid={status === 'error'}
@@ -115,6 +153,26 @@ export function LoginPage() {
                 </div>
               </div>
 
+              <div className="auth-field">
+                <label htmlFor={passwordConfirmId}>비밀번호 확인</label>
+                <div className="auth-field__control">
+                  <input
+                    id={passwordConfirmId}
+                    name="password_confirm"
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="new-password"
+                    placeholder="비밀번호를 한 번 더 입력하세요"
+                    value={passwordConfirm}
+                    onChange={(event) => setPasswordConfirm(event.target.value)}
+                    aria-invalid={status === 'error'}
+                    aria-describedby={status === 'error' ? errorId : undefined}
+                    disabled={isSubmitting}
+                    required
+                    minLength={8}
+                  />
+                </div>
+              </div>
+
               {status === 'error' && (
                 <p className="auth-error" role="alert" id={errorId}>
                   <AlertIcon />
@@ -124,12 +182,11 @@ export function LoginPage() {
 
               <button className="auth-submit" type="submit" disabled={isSubmitting}>
                 {isSubmitting && <SpinnerIcon />}
-                {isSubmitting ? '로그인 중…' : '로그인'}
+                {isSubmitting ? '가입 중…' : '회원가입'}
               </button>
 
               <div className="auth-links">
-                <Link to="/reset-password">비밀번호를 잊으셨나요?</Link>
-                <Link to="/signup">계정이 없으신가요? 회원가입</Link>
+                <Link to="/">이미 계정이 있으신가요? 로그인</Link>
               </div>
             </form>
           </>

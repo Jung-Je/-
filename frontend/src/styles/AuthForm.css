@@ -1,4 +1,10 @@
-.login-screen {
+/*
+  로그인/회원가입/비밀번호 재설정처럼 "카드 한 장짜리 폼" 구조를 공유하는
+  인증 화면들의 공통 크롬. 화면마다 다른 부분(필드 구성, 성공 상태 문구)은
+  각 페이지 컴포넌트에서 처리하고, 여기서는 레이아웃/타이포/상태 스타일만.
+*/
+
+.auth-screen {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -8,17 +14,17 @@
   gap: var(--space-6);
 }
 
-.login-brand {
+.auth-brand {
   display: flex;
   align-items: center;
   gap: var(--space-3);
 }
 
-.login-brand h1 {
+.auth-brand h1 {
   font-size: 22px;
 }
 
-.login-card {
+.auth-card {
   width: 100%;
   max-width: 400px;
   background: var(--color-surface);
@@ -31,47 +37,47 @@
   gap: var(--space-5);
 }
 
-.login-card__heading {
+.auth-card__heading {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
 }
 
-.login-card__heading h2 {
+.auth-card__heading h2 {
   font-size: 26px;
 }
 
-.login-card__heading p {
+.auth-card__heading p {
   color: var(--color-ink-muted);
   font-size: 15px;
   line-height: 1.5;
 }
 
-.login-form {
+.auth-form {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
 }
 
-.login-field {
+.auth-field {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
 }
 
-.login-field label {
+.auth-field label {
   font-size: 14px;
   font-weight: 600;
   color: var(--color-ink);
 }
 
-.login-field__control {
+.auth-field__control {
   position: relative;
   display: flex;
   align-items: center;
 }
 
-.login-field input {
+.auth-field input {
   width: 100%;
   font: inherit;
   font-size: 16px;
@@ -85,31 +91,31 @@
     box-shadow 0.15s ease;
 }
 
-.login-field input::placeholder {
+.auth-field input::placeholder {
   color: var(--color-ink-placeholder);
 }
 
-.login-field input:hover {
+.auth-field input:hover {
   border-color: rgba(27, 29, 41, 0.32);
 }
 
-.login-field input:focus-visible {
+.auth-field input:focus-visible {
   outline: none;
   border-color: var(--color-focus-ring);
   box-shadow: var(--shadow-focus);
 }
 
-.login-field input[aria-invalid='true'] {
+.auth-field input[aria-invalid='true'] {
   border-color: var(--color-danger);
 }
 
-.login-field input:disabled {
+.auth-field input:disabled {
   background: var(--color-bg);
   color: var(--color-ink-disabled);
   cursor: not-allowed;
 }
 
-.login-field--password input {
+.auth-field--password input {
   padding-right: 44px;
 }
 
@@ -133,7 +139,7 @@
   color: var(--color-ink);
 }
 
-.login-error {
+.auth-error {
   display: flex;
   align-items: flex-start;
   gap: var(--space-2);
@@ -145,12 +151,12 @@
   line-height: 1.45;
 }
 
-.login-error svg {
+.auth-error svg {
   flex-shrink: 0;
   margin-top: 1px;
 }
 
-.login-submit {
+.auth-submit {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -169,53 +175,53 @@
     transform 0.05s ease;
 }
 
-.login-submit:hover:not(:disabled) {
+.auth-submit:hover:not(:disabled) {
   filter: brightness(0.96);
 }
 
-.login-submit:active:not(:disabled) {
+.auth-submit:active:not(:disabled) {
   transform: translateY(1px);
 }
 
-.login-submit:disabled {
+.auth-submit:disabled {
   background: rgba(255, 90, 54, 0.45);
   cursor: not-allowed;
 }
 
-.login-submit .spinner-icon {
-  animation: login-spin 0.8s linear infinite;
+.auth-submit .spinner-icon {
+  animation: auth-spin 0.8s linear infinite;
 }
 
-@keyframes login-spin {
+@keyframes auth-spin {
   to {
     transform: rotate(360deg);
   }
 }
 
-.login-links {
+.auth-links {
   display: flex;
   align-items: center;
   justify-content: space-between;
   font-size: 14px;
 }
 
-.login-links a {
+.auth-links a {
   font-weight: 600;
   text-decoration: none;
 }
 
-.login-links a:hover {
+.auth-links a:hover {
   text-decoration: underline;
 }
 
-.login-success {
+.auth-success {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
   text-align: left;
 }
 
-.login-success__badge {
+.auth-success__badge {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
@@ -228,19 +234,19 @@
   font-weight: 700;
 }
 
-.login-success p {
+.auth-success p {
   color: var(--color-ink-muted);
   font-size: 15px;
   line-height: 1.55;
 }
 
 @media (max-width: 420px) {
-  .login-card {
+  .auth-card {
     padding: var(--space-6) var(--space-4) var(--space-5);
     border-radius: 16px;
   }
 
-  .login-links {
+  .auth-links {
     flex-direction: column;
     align-items: flex-start;
     gap: var(--space-2);

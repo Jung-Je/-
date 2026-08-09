@@ -47,6 +47,17 @@ class TestSignup:
         response = client.post(SIGNUP_URL, self._payload(email="taken@example.com"), format="json")
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
+        # DRF의 UniqueValidator 기본 메시지는 한/영이 뒤섞여("사용자 with this
+        # 이메일 already exists.") 화면에 그대로 노출하기엔 부적절했던 회귀.
+        assert response.data["email"] == ["이미 사용 중인 이메일입니다."]
+
+    def test_signup_rejects_duplicate_username(self):
+        UserFactory(username="taken")
+        client = APIClient()
+        response = client.post(SIGNUP_URL, self._payload(username="taken"), format="json")
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data["username"] == ["이미 사용 중인 닉네임입니다."]
 
     def test_signup_does_not_require_authentication(self):
         client = APIClient()

@@ -1,9 +1,9 @@
 # 매칭 API 프로젝트 진행 상황
 
-## 🚦 현재 상태 (마지막 업데이트: 2026-08-07)
-프론트엔드 착수 — React+Vite 스캐폴드와 로그인 화면 1개 완성. 백엔드에 로그인 API가 아직 없어 프론트-백엔드 연동은 미완성(계약은 확정, `frontend/src/api/auth.ts` 참고). 다음 세션은 "📋 다음 작업"에서 이어서 시작.
+## 🚦 현재 상태 (마지막 업데이트: 2026-08-09)
+회원가입 화면 완성(실제 백엔드로 브라우저 검증 완료: 가입→자동 로그인, 비밀번호 불일치, 중복 이메일 에러), 이어서 프론트엔드 전체를 도메인(features) 기반 구조로 재편함 — 백엔드가 `apps/users`/`apps/matching`으로 나뉜 것과 같은 결로 `app/`(라우팅)·`features/`(도메인 로직)·`lib/`(외부 통신)를 분리. 로그인/회원가입이 공유하는 화면 크롬은 `features/auth/components/AuthScreen.tsx`로 뽑아뒀으니, 다음 비밀번호 재설정 화면도 그대로 재사용하면 됨. 다음 세션은 "📋 다음 작업"에서 이어서 시작.
 
-- 커밋 상태: 프론트엔드 신규 파일 + `PRODUCT.md`/`DESIGN.md` 추가·수정 있음, 아직 커밋 전
+- 커밋 상태: 전부 커밋 완료, 워킹트리 클린
 - 각 기능의 상세 구현 배경/발견한 버그/검증 방법은 `git log`의 커밋 메시지 참고 (커밋 메시지에 자세히 적어둠)
 - 프론트엔드 화면 설계 방향은 `PRODUCT.md`/`DESIGN.md` 참고 (impeccable shape 브리프로 확정한 "포토카드 바인더" 세계관)
 
@@ -39,18 +39,20 @@
 - [x] 로깅 강화 (gunicorn 액세스 로그, 주요 비즈니스 이벤트 로그)
 - [x] API 응답 캐싱 (Redis, 관심사 카테고리/관심사 목록·상세만)
 - [x] 프로필 이미지 최적화 (리사이즈/EXIF 보정/JPEG 재인코딩)
+- [x] JSON 로그인/로그아웃 API (`apps/users/auth_views.py`) — axes 브루트포스 잠금 응답을 프론트 계약(403)에 맞춤, DRF Request 래퍼로 인해 axes 잠금 플래그가 미들웨어에 전달되지 않던 버그 수정
+- [x] 로그인 화면 ↔ 백엔드 실동작 검증 — `CSRF_TRUSTED_ORIGINS` 미설정으로 프론트(:3000)/백엔드(:8000) 간 인증된 요청(로그아웃 등)이 전부 CSRF Origin 검증에 막히던 버그 발견/수정 (pytest 기본 클라이언트는 Origin 헤더를 안 보내 못 잡던 문제)
 
 **프론트엔드**
 - [x] React + Vite + TypeScript 스캐폴드 (`frontend/`), dev 서버 포트 3000
 - [x] 로그인 화면 — 폼/에러/로딩/성공 상태, WCAG AA 대비, 키보드 포커스
-- [x] API 클라이언트 (`frontend/src/api/`) — 로그인 API 계약을 먼저 확정해 백엔드 구현 전에 맞춰 짜둠
+- [x] 회원가입 화면 — 닉네임/이메일/비밀번호만 받고 가입 즉시 자동 로그인 (이름·관심사 등 프로필은 온보딩 단계로 미룸)
+- [x] API 클라이언트 (`frontend/src/lib/apiClient.ts`) — 로그인 API 계약을 먼저 확정해 백엔드 구현 전에 맞춰 짜둠. DRF 필드별 검증 오류(`{field: [msg]}`)에서 첫 메시지를 뽑아 보여주는 공통 로직 포함
 - [x] 디자인 시스템 기록 (`DESIGN.md`, `.impeccable/design.json`) — "포토카드 바인더" 세계관
+- [x] 프론트엔드 구조를 도메인(`features/`) 기반으로 재편 — `app/`(라우팅 진입점)·`features/<도메인>/`(api·components·types)·`lib/`(외부 통신)·`components/`(도메인 무관 공용 UI). 새 도메인(매칭·연결 등) 추가 시 `features/`에 폴더만 늘리면 되는 구조
 
 ---
 
 ## 📋 다음 작업
-- [ ] 백엔드: JSON 로그인/로그아웃 API 구현 — `GET /api/v1/auth/csrf/`, `POST /api/v1/auth/login/`, `POST /api/v1/auth/logout/` (계약은 `frontend/src/api/auth.ts` 참고)
-- [ ] 프론트: 회원가입 화면
 - [ ] 프론트: 비밀번호 재설정 화면
 - [ ] 프론트: 온보딩 — 내 카드 만들기 (프로필/관심사/성격 입력)
 - [ ] 프론트: 매칭 요청·결과 화면
@@ -138,10 +140,15 @@ matching-api/
 ├── docker-compose.prod.yml       # 프로덕션 환경
 ├── frontend/                 # React + Vite + TypeScript (신규, 착수 단계)
 │   └── src/
-│       ├── api/               # 백엔드 API 클라이언트
-│       ├── components/        # 공용 컴포넌트 (아이콘, 워드마크 등)
-│       ├── pages/              # 화면 단위 (LoginPage 등)
-│       └── styles/            # 디자인 토큰 (tokens.css)
+│       ├── app/                # 라우팅 진입점 (Django urls.py에 해당) — page.tsx는 얇게, 로직은 features/로
+│       │   ├── login/page.tsx
+│       │   ├── signup/page.tsx
+│       │   └── reset-password/page.tsx
+│       ├── features/           # 도메인별 기능 묶음 (Django apps에 해당)
+│       │   └── auth/             # api/ · components/ · types.ts
+│       ├── components/        # 도메인 무관 공용 UI (아이콘, 워드마크, 플레이스홀더)
+│       ├── lib/                # 외부 통신 계층 (apiClient.ts — fetch 래퍼 + CSRF + 에러 처리)
+│       └── styles/            # 전역 디자인 토큰 (tokens.css)
 ├── scripts/                  # format.sh, lint.sh, check-all.sh
 ├── docs/progress.md          # 이 파일
 ├── var/                      # 테스트/빌드 산출물 (Git 제외 — staticfiles, logs, htmlcov, .pytest_cache, .coverage)

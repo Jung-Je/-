@@ -159,6 +159,9 @@ AXES_COOLOFF_TIME = 1  # hours
 # also block every other user sharing an IP (school/office NAT) with it.
 AXES_LOCKOUT_PARAMETERS = [["username", "ip_address"]]
 AXES_RESET_ON_SUCCESS = True
+# axes 기본값은 429지만, 프론트(frontend/src/api/client.ts)가 이미 403을 잠금
+# 상태로 가정하고 안내 메시지를 하드코딩해뒀으므로 그 계약에 맞춘다.
+AXES_HTTP_RESPONSE_CODE = 403
 
 
 # Internationalization
@@ -301,6 +304,13 @@ CORS_ALLOW_HEADERS = [
     "x-csrftoken",
     "x-requested-with",
 ]
+
+# 프론트(localhost:3000)와 백엔드(localhost:8000)는 포트가 달라 브라우저
+# 기준으로는 서로 다른 origin이라, 이걸 신뢰 목록에 넣지 않으면 로그인 이후
+# 세션 인증된 상태에서 나가는 모든 POST/PUT/PATCH/DELETE(로그아웃, 비밀번호
+# 변경 등)가 CSRF Origin 검증에서 막힌다. 신뢰할 프론트 origin은
+# CORS_ALLOWED_ORIGINS와 동일하므로 그대로 재사용한다.
+CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
 
 
 # Frontend URL used to build links sent in emails (e.g. password reset)

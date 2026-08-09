@@ -1,9 +1,9 @@
 # 매칭 API 프로젝트 진행 상황
 
 ## 🚦 현재 상태 (마지막 업데이트: 2026-08-09)
-회원가입 화면 완성, 실제 백엔드에 붙여 브라우저로 검증 완료(가입→자동 로그인, 비밀번호 불일치, 중복 이메일 에러). 로그인/회원가입이 공유하는 인증 화면 크롬을 `frontend/src/styles/AuthForm.css`로 분리해뒀으니, 다음 비밀번호 재설정 화면도 그대로 재사용하면 됨. 다음 세션은 "📋 다음 작업"에서 이어서 시작.
+회원가입 화면 완성(실제 백엔드로 브라우저 검증 완료: 가입→자동 로그인, 비밀번호 불일치, 중복 이메일 에러), 이어서 프론트엔드 전체를 도메인(features) 기반 구조로 재편함 — 백엔드가 `apps/users`/`apps/matching`으로 나뉜 것과 같은 결로 `app/`(라우팅)·`features/`(도메인 로직)·`lib/`(외부 통신)를 분리. 로그인/회원가입이 공유하는 화면 크롬은 `features/auth/components/AuthScreen.tsx`로 뽑아뒀으니, 다음 비밀번호 재설정 화면도 그대로 재사용하면 됨. 다음 세션은 "📋 다음 작업"에서 이어서 시작.
 
-- 커밋 상태: 회원가입 화면 + 백엔드 시리얼라이저 메시지 수정이 아직 커밋 전
+- 커밋 상태: 전부 커밋 완료, 워킹트리 클린
 - 각 기능의 상세 구현 배경/발견한 버그/검증 방법은 `git log`의 커밋 메시지 참고 (커밋 메시지에 자세히 적어둠)
 - 프론트엔드 화면 설계 방향은 `PRODUCT.md`/`DESIGN.md` 참고 (impeccable shape 브리프로 확정한 "포토카드 바인더" 세계관)
 
@@ -45,9 +45,10 @@
 **프론트엔드**
 - [x] React + Vite + TypeScript 스캐폴드 (`frontend/`), dev 서버 포트 3000
 - [x] 로그인 화면 — 폼/에러/로딩/성공 상태, WCAG AA 대비, 키보드 포커스
-- [x] 회원가입 화면 — 닉네임/이메일/비밀번호만 받고 가입 즉시 자동 로그인 (이름·관심사 등 프로필은 온보딩 단계로 미룸). 로그인 화면과 공유하는 크롬은 `styles/AuthForm.css`로 분리
-- [x] API 클라이언트 (`frontend/src/api/`) — 로그인 API 계약을 먼저 확정해 백엔드 구현 전에 맞춰 짜둠. DRF 필드별 검증 오류(`{field: [msg]}`)에서 첫 메시지를 뽑아 보여주는 공통 로직 추가 (`client.ts`)
+- [x] 회원가입 화면 — 닉네임/이메일/비밀번호만 받고 가입 즉시 자동 로그인 (이름·관심사 등 프로필은 온보딩 단계로 미룸)
+- [x] API 클라이언트 (`frontend/src/lib/apiClient.ts`) — 로그인 API 계약을 먼저 확정해 백엔드 구현 전에 맞춰 짜둠. DRF 필드별 검증 오류(`{field: [msg]}`)에서 첫 메시지를 뽑아 보여주는 공통 로직 포함
 - [x] 디자인 시스템 기록 (`DESIGN.md`, `.impeccable/design.json`) — "포토카드 바인더" 세계관
+- [x] 프론트엔드 구조를 도메인(`features/`) 기반으로 재편 — `app/`(라우팅 진입점)·`features/<도메인>/`(api·components·types)·`lib/`(외부 통신)·`components/`(도메인 무관 공용 UI). 새 도메인(매칭·연결 등) 추가 시 `features/`에 폴더만 늘리면 되는 구조
 
 ---
 
@@ -139,10 +140,15 @@ matching-api/
 ├── docker-compose.prod.yml       # 프로덕션 환경
 ├── frontend/                 # React + Vite + TypeScript (신규, 착수 단계)
 │   └── src/
-│       ├── api/               # 백엔드 API 클라이언트
-│       ├── components/        # 공용 컴포넌트 (아이콘, 워드마크 등)
-│       ├── pages/              # 화면 단위 (LoginPage 등)
-│       └── styles/            # 디자인 토큰 (tokens.css)
+│       ├── app/                # 라우팅 진입점 (Django urls.py에 해당) — page.tsx는 얇게, 로직은 features/로
+│       │   ├── login/page.tsx
+│       │   ├── signup/page.tsx
+│       │   └── reset-password/page.tsx
+│       ├── features/           # 도메인별 기능 묶음 (Django apps에 해당)
+│       │   └── auth/             # api/ · components/ · types.ts
+│       ├── components/        # 도메인 무관 공용 UI (아이콘, 워드마크, 플레이스홀더)
+│       ├── lib/                # 외부 통신 계층 (apiClient.ts — fetch 래퍼 + CSRF + 에러 처리)
+│       └── styles/            # 전역 디자인 토큰 (tokens.css)
 ├── scripts/                  # format.sh, lint.sh, check-all.sh
 ├── docs/progress.md          # 이 파일
 ├── var/                      # 테스트/빌드 산출물 (Git 제외 — staticfiles, logs, htmlcov, .pytest_cache, .coverage)

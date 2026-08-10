@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import { AlertIcon, SpinnerIcon } from '../../../components/icons'
+import { ApiError } from '../../../lib/apiClient'
+import { createConnection } from '../../connections/api/connectionsApi'
 import { viewMatchingResult } from '../api/matchingApi'
 import type { MatchingResult } from '../types'
 
@@ -23,6 +26,8 @@ type Props = {
 export function MatchingResultCard({ result, onViewed }: Props) {
   const [expanded, setExpanded] = useState(false)
   const [detail, setDetail] = useState<MatchingResult>(result)
+  const [connectStatus, setConnectStatus] = useState<'idle' | 'submitting' | 'error'>('idle')
+  const [connectError, setConnectError] = useState('')
 
   const totalScore = Math.round(Number(detail.total_score))
   const { matched_user_detail: user } = detail
@@ -39,6 +44,24 @@ export function MatchingResultCard({ result, onViewed }: Props) {
       } catch {
         // 조회 실패해도 펼침 자체는 막지 않는다 — "확인함" 표시만 못 뜨는 정도.
       }
+    }
+  }
+
+  async function handleConnect() {
+    setConnectStatus('submitting')
+    setConnectError('')
+
+    try {
+      await createConnection({ toUserId: user.id, matchingResultId: detail.id })
+      setDetail((current) => ({ ...current, is_contacted: true }))
+      setConnectStatus('idle')
+    } catch (error) {
+      const message =
+        error instanceof ApiError
+          ? error.detail
+          : '알 수 없는 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'
+      setConnectError(message)
+      setConnectStatus('error')
     }
   }
 
@@ -81,11 +104,32 @@ export function MatchingResultCard({ result, onViewed }: Props) {
         </div>
       )}
 
-      {detail.is_contacted && <span className="matching-result-card__contacted">연결 요청됨</span>}
+      {connectStatus === 'error' && (
+        <p className="matching-error" role="alert">
+          <AlertIcon />
+          <span>{connectError}</span>
+        </p>
+      )}
 
-      <button type="button" className="matching-result-card__toggle" onClick={handleToggle}>
-        {expanded ? '접기' : '자세히 보기'}
-      </button>
+      <div className="matching-result-card__actions">
+        {detail.is_contacted ? (
+          <span className="matching-result-card__contacted">연결 요청됨</span>
+        ) : (
+          <button
+            type="button"
+            className="matching-connect"
+            onClick={handleConnect}
+            disabled={connectStatus === 'submitting'}
+          >
+            {connectStatus === 'submitting' && <SpinnerIcon />}
+            {connectStatus === 'submitting' ? '요청 중…' : '연결하기'}
+          </button>
+        )}
+
+        <button type="button" className="matching-result-card__toggle" onClick={handleToggle}>
+          {expanded ? '접기' : '자세히 보기'}
+        </button>
+      </div>
 
       {expanded && (
         <div className="matching-result-card__details">

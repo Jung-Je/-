@@ -3,6 +3,7 @@ import { LoginPage } from './app/login/page'
 import { SignupPage } from './app/signup/page'
 import { ResetPasswordPage } from './app/reset-password/page'
 import { OnboardingPage } from './app/onboarding/page'
+import { MatchingPage } from './app/matching/page'
 
 function App() {
   return (
@@ -11,6 +12,7 @@ function App() {
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/onboarding" element={<OnboardingPage />} />
+      <Route path="/matching" element={<MatchingPage />} />
     </Routes>
   )
 }

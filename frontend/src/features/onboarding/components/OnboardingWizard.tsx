@@ -1,8 +1,7 @@
 import { useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { CardStackMark } from '../../../components/CardStackMark'
-import { SpinnerIcon } from '../../../components/icons'
-import { useCurrentUser } from '../../auth/hooks/useCurrentUser'
+import { RequireAuth } from '../../auth/components/RequireAuth'
 import { InterestsStep } from './InterestsStep'
 import { PersonalityStep } from './PersonalityStep'
 import { ProfileStep } from './ProfileStep'
@@ -17,26 +16,15 @@ const STEPS: { key: Step; label: string }[] = [
 ]
 
 /**
- * 로그인 세션이 있는지부터 확인한 뒤(비로그인이면 로그인 화면으로),
  * 이미 카드가 완성된 사용자라면 마법사를 다시 태우지 않고 바로 완료
- * 화면을 보여준다.
+ * 화면을 보여준다. 로그인 여부 확인은 RequireAuth에 위임.
  */
 export function OnboardingWizard() {
-  const currentUser = useCurrentUser()
-
-  if (currentUser.status === 'loading') {
-    return (
-      <div className="onboarding-screen">
-        <SpinnerIcon />
-      </div>
-    )
-  }
-
-  if (currentUser.status === 'anonymous') {
-    return <Navigate to="/" replace />
-  }
-
-  return <Wizard userId={currentUser.user.id} alreadyComplete={currentUser.user.is_profile_complete} />
+  return (
+    <RequireAuth>
+      {(user) => <Wizard userId={user.id} alreadyComplete={user.is_profile_complete} />}
+    </RequireAuth>
+  )
 }
 
 function Wizard({ userId, alreadyComplete }: { userId: number; alreadyComplete: boolean }) {
@@ -91,10 +79,8 @@ function Wizard({ userId, alreadyComplete }: { userId: number; alreadyComplete: 
           <div className="onboarding-done">
             <span className="onboarding-done__badge">카드 완성</span>
             <h2>카드가 완성됐어요</h2>
-            <p>
-              매칭 요청·결과 화면은 다음 단계에서 이어서 만듭니다. 지금은 온보딩 계약이 정상
-              동작하는 것까지 확인된 상태예요.
-            </p>
+            <p>이제 매칭을 시작할 수 있어요. 취향이 비슷한 사람을 찾아드릴게요.</p>
+            <Link to="/matching">매칭 시작하기</Link>
           </div>
         )}
       </div>

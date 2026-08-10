@@ -378,6 +378,17 @@
   line-height: 1.55;
 }
 
+.onboarding-done a {
+  align-self: flex-start;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.onboarding-done a:hover {
+  text-decoration: underline;
+}
+
 @media (max-width: 420px) {
   .onboarding-card {
     padding: var(--space-6) var(--space-4) var(--space-5);

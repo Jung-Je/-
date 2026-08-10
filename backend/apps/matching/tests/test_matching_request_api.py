@@ -45,6 +45,37 @@ class TestMatchingRequestCreate:
 
 
 @pytest.mark.django_db
+class TestMatchingRequestDuplicatePrevention:
+    """느린 네트워크·연속 클릭 등으로 같은 사용자가 짧은 간격으로 두 번
+    POST해도 결과 없는 중복 MatchingRequest("가상 티켓")가 안 생기게 막는다.
+    """
+
+    def test_second_request_within_window_returns_existing_instead_of_creating(self, auth_client):
+        client, requester = auth_client
+
+        first_response = client.post(REQUESTS_URL, {"max_results": 5}, format="json")
+        assert first_response.status_code == status.HTTP_201_CREATED
+
+        second_response = client.post(REQUESTS_URL, {"max_results": 5}, format="json")
+
+        assert second_response.status_code == status.HTTP_200_OK
+        assert second_response.data["id"] == first_response.data["id"]
+        assert MatchingRequest.objects.filter(requester=requester).count() == 1
+
+    def test_different_users_are_not_affected_by_each_others_recent_requests(self, auth_client):
+        client, requester = auth_client
+        other_user = UserFactory()
+        other_client = APIClient()
+        other_client.force_authenticate(user=other_user)
+
+        other_client.post(REQUESTS_URL, {"max_results": 5}, format="json")
+        response = client.post(REQUESTS_URL, {"max_results": 5}, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert MatchingRequest.objects.filter(requester=requester).count() == 1
+
+
+@pytest.mark.django_db
 class TestMatchingRequestList:
     def test_only_sees_own_requests(self, auth_client):
         client, requester = auth_client

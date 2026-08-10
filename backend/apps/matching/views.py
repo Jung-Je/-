@@ -1,4 +1,5 @@
 import logging
+from datetime import timedelta
 
 from django.db import models
 from django.utils import timezone
@@ -120,11 +121,35 @@ class MatchingRequestViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     http_method_names = ["get", "post", "head", "options"]  # PUT, PATCH, DELETE 비활성화
 
+    # "매칭 시작" 버튼은 제출 중 비활성화되지만, 그래도 짧은 간격으로 POST가
+    # 두 번 도착해 결과 없는 중복 MatchingRequest("가상 티켓")가 남는 사례가
+    # 실제로 있었다 — 느린 네트워크·연속 클릭 등 프론트에서 완전히 막기
+    # 어려운 경우에 대비해 백엔드에서도 짧은 시간 내 중복 생성을 막는다.
+    DUPLICATE_REQUEST_WINDOW = timedelta(seconds=5)
+
     def get_queryset(self):
         """현재 사용자의 매칭 요청만 조회"""
         return MatchingRequest.objects.filter(requester=self.request.user).select_related(
             "requester"
         )
+
+    def create(self, request, *args, **kwargs):
+        recent_cutoff = timezone.now() - self.DUPLICATE_REQUEST_WINDOW
+        recent_request = (
+            MatchingRequest.objects.filter(requester=request.user, created_at__gte=recent_cutoff)
+            .order_by("-created_at")
+            .first()
+        )
+        if recent_request is not None:
+            logger.info(
+                "중복 매칭 요청 생성 차단: requester_id=%s existing_request_id=%s",
+                request.user.id,
+                recent_request.id,
+            )
+            serializer = self.get_serializer(recent_request)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        return super().create(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         """매칭 요청 생성 직후 매칭 알고리즘 실행"""

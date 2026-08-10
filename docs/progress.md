@@ -7,7 +7,7 @@
 
 프론트엔드 Docker화도 완료 — `docker/Dockerfile.frontend`(dev: 라이브 리로드, prod: `npm run build` 결과를 nginx로 서빙 + SPA 라우팅용 `try_files` fallback), `docker-compose.yml`/`docker-compose.prod.yml`에 `frontend` 서비스 추가. 검증 중 `.envs/.env.prod`의 실제 버그도 발견해 고침 — `SECRET_KEY` 안의 `$` 문자가 `docker compose --env-file`의 변수 치환 과정에서 조용히 사라지고 있었음(`docker compose config`로 실제 주입값이 깨지는 걸 확인). `$` 없는 새 키로 교체하고 파일에 경고 메모 남김. `FRONTEND_URL`이 `.env.prod`에 아예 없어서 프로덕션에서도 비밀번호 재설정 이메일이 `localhost:3000`을 가리킬 뻔한 것도 같이 채움. `docker compose up`으로 DB+Redis+백엔드+프론트 전체 스택을 실제로 띄워 로그인까지 curl로 검증(로컬 5432/6379 포트 충돌 피하려 임시 포트로 검증 후 정리).
 
-- 커밋 상태: 인앱 메시징 + 프론트 Docker화가 아직 커밋 전
+- 커밋 상태: 전부 커밋·push 완료, 워킹트리 클린. 이후 GitHub Actions 액션 버전 업그레이드(Node 20 경고 제거)도 완료
 - 각 기능의 상세 구현 배경/발견한 버그/검증 방법은 `git log`의 커밋 메시지 참고 (커밋 메시지에 자세히 적어둠)
 - 프론트엔드 화면 설계 방향은 `PRODUCT.md`/`DESIGN.md` 참고 (impeccable shape 브리프로 확정한 "포토카드 바인더" 세계관)
 

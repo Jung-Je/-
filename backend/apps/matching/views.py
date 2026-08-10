@@ -208,8 +208,19 @@ class ConnectionViewSet(viewsets.ModelViewSet):
         ).select_related("from_user", "to_user")
 
     def perform_create(self, serializer):
-        """연결 요청 생성 시 상대방에게 이메일 알림"""
+        """연결 요청 생성 시 상대방에게 이메일 알림.
+
+        연결이 특정 매칭 결과에서 시작된 경우, 그 결과를 연결 시도됨으로
+        표시한다 — is_contacted/contacted_at은 모델에 있을 뿐 이전까지
+        어디서도 세팅되지 않던 필드였다.
+        """
         connection = serializer.save()
+
+        if connection.matching_result_id:
+            MatchingResult.objects.filter(id=connection.matching_result_id).update(
+                is_contacted=True, contacted_at=timezone.now()
+            )
+
         logger.info(
             "연결 요청 생성: connection_id=%s from_user_id=%s to_user_id=%s",
             connection.id,

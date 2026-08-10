@@ -4,6 +4,7 @@ import './AppNav.css'
 const LINKS = [
   { to: '/matching', label: '매칭' },
   { to: '/connections', label: '연결' },
+  { to: '/messages', label: '메시지' },
   { to: '/settings', label: '설정' },
 ]
 

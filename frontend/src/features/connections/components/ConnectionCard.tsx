@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { AlertIcon } from '../../../components/icons'
 import { ApiError } from '../../../lib/apiClient'
 import { respondToConnection } from '../api/connectionsApi'
@@ -91,6 +92,13 @@ export function ConnectionCard({ connection, direction, onResponded }: Props) {
             차단
           </button>
         </div>
+      ) : connection.status === 'ACCEPTED' ? (
+        <Link to={`/messages/${connection.id}`} className="connection-message-link">
+          메시지
+          {connection.unread_message_count > 0 && (
+            <span className="connection-message-link__badge">{connection.unread_message_count}</span>
+          )}
+        </Link>
       ) : (
         <span className={`connection-status connection-status--${connection.status.toLowerCase()}`}>
           {STATUS_LABELS[connection.status]}

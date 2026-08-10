@@ -6,6 +6,8 @@ import { OnboardingPage } from './app/onboarding/page'
 import { MatchingPage } from './app/matching/page'
 import { ConnectionsPage } from './app/connections/page'
 import { SettingsPage } from './app/settings/page'
+import { MessagesPage } from './app/messages/page'
+import { MessageThreadPage } from './app/messages/thread/page'
 
 function App() {
   return (
@@ -17,6 +19,8 @@ function App() {
       <Route path="/matching" element={<MatchingPage />} />
       <Route path="/connections" element={<ConnectionsPage />} />
       <Route path="/settings" element={<SettingsPage />} />
+      <Route path="/messages" element={<MessagesPage />} />
+      <Route path="/messages/:connectionId" element={<MessageThreadPage />} />
     </Routes>
   )
 }

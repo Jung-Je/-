@@ -1,0 +1,267 @@
+/* 대화 목록 */
+.conversations-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-6) var(--space-4) var(--space-8);
+  gap: var(--space-5);
+}
+
+.conversations-header {
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.conversations-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.conversations-brand h1 {
+  font-size: 22px;
+}
+
+.conversations-content {
+  width: 100%;
+  max-width: 560px;
+}
+
+.conversation-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.conversation-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  text-decoration: none;
+  color: inherit;
+}
+
+.conversation-item__avatar {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-pill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+  color: white;
+  background: var(--color-teal);
+}
+
+.conversation-item__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.conversation-item__name {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.conversation-item__preview {
+  color: var(--color-ink-muted);
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.conversation-item__unread {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  background: var(--color-coral);
+  color: white;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.conversations-empty,
+.conversations-loading {
+  color: var(--color-ink-muted);
+  font-size: 14px;
+}
+
+/* 대화 스레드 */
+.thread-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-4);
+  min-height: 0;
+}
+
+.thread-card {
+  width: 100%;
+  max-width: 560px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  min-height: 0;
+}
+
+.thread-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.thread-header__back {
+  color: var(--color-ink-muted);
+  text-decoration: none;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.thread-header__name {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.thread-messages {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+}
+
+.thread-bubble {
+  max-width: 75%;
+  padding: 10px 14px;
+  border-radius: var(--radius-control);
+  font-size: 14px;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.thread-bubble--theirs {
+  align-self: flex-start;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  border-bottom-left-radius: 4px;
+}
+
+.thread-bubble--mine {
+  align-self: flex-end;
+  background: var(--color-coral);
+  color: var(--color-on-coral);
+  border-bottom-right-radius: 4px;
+}
+
+.thread-bubble__time {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  opacity: 0.65;
+}
+
+.thread-empty,
+.thread-loading {
+  margin: auto;
+  color: var(--color-ink-muted);
+  font-size: 14px;
+}
+
+.thread-error {
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  font-size: 13px;
+}
+
+.thread-input-bar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.thread-input-bar textarea {
+  flex: 1;
+  resize: none;
+  font: inherit;
+  font-size: 14px;
+  max-height: 100px;
+  padding: 10px 12px;
+  border-radius: var(--radius-control);
+  border: 1.5px solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+
+.thread-input-bar textarea:focus-visible {
+  outline: none;
+  border-color: var(--color-focus-ring);
+  box-shadow: var(--shadow-focus);
+}
+
+.thread-input-bar textarea:disabled {
+  background: var(--color-bg);
+  cursor: not-allowed;
+}
+
+.thread-send {
+  flex-shrink: 0;
+  border: none;
+  border-radius: var(--radius-control);
+  background: var(--color-coral);
+  color: var(--color-on-coral);
+  font-size: 14px;
+  font-weight: 700;
+  padding: 10px 16px;
+  cursor: pointer;
+}
+
+.thread-send:hover:not(:disabled) {
+  filter: brightness(0.96);
+}
+
+.thread-send:disabled {
+  background: rgba(255, 90, 54, 0.45);
+  cursor: not-allowed;
+}
+
+@media (max-width: 480px) {
+  .thread-screen {
+    padding: 0;
+  }
+
+  .thread-card {
+    border-radius: 0;
+  }
+}

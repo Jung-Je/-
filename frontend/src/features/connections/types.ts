@@ -11,6 +11,13 @@ export type ConnectionUserDetail = {
   interests_count: number
 }
 
+export type LastMessage = {
+  id: number
+  sender: number
+  body: string
+  created_at: string
+}
+
 export type Connection = {
   id: number
   from_user: number
@@ -20,6 +27,8 @@ export type Connection = {
   status: ConnectionStatus
   matching_result: number | null
   message: string
+  unread_message_count: number
+  last_message: LastMessage | null
   created_at: string
   responded_at: string | null
 }

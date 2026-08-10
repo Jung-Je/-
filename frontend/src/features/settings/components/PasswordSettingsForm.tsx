@@ -6,6 +6,7 @@ import { changePassword } from '../api/settingsApi'
 export function PasswordSettingsForm() {
   const oldPasswordId = useId()
   const newPasswordId = useId()
+  const newPasswordHintId = useId()
   const newPasswordConfirmId = useId()
   const errorId = useId()
 
@@ -76,6 +77,7 @@ export function PasswordSettingsForm() {
               id={newPasswordId}
               type={showPassword ? 'text' : 'password'}
               autoComplete="new-password"
+              placeholder="영문·숫자·특수문자 포함 8자 이상"
               minLength={8}
               value={newPassword}
               onChange={(event) => {
@@ -84,7 +86,11 @@ export function PasswordSettingsForm() {
               }}
               disabled={isSubmitting}
               required
+              aria-describedby={newPasswordHintId}
             />
+            <p className="settings-field__hint" id={newPasswordHintId}>
+              영문, 숫자, 특수문자를 모두 포함해 8자 이상으로 만들어주세요.
+            </p>
           </div>
 
           <div className="settings-field">

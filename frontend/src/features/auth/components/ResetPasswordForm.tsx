@@ -113,6 +113,7 @@ function RequestStep() {
 
 function ConfirmStep({ uid, token }: { uid: string; token: string }) {
   const passwordId = useId()
+  const passwordHintId = useId()
   const passwordConfirmId = useId()
   const errorId = useId()
 
@@ -178,11 +179,11 @@ function ConfirmStep({ uid, token }: { uid: string; token: string }) {
               name="new_password"
               type={showPassword ? 'text' : 'password'}
               autoComplete="new-password"
-              placeholder="8자 이상"
+              placeholder="영문·숫자·특수문자 포함 8자 이상"
               value={newPassword}
               onChange={(event) => setNewPassword(event.target.value)}
               aria-invalid={status === 'error'}
-              aria-describedby={status === 'error' ? errorId : undefined}
+              aria-describedby={status === 'error' ? errorId : passwordHintId}
               disabled={isSubmitting}
               required
               minLength={8}
@@ -197,6 +198,9 @@ function ConfirmStep({ uid, token }: { uid: string; token: string }) {
               {showPassword ? <EyeOffIcon /> : <EyeIcon />}
             </button>
           </div>
+          <p className="auth-field__hint" id={passwordHintId}>
+            영문, 숫자, 특수문자를 모두 포함해 8자 이상으로 만들어주세요.
+          </p>
         </div>
 
         <div className="auth-field">

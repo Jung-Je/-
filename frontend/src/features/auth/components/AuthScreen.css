@@ -119,6 +119,11 @@
   padding-right: 44px;
 }
 
+.auth-field__hint {
+  font-size: 13px;
+  color: var(--color-ink-placeholder);
+}
+
 .password-toggle {
   position: absolute;
   right: 6px;

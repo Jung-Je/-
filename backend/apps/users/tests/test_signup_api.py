@@ -41,6 +41,18 @@ class TestSignup:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert not User.objects.filter(username="newuser").exists()
 
+    def test_signup_rejects_password_without_special_character(self):
+        """영문+숫자만으로는 통과되면 안 됨(PasswordComplexityValidator)."""
+        client = APIClient()
+        response = client.post(
+            SIGNUP_URL,
+            self._payload(password="LettersAndDigits123", password_confirm="LettersAndDigits123"),
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert not User.objects.filter(username="newuser").exists()
+
     def test_signup_rejects_duplicate_email(self):
         UserFactory(email="taken@example.com")
         client = APIClient()

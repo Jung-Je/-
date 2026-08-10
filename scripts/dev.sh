@@ -1,7 +1,9 @@
 #!/bin/bash
-# 백엔드(Django)와 프론트엔드(Vite) 개발 서버를 한 번에 실행
-# Ctrl+C 한 번으로 둘 다 종료됨. Postgres/Redis는 별도로 떠 있어야 함
-# (brew services start postgresql / redis, 또는 docker compose up db redis).
+# 백엔드(Django)와 프론트엔드(Vite) 개발 서버를 한 번에 실행.
+# Postgres/Redis가 안 떠 있으면 brew services로 같이 띄움(이미 떠 있으면
+# 손 안 댐). 이 둘은 여러 터미널·다른 프로젝트가 같이 쓰는 상시 서비스라
+# runserver/vite와 달리 스크립트 종료 시(Ctrl+C) 같이 안 내림 — 계속
+# 켜둔 채로 둠.
 
 set -m
 # ↑ job control 켜기: 이게 없으면 아래 두 백그라운드 작업이 이 스크립트와
@@ -23,6 +25,37 @@ cleanup() {
   wait 2>/dev/null
 }
 trap cleanup INT TERM EXIT
+
+ensure_service() {
+  local name="$1" port="$2" formula="$3"
+
+  if lsof -iTCP:"$port" -sTCP:LISTEN -n -P >/dev/null 2>&1; then
+    echo "✅ $name 이미 실행 중 (:$port)"
+    return
+  fi
+
+  if ! command -v brew >/dev/null 2>&1; then
+    echo "⚠️  ${name}가 :$port 에서 안 떠 있는데 brew가 없어서 직접 못 띄움 — 수동으로 켜주세요."
+    return
+  fi
+
+  echo "▶️  $name 실행 중... (brew services start $formula)"
+  brew services start "$formula" >/dev/null
+
+  for _ in $(seq 1 10); do
+    lsof -iTCP:"$port" -sTCP:LISTEN -n -P >/dev/null 2>&1 && break
+    sleep 0.5
+  done
+
+  if ! lsof -iTCP:"$port" -sTCP:LISTEN -n -P >/dev/null 2>&1; then
+    echo "⚠️  ${name}가 :$port 에서 안 떠서 백엔드 연결이 실패할 수 있음 — brew services list로 상태를 확인해보세요."
+  fi
+}
+
+# postgresql@14처럼 버전 붙은 formula명을 브루에 설치된 것 기준으로 찾음
+pg_formula=$(brew list --formula 2>/dev/null | grep '^postgresql' | head -1)
+ensure_service "Postgres" 5432 "${pg_formula:-postgresql}"
+ensure_service "Redis" 6379 "redis"
 
 echo "🚀 백엔드(Django) 실행 중... (http://localhost:8000)"
 (cd backend && poetry run python manage.py runserver) &

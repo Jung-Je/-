@@ -85,7 +85,7 @@
 ```bash
 scripts/dev.sh   # runserver + vite dev를 같이 띄우고, Ctrl+C 한 번으로 둘 다 종료
 ```
-Postgres/Redis는 이 스크립트가 안 띄워주므로 별도로 떠 있어야 함(`brew services start postgresql redis`, 또는 `docker compose up -d db redis`만 띄워서 로컬 runserver/vite와 조합해도 됨).
+Postgres/Redis가 (포트 5432/6379 기준으로) 안 떠 있으면 `brew services start`로 같이 띄워줌 — 이미 떠 있으면 그대로 두고 손 안 댐. 이 둘은 다른 터미널·다른 프로젝트도 같이 쓰는 상시 서비스라 스크립트 종료(Ctrl+C) 시에도 같이 안 내림. brew가 없거나 설치된 postgresql formula를 못 찾으면 경고만 띄우고 넘어가므로, 그 경우 직접 띄우거나(`brew services start postgresql@14`) `docker compose up -d db redis`로 대체 가능.
 
 ### 개발 환경 (백엔드만)
 ```bash

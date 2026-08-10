@@ -1,8 +1,10 @@
+from decimal import Decimal
+
 from rest_framework import status
 
 import pytest
 
-from apps.matching.models import Connection
+from apps.matching.models import Connection, MatchingRequest, MatchingResult
 from apps.users.tests.factories import UserFactory
 
 CONNECTIONS_URL = "/api/v1/matching/connections/"
@@ -32,6 +34,32 @@ class TestConnectionCreate:
 
         response = client.post(CONNECTIONS_URL, {"to_user": to_user.id}, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_creating_from_a_matching_result_marks_it_contacted(self, auth_client):
+        """Regression test: is_contacted/contacted_at existed on the model
+        but nothing ever set them before this connection creation hook."""
+        client, from_user = auth_client
+        to_user = UserFactory()
+        matching_request = MatchingRequest.objects.create(requester=from_user)
+        result = MatchingResult.objects.create(
+            request=matching_request,
+            matched_user=to_user,
+            total_score=Decimal("80.00"),
+            interest_score=Decimal("80.00"),
+            personality_score=Decimal("80.00"),
+            location_score=Decimal("80.00"),
+        )
+
+        response = client.post(
+            CONNECTIONS_URL,
+            {"to_user": to_user.id, "matching_result": result.id},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        result.refresh_from_db()
+        assert result.is_contacted is True
+        assert result.contacted_at is not None
 
 
 @pytest.mark.django_db

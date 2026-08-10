@@ -1,21 +1,21 @@
 import { useId, useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { AlertIcon, EyeIcon, EyeOffIcon, SpinnerIcon } from '../../../components/icons'
 import { ApiError } from '../../../lib/apiClient'
 import { login, primeCsrf, signup } from '../api/authApi'
-import type { AuthUser } from '../types'
 import { AuthScreen } from './AuthScreen'
 
-type Status = 'idle' | 'submitting' | 'error' | 'success'
+type Status = 'idle' | 'submitting' | 'error'
 
 /**
  * 회원가입은 계정(닉네임/이메일/비밀번호)만 만든다. 이름·관심사·성격 같은
  * 프로필 정보는 다음 단계인 온보딩("내 카드 만들기")에서 따로 받는다 —
  * 백엔드 UserCreateSerializer가 요구하는 필드도 딱 이만큼뿐이다.
  * 가입에 성공하면 같은 자격증명으로 바로 로그인까지 이어서, 사용자가
- * 방금 입력한 비밀번호를 다시 치지 않아도 되게 한다.
+ * 방금 입력한 비밀번호를 다시 치지 않고 곧장 온보딩으로 넘어가게 한다.
  */
 export function SignupForm() {
+  const navigate = useNavigate()
   const usernameId = useId()
   const emailId = useId()
   const passwordId = useId()
@@ -29,7 +29,6 @@ export function SignupForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [status, setStatus] = useState<Status>('idle')
   const [errorMessage, setErrorMessage] = useState('')
-  const [user, setUser] = useState<AuthUser | null>(null)
 
   const isSubmitting = status === 'submitting'
 
@@ -48,9 +47,8 @@ export function SignupForm() {
     try {
       await primeCsrf()
       await signup({ username, email, password, passwordConfirm })
-      const loggedInUser = await login(email, password)
-      setUser(loggedInUser)
-      setStatus('success')
+      await login(email, password)
+      navigate('/onboarding', { replace: true })
     } catch (error) {
       const detail =
         error instanceof ApiError
@@ -59,21 +57,6 @@ export function SignupForm() {
       setErrorMessage(detail)
       setStatus('error')
     }
-  }
-
-  if (status === 'success' && user) {
-    return (
-      <AuthScreen>
-        <div className="auth-success">
-          <span className="auth-success__badge">가입 완료</span>
-          <h2>{user.username}님, 반가워요</h2>
-          <p>
-            계정이 만들어지고 바로 로그인까지 됐어요. 카드 만들기(프로필/관심사/성격 입력)는
-            다음 단계에서 이어서 만듭니다.
-          </p>
-        </div>
-      </AuthScreen>
-    )
   }
 
   return (

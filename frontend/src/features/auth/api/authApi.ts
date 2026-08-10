@@ -25,6 +25,15 @@ export async function logout(): Promise<void> {
 }
 
 /**
+ * 현재 로그인한 사용자 조회 (백엔드: UserViewSet.me). 세션 쿠키만으로는
+ * 브라우저가 로그인 상태를 알 수 없으므로, 보호된 화면에 들어갈 때마다
+ * 이걸로 실제 인증 여부를 확인한다. 비로그인이면 403.
+ */
+export async function getCurrentUser(): Promise<AuthUser> {
+  return apiFetch<AuthUser>('/api/v1/users/users/me/')
+}
+
+/**
  * 회원가입 API 계약 (백엔드: apps/users/views.py UserViewSet.create,
  * UserCreateSerializer):
  *   POST /api/v1/users/users/ -> 201 { id, username, email, ... } | 400 { ...필드별 오류 }
@@ -39,6 +48,42 @@ export async function signup(payload: SignupPayload): Promise<void> {
       email: payload.email,
       password: payload.password,
       password_confirm: payload.passwordConfirm,
+    }),
+  })
+}
+
+/**
+ * 비밀번호 재설정 API 계약 (백엔드: apps/users/views.py UserViewSet.password_reset
+ * / password_reset_confirm):
+ *   POST /api/v1/users/users/password_reset/         { email } -> 200 { detail }
+ *     계정 존재 여부와 무관하게 항상 같은 응답 — 이메일이 실재하면 메일 발송.
+ *   POST /api/v1/users/users/password_reset_confirm/ { uid, token, new_password,
+ *     new_password_confirm } -> 200 { detail } | 400 { ...필드별 오류 }
+ * uid/token은 이메일로 발송된 링크(FRONTEND_URL/reset-password?uid=&token=)의
+ * 쿼리 파라미터에서 그대로 읽어 넘긴다.
+ */
+export async function requestPasswordReset(email: string): Promise<void> {
+  await apiFetch<unknown>('/api/v1/users/users/password_reset/', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  })
+}
+
+export type ConfirmPasswordResetPayload = {
+  uid: string
+  token: string
+  newPassword: string
+  newPasswordConfirm: string
+}
+
+export async function confirmPasswordReset(payload: ConfirmPasswordResetPayload): Promise<void> {
+  await apiFetch<unknown>('/api/v1/users/users/password_reset_confirm/', {
+    method: 'POST',
+    body: JSON.stringify({
+      uid: payload.uid,
+      token: payload.token,
+      new_password: payload.newPassword,
+      new_password_confirm: payload.newPasswordConfirm,
     }),
   })
 }

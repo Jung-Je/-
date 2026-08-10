@@ -1,19 +1,25 @@
 # Python
+# 파이썬 패키징 표준 템플릿의 bare 디렉터리명 패턴(lib/, dist/ 등)은 앞에
+# / 가 없으면 저장소 어디서든 같은 이름의 폴더에 매치된다. 이 저장소는
+# backend(파이썬)+frontend(Node) 모노레포라, lib/ 이 frontend/src/lib/ 까지
+# 잡아먹어 usePolling.ts 같은 새 소스 파일이 git에 안 잡히는 사고가 실제로
+# 있었다 — 전부 루트 한정(/)으로 고정. frontend/dist는 frontend/.gitignore가
+# 따로 처리하므로 여기서 안 잡아도 된다.
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
+/build/
+/develop-eggs/
+/dist/
+/downloads/
+/eggs/
 .eggs/
-lib/
-lib64/
-parts/
-sdist/
+/lib/
+/lib64/
+/parts/
+/sdist/
 # 테스트/빌드 산출물(staticfiles, 로그, 커버리지 리포트, pytest 캐시)을 모아두는 곳
 var/
 wheels/

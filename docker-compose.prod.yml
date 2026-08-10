@@ -55,5 +55,17 @@ services:
       redis:
         condition: service_healthy
 
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+      args:
+        # 런타임 환경변수가 아니라 빌드 ARG인 이유는 Dockerfile.frontend 주석 참고
+        # — 값을 바꾸면 컨테이너 재시작이 아니라 `up --build`로 다시 빌드해야 함.
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:?VITE_API_BASE_URL is required}
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+
 volumes:
   pgdata_prod:

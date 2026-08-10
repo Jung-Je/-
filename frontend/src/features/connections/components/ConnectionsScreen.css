@@ -1,0 +1,228 @@
+.connections-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-6) var(--space-4) var(--space-8);
+  gap: var(--space-5);
+}
+
+.connections-header {
+  width: 100%;
+  max-width: 640px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.connections-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.connections-brand h1 {
+  font-size: 22px;
+}
+
+.connections-content {
+  width: 100%;
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.connections-section__heading {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: var(--space-3);
+}
+
+.connections-empty,
+.connections-loading {
+  color: var(--color-ink-muted);
+  font-size: 14px;
+}
+
+.connection-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.connection-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.connection-card__avatar {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-pill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+  color: white;
+  background: var(--color-teal);
+}
+
+.connection-card__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.connection-card__name {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.connection-card__meta {
+  color: var(--color-ink-muted);
+  font-size: 13px;
+}
+
+.connection-card__message {
+  margin-top: var(--space-1);
+  color: var(--color-ink-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.connection-error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  border-radius: var(--radius-control);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.connection-error svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.connection-card__actions {
+  flex-shrink: 0;
+  display: flex;
+  gap: var(--space-2);
+}
+
+.connection-action {
+  border: 1.5px solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  border-radius: var(--radius-control);
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+
+.connection-action:hover:not(:disabled) {
+  border-color: rgba(27, 29, 41, 0.32);
+}
+
+.connection-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.connection-action--accept {
+  border-color: var(--color-coral);
+  background: var(--color-coral);
+  color: var(--color-on-coral);
+}
+
+.connection-action--danger {
+  color: var(--color-danger);
+  border-color: rgba(200, 30, 77, 0.4);
+}
+
+.connection-status {
+  flex-shrink: 0;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.connection-status--pending {
+  background: var(--color-bg);
+  color: var(--color-ink-muted);
+}
+
+.connection-status--accepted {
+  background: var(--color-teal-soft);
+  color: var(--color-teal-text);
+}
+
+.connection-status--rejected {
+  background: var(--color-bg);
+  color: var(--color-ink-placeholder);
+}
+
+.connection-status--blocked {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.connection-message-link {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 8px 14px;
+  border-radius: var(--radius-control);
+  background: var(--color-teal);
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.connection-message-link:hover {
+  filter: brightness(0.96);
+}
+
+.connection-message-link__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--radius-pill);
+  background: var(--color-coral);
+  color: white;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+@media (max-width: 480px) {
+  .connection-card {
+    flex-wrap: wrap;
+  }
+
+  .connection-card__actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}

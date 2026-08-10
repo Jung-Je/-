@@ -24,6 +24,13 @@ body {
 }
 
 #root {
+  /* min-height만 있으면 flex 자식(.thread-screen 등)이 사용 가능한
+     높이를 확정된 값으로 못 받아 flex:1/min-height:0 체인이 동작하지
+     않는다 — 메시지 스레드의 내부 스크롤(.thread-messages)이 안 먹히고
+     페이지 전체가 늘어나며 스크롤되는 원인이었다. height를 명시해
+     체인에 확정된 높이를 준다. 다른 화면들은 overflow-y:auto를 안 쓰므로
+     기존처럼 내용이 넘치면 페이지 스크롤로 자연스럽게 빠진다. */
+  height: 100svh;
   min-height: 100svh;
   display: flex;
   flex-direction: column;

@@ -52,5 +52,25 @@ services:
       redis:
         condition: service_healthy
 
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+      target: dev
+    volumes:
+      - ./frontend:/app
+      # 익명 볼륨으로 위 바인드 마운트가 이미지 안에 설치된 node_modules를
+      # 가리지 않게 한다 — 안 하면 컨테이너 안에 아무 것도 안 깔린
+      # 호스트의 (아마 비어있는) node_modules가 그대로 보이게 됨.
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    environment:
+      # CORS_ALLOWED_ORIGINS/FRONTEND_URL 기본값(base.py)이 이미
+      # http://localhost:3000이라 web 쪽은 따로 맞출 게 없다.
+      VITE_API_BASE_URL: http://localhost:8000
+    depends_on:
+      - web
+
 volumes:
   pgdata_dev:

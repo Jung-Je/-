@@ -1,0 +1,426 @@
+/*
+  매칭 요청/결과 화면. 이 화면은 DESIGN.md가 스킨모피즘(홀로그램 점수
+  배지 등)을 허용하는 몇 안 되는 화면 중 하나다 — "실제로 카드를 다루는"
+  화면이기 때문. 다만 절제를 유지하기 위해 점수 배지 하나에만 그 표현을
+  집중했다.
+*/
+
+.matching-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-6) var(--space-4) var(--space-8);
+  gap: var(--space-5);
+}
+
+.matching-header {
+  width: 100%;
+  max-width: 720px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.matching-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.matching-brand h1 {
+  font-size: 22px;
+}
+
+.matching-content {
+  width: 100%;
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+/* 매칭 요청 폼 */
+.matching-request-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  border-top: 2px solid rgba(255, 90, 54, 0.45);
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.matching-request-card__heading h2 {
+  font-size: 22px;
+}
+
+.matching-request-card__heading p {
+  color: var(--color-ink-muted);
+  font-size: 15px;
+  line-height: 1.5;
+  margin-top: var(--space-1);
+}
+
+.matching-request-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.matching-request-form__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-3);
+}
+
+.matching-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.matching-field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-ink-muted);
+}
+
+.matching-field input {
+  width: 100%;
+  font: inherit;
+  font-size: 15px;
+  padding: 10px 12px;
+  border-radius: var(--radius-control);
+  border: 1.5px solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.matching-field input:hover {
+  border-color: rgba(27, 29, 41, 0.32);
+}
+
+.matching-field input:focus-visible {
+  outline: none;
+  border-color: var(--color-focus-ring);
+  box-shadow: var(--shadow-focus);
+}
+
+.matching-field input:disabled {
+  background: var(--color-bg);
+  color: var(--color-ink-disabled);
+  cursor: not-allowed;
+}
+
+.matching-error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  border-radius: var(--radius-control);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.matching-error svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.matching-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  align-self: flex-start;
+  padding: 12px 22px;
+  font-size: 15px;
+  font-weight: 700;
+  border: none;
+  border-radius: var(--radius-control);
+  background: var(--color-coral);
+  color: var(--color-on-coral);
+  cursor: pointer;
+  transition:
+    filter 0.15s ease,
+    transform 0.05s ease;
+}
+
+.matching-submit:hover:not(:disabled) {
+  filter: brightness(0.96);
+}
+
+.matching-submit:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.matching-submit:disabled {
+  background: rgba(255, 90, 54, 0.45);
+  cursor: not-allowed;
+}
+
+.matching-submit .spinner-icon {
+  animation: matching-spin 0.8s linear infinite;
+}
+
+@keyframes matching-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 요청 결과 배너 */
+.matching-banner {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-control);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.matching-banner--success {
+  background: var(--color-teal-soft);
+  color: var(--color-teal-text);
+}
+
+.matching-banner--empty {
+  background: var(--color-bg);
+  color: var(--color-ink-muted);
+}
+
+/* 결과 목록 */
+.matching-results__heading {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: var(--space-3);
+}
+
+.matching-results__empty,
+.matching-results__loading {
+  color: var(--color-ink-muted);
+  font-size: 14px;
+}
+
+.matching-result-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.matching-result-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.matching-result-card__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.matching-result-card__avatar {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-pill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+  color: white;
+  background: var(--color-violet);
+}
+
+.matching-result-card__identity {
+  flex: 1;
+  min-width: 0;
+}
+
+.matching-result-card__name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.matching-result-card__meta {
+  color: var(--color-ink-muted);
+  font-size: 13px;
+}
+
+.matching-result-card__unviewed-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-coral);
+  flex-shrink: 0;
+}
+
+/* 점수 배지 — 이 화면에서 유일하게 허락된 스킨모피즘 표현.
+   등급별로 다른 홀로그램풍 그라디언트를 얹는다. */
+.matching-score-badge {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-pill);
+  color: white;
+  font-weight: 800;
+  box-shadow: 0 2px 8px rgba(27, 29, 41, 0.18);
+}
+
+.matching-score-badge__value {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.matching-score-badge__unit {
+  font-size: 9px;
+  opacity: 0.85;
+}
+
+.matching-score-badge--high {
+  background: linear-gradient(135deg, #ff8a5c 0%, var(--color-coral) 55%, #d9391a 100%);
+}
+
+.matching-score-badge--mid {
+  background: linear-gradient(135deg, #b0a3f7 0%, var(--color-violet) 55%, #6a54d6 100%);
+}
+
+.matching-score-badge--low {
+  background: linear-gradient(135deg, #8fd6ca 0%, var(--color-teal) 55%, #1f8f7e 100%);
+}
+
+.matching-result-card__bio {
+  color: var(--color-ink-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.matching-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.matching-chip {
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  background: var(--color-coral-soft);
+  color: var(--color-coral);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.matching-result-card__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.matching-connect {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  border: none;
+  border-radius: var(--radius-control);
+  background: var(--color-teal);
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+
+.matching-connect:hover:not(:disabled) {
+  filter: brightness(0.96);
+}
+
+.matching-connect:disabled {
+  background: rgba(47, 184, 166, 0.5);
+  cursor: not-allowed;
+}
+
+.matching-connect .spinner-icon {
+  animation: matching-spin 0.8s linear infinite;
+}
+
+.matching-result-card__toggle {
+  align-self: center;
+  border: none;
+  background: transparent;
+  color: var(--color-violet-text);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 0;
+}
+
+.matching-result-card__toggle:hover {
+  text-decoration: underline;
+}
+
+.matching-result-card__details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+  font-size: 13px;
+  color: var(--color-ink-muted);
+}
+
+.matching-result-card__details dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+}
+
+.matching-result-card__details dt {
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.matching-result-card__details dd {
+  margin: 0;
+}
+
+.matching-result-card__contacted {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 2px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--color-teal-soft);
+  color: var(--color-teal-text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+@media (max-width: 480px) {
+  .matching-request-card {
+    padding: var(--space-5) var(--space-4);
+  }
+
+  .matching-result-card {
+    padding: var(--space-4);
+  }
+}

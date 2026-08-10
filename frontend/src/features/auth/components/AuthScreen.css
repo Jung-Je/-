@@ -240,6 +240,17 @@
   line-height: 1.55;
 }
 
+.auth-success a {
+  align-self: flex-start;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.auth-success a:hover {
+  text-decoration: underline;
+}
+
 @media (max-width: 420px) {
   .auth-card {
     padding: var(--space-6) var(--space-4) var(--space-5);

@@ -16,6 +16,7 @@ from .models import (
     InterestCategory,
     MatchingRequest,
     MatchingResult,
+    Message,
     UserInterest,
 )
 from .notifications import notify_connection_accepted, notify_connection_requested
@@ -26,6 +27,8 @@ from .serializers import (
     InterestSerializer,
     MatchingRequestSerializer,
     MatchingResultSerializer,
+    MessageCreateSerializer,
+    MessageSerializer,
     UserInterestCreateSerializer,
     UserInterestSerializer,
 )
@@ -208,8 +211,19 @@ class ConnectionViewSet(viewsets.ModelViewSet):
         ).select_related("from_user", "to_user")
 
     def perform_create(self, serializer):
-        """연결 요청 생성 시 상대방에게 이메일 알림"""
+        """연결 요청 생성 시 상대방에게 이메일 알림.
+
+        연결이 특정 매칭 결과에서 시작된 경우, 그 결과를 연결 시도됨으로
+        표시한다 — is_contacted/contacted_at은 모델에 있을 뿐 이전까지
+        어디서도 세팅되지 않던 필드였다.
+        """
         connection = serializer.save()
+
+        if connection.matching_result_id:
+            MatchingResult.objects.filter(id=connection.matching_result_id).update(
+                is_contacted=True, contacted_at=timezone.now()
+            )
+
         logger.info(
             "연결 요청 생성: connection_id=%s from_user_id=%s to_user_id=%s",
             connection.id,
@@ -287,3 +301,49 @@ class ConnectionViewSet(viewsets.ModelViewSet):
             notify_connection_accepted(connection)
 
         return Response(self.get_serializer(connection).data)
+
+    @extend_schema(
+        summary="대화 메시지 목록 조회 / 전송",
+        tags=["Connections"],
+        request=MessageCreateSerializer,
+        responses={200: MessageSerializer(many=True), 201: MessageSerializer},
+    )
+    @action(detail=True, methods=["get", "post"])
+    def messages(self, request, pk=None):
+        """연결의 메시지 목록 조회 및 전송.
+
+        get_object()가 get_queryset()(참여자만) 기준으로 조회하므로
+        무관한 사용자는 이미 404. 여기서는 수락된 연결인지만 추가로
+        확인한다 — 대화방을 따로 두지 않고 Connection을 그대로 쓰므로
+        연결이 수락 상태일 때만 메시지를 주고받을 수 있다.
+        """
+        connection = self.get_object()
+
+        if connection.status != Connection.StatusChoices.ACCEPTED:
+            return Response(
+                {"detail": "수락된 연결에서만 메시지를 주고받을 수 있습니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if request.method == "POST":
+            serializer = MessageCreateSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            message = Message.objects.create(
+                connection=connection,
+                sender=request.user,
+                body=serializer.validated_data["body"],
+            )
+            logger.info(
+                "메시지 전송: connection_id=%s sender_id=%s", connection.id, request.user.id
+            )
+            return Response(MessageSerializer(message).data, status=status.HTTP_201_CREATED)
+
+        # GET: 조회와 동시에 상대방이 보낸 안 읽은 메시지를 읽음 처리한다
+        # (MatchingResult.retrieve가 is_viewed를 세팅하는 것과 같은 패턴).
+        Message.objects.filter(connection=connection, read_at__isnull=True).exclude(
+            sender=request.user
+        ).update(read_at=timezone.now())
+
+        message_qs = connection.messages.select_related("sender")
+        serializer = MessageSerializer(message_qs, many=True)
+        return Response(serializer.data)

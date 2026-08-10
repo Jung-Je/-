@@ -6,6 +6,7 @@ from .models import (
     InterestCategory,
     MatchingRequest,
     MatchingResult,
+    Message,
     UserInterest,
 )
 
@@ -115,6 +116,15 @@ class MatchingResultAdmin(admin.ModelAdmin):
     readonly_fields = ("created_at", "viewed_at", "contacted_at")
 
 
+class MessageInline(admin.TabularInline):
+    model = Message
+    extra = 0
+    fields = ("sender", "body", "created_at", "read_at")
+    readonly_fields = fields
+    can_delete = False
+    ordering = ("created_at",)
+
+
 @admin.register(Connection)
 class ConnectionAdmin(admin.ModelAdmin):
     list_display = (
@@ -130,6 +140,7 @@ class ConnectionAdmin(admin.ModelAdmin):
     autocomplete_fields = ("from_user", "to_user", "matching_result")
     ordering = ("-created_at",)
     readonly_fields = ("created_at", "updated_at", "responded_at")
+    inlines = [MessageInline]
 
     actions = ["accept_connections", "reject_connections"]
 
@@ -150,3 +161,17 @@ class ConnectionAdmin(admin.ModelAdmin):
             status=Connection.StatusChoices.REJECTED, responded_at=timezone.now()
         )
         self.message_user(request, f"{updated}건의 연결 요청이 거절되었습니다.")
+
+
+@admin.register(Message)
+class MessageAdmin(admin.ModelAdmin):
+    list_display = ("connection", "sender", "body_preview", "created_at", "read_at")
+    list_filter = ("created_at",)
+    search_fields = ("sender__username", "body")
+    autocomplete_fields = ("connection", "sender")
+    ordering = ("-created_at",)
+    readonly_fields = ("created_at",)
+
+    @admin.display(description="내용")
+    def body_preview(self, obj):
+        return obj.body[:50]

@@ -1,14 +1,14 @@
 import { useId, useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { AlertIcon, EyeIcon, EyeOffIcon, SpinnerIcon } from '../../../components/icons'
 import { ApiError } from '../../../lib/apiClient'
 import { login, primeCsrf } from '../api/authApi'
-import type { AuthUser } from '../types'
 import { AuthScreen } from './AuthScreen'
 
-type Status = 'idle' | 'submitting' | 'error' | 'success'
+type Status = 'idle' | 'submitting' | 'error'
 
 export function LoginForm() {
+  const navigate = useNavigate()
   const emailId = useId()
   const passwordId = useId()
   const errorId = useId()
@@ -18,7 +18,6 @@ export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [status, setStatus] = useState<Status>('idle')
   const [errorMessage, setErrorMessage] = useState('')
-  const [user, setUser] = useState<AuthUser | null>(null)
 
   const isSubmitting = status === 'submitting'
 
@@ -29,9 +28,10 @@ export function LoginForm() {
 
     try {
       await primeCsrf()
-      const loggedInUser = await login(email, password)
-      setUser(loggedInUser)
-      setStatus('success')
+      await login(email, password)
+      // 카드(프로필/관심사/성격)가 이미 완성된 사용자인지는 온보딩 화면
+      // 자신이 판단한다 — 완성돼 있으면 거기서 바로 안내하고 끝낸다.
+      navigate('/onboarding', { replace: true })
     } catch (error) {
       const detail =
         error instanceof ApiError
@@ -40,21 +40,6 @@ export function LoginForm() {
       setErrorMessage(detail)
       setStatus('error')
     }
-  }
-
-  if (status === 'success' && user) {
-    return (
-      <AuthScreen>
-        <div className="auth-success">
-          <span className="auth-success__badge">로그인 완료</span>
-          <h2>{user.username}님, 다시 오셨네요</h2>
-          <p>
-            바인더 화면은 다음 단계에서 이어서 만듭니다. 지금은 로그인 계약이 정상 동작하는
-            것까지 확인된 상태예요.
-          </p>
-        </div>
-      </AuthScreen>
-    )
   }
 
   return (

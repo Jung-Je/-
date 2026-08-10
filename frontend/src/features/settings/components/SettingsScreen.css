@@ -1,0 +1,283 @@
+.settings-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-6) var(--space-4) var(--space-8);
+  gap: var(--space-5);
+}
+
+.settings-header {
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.settings-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.settings-brand h1 {
+  font-size: 22px;
+}
+
+.settings-content {
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.settings-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  border-top: 2px solid rgba(140, 124, 240, 0.45);
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.settings-card--danger {
+  border-top-color: rgba(200, 30, 77, 0.4);
+}
+
+.settings-card__heading h2 {
+  font-size: 22px;
+}
+
+.settings-card__heading p {
+  color: var(--color-ink-muted);
+  font-size: 14px;
+  line-height: 1.5;
+  margin-top: 2px;
+}
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.settings-form__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-3);
+}
+
+.settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.settings-field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-ink-muted);
+}
+
+.settings-field input,
+.settings-field select,
+.settings-field textarea {
+  width: 100%;
+  font: inherit;
+  font-size: 15px;
+  padding: 10px 12px;
+  border-radius: var(--radius-control);
+  border: 1.5px solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.settings-field textarea {
+  resize: vertical;
+  min-height: 76px;
+  font-family: inherit;
+}
+
+.settings-field input:hover,
+.settings-field select:hover,
+.settings-field textarea:hover {
+  border-color: rgba(27, 29, 41, 0.32);
+}
+
+.settings-field input:focus-visible,
+.settings-field select:focus-visible,
+.settings-field textarea:focus-visible {
+  outline: none;
+  border-color: var(--color-focus-ring);
+  box-shadow: var(--shadow-focus);
+}
+
+.settings-field input:disabled,
+.settings-field select:disabled,
+.settings-field textarea:disabled {
+  background: var(--color-bg);
+  color: var(--color-ink-disabled);
+  cursor: not-allowed;
+}
+
+.settings-checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 14px;
+  color: var(--color-ink);
+}
+
+.settings-checkbox input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-coral);
+}
+
+.settings-error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  border-radius: var(--radius-control);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.settings-error svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.settings-success {
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-teal-soft);
+  color: var(--color-teal-text);
+  border-radius: var(--radius-control);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.settings-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.settings-submit {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  align-self: flex-start;
+  padding: 11px 20px;
+  font-size: 14px;
+  font-weight: 700;
+  border: none;
+  border-radius: var(--radius-control);
+  background: var(--color-coral);
+  color: var(--color-on-coral);
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+
+.settings-submit:hover:not(:disabled) {
+  filter: brightness(0.96);
+}
+
+.settings-submit:disabled {
+  background: rgba(255, 90, 54, 0.45);
+  cursor: not-allowed;
+}
+
+.settings-submit .spinner-icon {
+  animation: settings-spin 0.8s linear infinite;
+}
+
+@keyframes settings-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 계정 영역 */
+.settings-secondary-btn {
+  align-self: flex-start;
+  border: 1.5px solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  border-radius: var(--radius-control);
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.settings-secondary-btn:hover {
+  border-color: rgba(27, 29, 41, 0.32);
+}
+
+.settings-danger-btn {
+  align-self: flex-start;
+  border: 1.5px solid rgba(200, 30, 77, 0.4);
+  background: var(--color-surface);
+  color: var(--color-danger);
+  border-radius: var(--radius-control);
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.settings-danger-btn:hover {
+  background: var(--color-danger-bg);
+}
+
+.settings-delete-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--color-danger-bg);
+  border-radius: var(--radius-control);
+}
+
+.settings-delete-confirm p {
+  color: var(--color-danger);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.settings-delete-confirm input {
+  font: inherit;
+  font-size: 15px;
+  padding: 10px 12px;
+  border-radius: var(--radius-control);
+  border: 1.5px solid rgba(200, 30, 77, 0.4);
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+
+.settings-delete-confirm__actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.settings-danger-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 480px) {
+  .settings-card {
+    padding: var(--space-5) var(--space-4);
+  }
+}

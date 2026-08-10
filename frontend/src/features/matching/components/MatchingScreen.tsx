@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { AppNav } from '../../../components/AppNav'
 import { CardStackMark } from '../../../components/CardStackMark'
 import { ApiError } from '../../../lib/apiClient'
 import { RequireAuth } from '../../auth/components/RequireAuth'
@@ -58,9 +59,12 @@ function Screen() {
 
   return (
     <div className="matching-screen">
-      <div className="matching-brand">
-        <CardStackMark />
-        <h1>매칭</h1>
+      <div className="matching-header">
+        <div className="matching-brand">
+          <CardStackMark />
+          <h1>매칭</h1>
+        </div>
+        <AppNav />
       </div>
 
       <div className="matching-content">

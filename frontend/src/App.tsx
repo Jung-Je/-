@@ -5,6 +5,7 @@ import { ResetPasswordPage } from './app/reset-password/page'
 import { OnboardingPage } from './app/onboarding/page'
 import { MatchingPage } from './app/matching/page'
 import { ConnectionsPage } from './app/connections/page'
+import { SettingsPage } from './app/settings/page'
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
       <Route path="/onboarding" element={<OnboardingPage />} />
       <Route path="/matching" element={<MatchingPage />} />
       <Route path="/connections" element={<ConnectionsPage />} />
+      <Route path="/settings" element={<SettingsPage />} />
     </Routes>
   )
 }

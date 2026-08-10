@@ -2,12 +2,19 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { AlertIcon, SpinnerIcon } from '../../../components/icons'
 import { ApiError } from '../../../lib/apiClient'
+import { usePolling } from '../../../lib/usePolling'
 import { RequireAuth } from '../../auth/components/RequireAuth'
 import { getConnection } from '../../connections/api/connectionsApi'
 import type { Connection } from '../../connections/types'
 import { listMessages, sendMessage } from '../api/messagingApi'
 import type { Message } from '../types'
 import './MessagingScreen.css'
+
+const POLL_INTERVAL_MS = 3000
+// 스크롤이 바닥에서 이만큼(px) 안이면 "바닥 근처"로 보고 새 메시지가
+// 오면 계속 따라 내린다. 그보다 위로 스크롤해서 지난 대화를 보는
+// 중이면, 폴링으로 새 메시지가 와도 보던 위치를 안 건드린다.
+const NEAR_BOTTOM_THRESHOLD_PX = 80
 
 export function MessageThreadScreen() {
   return <RequireAuth>{(user) => <Thread currentUserId={user.id} />}</RequireAuth>
@@ -23,12 +30,14 @@ function Thread({ currentUserId }: { currentUserId: number }) {
   const [draft, setDraft] = useState('')
   const [sendStatus, setSendStatus] = useState<'idle' | 'submitting' | 'error'>('idle')
   const [sendError, setSendError] = useState('')
+  const containerRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const isNearBottomRef = useRef(true)
 
   useEffect(() => {
     let cancelled = false
 
-    async function load() {
+    async function loadInitial() {
       try {
         const [connectionData, messageData] = await Promise.all([getConnection(id), listMessages(id)])
         if (cancelled) return
@@ -44,15 +53,40 @@ function Thread({ currentUserId }: { currentUserId: number }) {
       }
     }
 
-    load()
+    loadInitial()
     return () => {
       cancelled = true
     }
   }, [id])
 
+  // 상대방이 보낸 새 메시지를 받으려면 주기적으로 다시 조회해야 한다 —
+  // 웹소켓 없이 폴링으로 "그럭저럭 실시간"을 구현. 조회 자체가 읽음
+  // 처리도 겸하므로(listMessages), 대화창을 열어둔 동안은 상대 메시지가
+  // 자동으로 읽음 처리된다. 실패해도 배경 갱신이라 조용히 다음 tick을
+  // 기다린다 — 매번 에러 배너를 띄우면 일시적 네트워크 끊김에도 화면이
+  // 시끄러워진다.
+  usePolling(async () => {
+    if (!connection) return
+    try {
+      const data = await listMessages(id)
+      setMessages(data)
+    } catch {
+      // 다음 tick에서 다시 시도
+    }
+  }, POLL_INTERVAL_MS)
+
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ block: 'end' })
+    if (isNearBottomRef.current) {
+      messagesEndRef.current?.scrollIntoView({ block: 'end' })
+    }
   }, [messages])
+
+  function handleScroll() {
+    const el = containerRef.current
+    if (!el) return
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight
+    isNearBottomRef.current = distanceFromBottom < NEAR_BOTTOM_THRESHOLD_PX
+  }
 
   async function handleSend(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -63,6 +97,7 @@ function Thread({ currentUserId }: { currentUserId: number }) {
 
     try {
       const message = await sendMessage(id, draft)
+      isNearBottomRef.current = true // 내가 보낸 메시지는 항상 바로 보여준다
       setMessages((current) => (current ? [...current, message] : [message]))
       setDraft('')
       setSendStatus('idle')
@@ -95,7 +130,7 @@ function Thread({ currentUserId }: { currentUserId: number }) {
         {!messages && !loadError && <p className="thread-loading">불러오는 중…</p>}
 
         {messages && (
-          <div className="thread-messages">
+          <div className="thread-messages" ref={containerRef} onScroll={handleScroll}>
             {messages.length === 0 && <p className="thread-empty">첫 메시지를 보내보세요.</p>}
             {messages.map((message) => (
               <div

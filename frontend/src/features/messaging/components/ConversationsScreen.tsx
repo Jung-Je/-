@@ -3,10 +3,24 @@ import { Link } from 'react-router-dom'
 import { AppNav } from '../../../components/AppNav'
 import { CardStackMark } from '../../../components/CardStackMark'
 import { ApiError } from '../../../lib/apiClient'
+import { usePolling } from '../../../lib/usePolling'
 import { RequireAuth } from '../../auth/components/RequireAuth'
 import { listAllConnections } from '../../connections/api/connectionsApi'
 import type { Connection } from '../../connections/types'
 import './MessagingScreen.css'
+
+const POLL_INTERVAL_MS = 5000
+
+async function loadAcceptedConversations(): Promise<Connection[]> {
+  const all = await listAllConnections()
+  return all
+    .filter((connection) => connection.status === 'ACCEPTED')
+    .sort((a, b) => {
+      const aTime = a.last_message?.created_at ?? a.created_at
+      const bTime = b.last_message?.created_at ?? b.created_at
+      return bTime.localeCompare(aTime)
+    })
+}
 
 export function ConversationsScreen() {
   return (
@@ -25,15 +39,8 @@ function Screen({ currentUserId }: { currentUserId: number }) {
 
     async function load() {
       try {
-        const all = await listAllConnections()
+        const accepted = await loadAcceptedConversations()
         if (cancelled) return
-        const accepted = all
-          .filter((connection) => connection.status === 'ACCEPTED')
-          .sort((a, b) => {
-            const aTime = a.last_message?.created_at ?? a.created_at
-            const bTime = b.last_message?.created_at ?? b.created_at
-            return bTime.localeCompare(aTime)
-          })
         setConversations(accepted)
       } catch (error) {
         if (cancelled) return
@@ -50,6 +57,18 @@ function Screen({ currentUserId }: { currentUserId: number }) {
       cancelled = true
     }
   }, [])
+
+  // 안 읽음 배지·마지막 메시지 미리보기가 새로고침 없이도 갱신되도록
+  // 주기적으로 다시 조회한다. 배경 갱신 실패는 조용히 무시하고 다음
+  // tick을 기다린다 — 목록 화면에서 매번 에러 배너를 띄우면 시끄럽다.
+  usePolling(async () => {
+    try {
+      const accepted = await loadAcceptedConversations()
+      setConversations(accepted)
+    } catch {
+      // 다음 tick에서 다시 시도
+    }
+  }, POLL_INTERVAL_MS)
 
   return (
     <div className="conversations-screen">

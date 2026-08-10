@@ -11,3 +11,10 @@ scripts
 backend/media
 var
 docker-compose*.yml
+# frontend/node_modules가 없으면 Dockerfile.frontend의 COPY frontend/ /app/가
+# 호스트(맥)에서 설치된 node_modules로 이미지 안의 npm ci 결과물을 덮어써
+# 버린다 — playwright처럼 네이티브 바이너리가 낀 패키지는 그 상태로 실제
+# 깨진다. dist는 host에 남아있어도 어차피 builder 스테이지가 새로 빌드하므로
+# 불필요하게 컨텍스트에 낄 이유가 없어서 같이 제외.
+frontend/node_modules
+frontend/dist

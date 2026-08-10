@@ -81,7 +81,13 @@
 
 ## 📝 중요 명령어
 
-### 개발 환경 (백엔드)
+### 개발 환경 (백엔드 + 프론트엔드 한 번에)
+```bash
+scripts/dev.sh   # runserver + vite dev를 같이 띄우고, Ctrl+C 한 번으로 둘 다 종료
+```
+Postgres/Redis는 이 스크립트가 안 띄워주므로 별도로 떠 있어야 함(`brew services start postgresql redis`, 또는 `docker compose up -d db redis`만 띄워서 로컬 runserver/vite와 조합해도 됨).
+
+### 개발 환경 (백엔드만)
 ```bash
 cd backend
 python manage.py runserver
@@ -92,7 +98,7 @@ python manage.py createsuperuser
 python manage.py shell
 ```
 
-### 개발 환경 (프론트엔드)
+### 개발 환경 (프론트엔드만)
 ```bash
 cd frontend
 npm install

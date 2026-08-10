@@ -57,6 +57,8 @@ poetry run python manage.py createsuperuser
 poetry run python manage.py runserver
 ```
 
+프론트엔드(`frontend/`)까지 같이 띄우려면 저장소 루트에서 `scripts/dev.sh`로 백엔드+프론트엔드를 한 번에 실행할 수 있습니다(Ctrl+C 한 번으로 둘 다 종료). Postgres/Redis는 별도로 떠 있어야 합니다.
+
 ## API 문서
 
 서버 실행 후 다음 URL에서 API 문서를 확인할 수 있습니다:

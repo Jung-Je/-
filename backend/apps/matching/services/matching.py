@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from apps.users.models import User
 
-from .models import Connection, MatchingRequest, MatchingResult, UserInterest
+from ..models import Connection, MatchingRequest, MatchingResult, UserInterest
 
 logger = logging.getLogger(__name__)
 

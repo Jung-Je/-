@@ -2,7 +2,7 @@ from django.core.exceptions import ValidationError
 
 import pytest
 
-from apps.users.validators import PasswordComplexityValidator
+from apps.users.services import PasswordComplexityValidator
 
 
 class TestPasswordComplexityValidator:

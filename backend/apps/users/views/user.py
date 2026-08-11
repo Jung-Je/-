@@ -13,8 +13,8 @@ from rest_framework.response import Response
 
 from drf_spectacular.utils import extend_schema, extend_schema_view
 
-from .models import User, UserPersonality
-from .serializers import (
+from ..models import User, UserPersonality
+from ..serializers import (
     PasswordChangeSerializer,
     PasswordResetConfirmSerializer,
     PasswordResetRequestSerializer,

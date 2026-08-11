@@ -1,11 +1,11 @@
 # 매칭 API 프로젝트 진행 상황
 
 ## 🚦 현재 상태 (마지막 업데이트: 2026-08-11)
-매칭/연결 알림 뱃지 완성 — `AppNav`의 "매칭"/"연결" 탭에 각각 "안 본 매칭 결과 수"/"응답 안 한 받은 연결 요청 수" 배지를 붙임. 새 모델 변경 없이 이미 있던 `MatchingResult.is_viewed`/`Connection.status==PENDING`을 그대로 집계하는 가벼운 요약 엔드포인트(`GET /api/v1/matching/notifications/summary/`, `NotificationSummaryView`)를 추가하고, `AppNav`가 마운트 시 조회 + `usePolling`으로 20초마다 재조회(메시징보다 덜 급해서 간격을 넉넉히 잡음). 매칭 결과를 펼치거나 연결 요청에 응답하면 각 배지가 자연히 줄어드는 것까지 브라우저로 확인.
+Django 관리자(`/admin/`) 로그인이 아이디만 받고 이메일은 못 받던 문제 수정 — 사용자가 `createsuperuser`로 만든 계정으로 `/admin/`에 로그인하려다 겪은 실사용 버그. `USERNAME_FIELD`는 여전히 `username`(프론트 로그인이 "이메일로 조회 후 username 변환" 방식에 기대고 있어서 그대로 둠). 처음엔 전역 `AUTHENTICATION_BACKENDS`에 커스텀 백엔드를 추가하는 방식으로 만들었다가, 관리자 로그인만의 문제인데 전역 인증 체인까지 건드릴 필요는 없다는 피드백을 받아 `apps/users/admin.py`에 `EmailOrUsernameAdminAuthenticationForm`(`admin.site.login_form`으로 등록)을 추가하는 쪽으로 다시 구현 — 관리자 로그인 폼에만 영향을 주고 나머지 인증 경로는 그대로. 실제 `/admin/login/`에 이메일을 넣어 302(성공) 응답까지 curl로 확인.
 
-이전 세션엔 사용자 제보로 실사용 버그 2개 수정: (1) 비밀번호 복잡도(영문+숫자+특수문자) 미검증 — Django 기본 검증기만으론 특수문자 요구가 어디서도 강제 안 되고 있어서 `PasswordComplexityValidator` 추가, (2) 매칭 시작 시 서버에 POST가 짧은 간격으로 두 번 도달해 결과 없는 `MatchingRequest`가 중복 생성되던 문제 — 백엔드에 5초 내 중복 방지 로직 추가. 메시징 실시간화(폴링 기반)와 인앱 메시징·프론트엔드 Docker화는 그 이전 세션에 완성. 자세한 내용은 `완료된 기능` 섹션 참고.
+이전엔 매칭/연결 알림 뱃지, 그 전엔 사용자 제보 버그 2건(비밀번호 복잡도 미검증, 매칭 요청 중복 생성)을 수정 — 자세한 내용은 `완료된 기능` 섹션과 `git log` 참고.
 
-- 커밋 상태: 이번 알림 뱃지 작업은 아직 커밋 전(사용자가 "커밋해줘"라고 하면 진행). 그 전 커밋들은 전부 완료, origin에는 아직 push 전
+- 커밋 상태: 이번 관리자 로그인 수정은 아직 커밋 전(사용자가 "커밋해줘"라고 하면 진행). 그 전 커밋들은 전부 완료, origin에는 아직 push 전
 - 각 기능의 상세 구현 배경/발견한 버그/검증 방법은 `git log`의 커밋 메시지 참고 (커밋 메시지에 자세히 적어둠)
 - 프론트엔드 화면 설계 방향은 `PRODUCT.md`/`DESIGN.md` 참고 (impeccable shape 브리프로 확정한 "포토카드 바인더" 세계관)
 
@@ -47,6 +47,7 @@
 - [x] `.envs/.env.prod` 보완 — `FRONTEND_URL`이 아예 없어서 프로덕션에서도 비밀번호 재설정 이메일이 `localhost:3000`을 가리킬 뻔했던 것 채움. `SECRET_KEY`에 든 `$` 문자가 `docker compose --env-file` 변수 치환 과정에서 조용히 사라지던 것도 발견해 `$` 없는 새 키로 교체 + 파일에 경고 메모 추가
 - [x] JSON 로그인/로그아웃 API (`apps/users/auth_views.py`) — axes 브루트포스 잠금 응답을 프론트 계약(403)에 맞춤, DRF Request 래퍼로 인해 axes 잠금 플래그가 미들웨어에 전달되지 않던 버그 수정
 - [x] 로그인 화면 ↔ 백엔드 실동작 검증 — `CSRF_TRUSTED_ORIGINS` 미설정으로 프론트(:3000)/백엔드(:8000) 간 인증된 요청(로그아웃 등)이 전부 CSRF Origin 검증에 막히던 버그 발견/수정 (pytest 기본 클라이언트는 Origin 헤더를 안 보내 못 잡던 문제)
+- [x] Django 관리자(`/admin/`) 이메일 로그인 지원 — `apps/users/admin.py`의 `EmailOrUsernameAdminAuthenticationForm`(`admin.site.login_form`으로 등록)이 관리자 로그인 폼에 입력된 이메일을 실제 username으로 바꿔서 인증. 전역 `AUTHENTICATION_BACKENDS`/`USERNAME_FIELD`는 안 건드리고 관리자 로그인 폼에만 영향을 주도록 범위를 좁힘
 
 **프론트엔드**
 - [x] React + Vite + TypeScript 스캐폴드 (`frontend/`), dev 서버 포트 3000

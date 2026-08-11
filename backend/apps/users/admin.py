@@ -1,7 +1,34 @@
 from django.contrib import admin
+from django.contrib.admin.forms import AdminAuthenticationForm
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 
 from .models import User, UserPersonality
+
+
+class EmailOrUsernameAdminAuthenticationForm(AdminAuthenticationForm):
+    """관리자 로그인 폼에 아이디 대신 이메일을 넣어도 로그인되게 한다.
+
+    USERNAME_FIELD는 여전히 username이라(프론트 로그인 화면이 "이메일로
+    조회 후 username으로 변환" 방식에 기대고 있어서 그대로 둠), 관리자
+    로그인 폼에 이메일을 입력하면 항상 실패했다 — 실제로 겪은 버그.
+    폼 검증 단계에서 입력값이 등록된 이메일과 일치하면 실제 username으로
+    바꿔치기해서 넘긴다. AUTHENTICATION_BACKENDS 등 전역 인증 체인은
+    안 건드리고 관리자 로그인 폼에만 영향을 준다.
+    """
+
+    def clean_username(self):
+        username = self.cleaned_data.get("username")
+        if username:
+            try:
+                user = User.objects.get(email__iexact=username)
+            except User.DoesNotExist:
+                pass
+            else:
+                username = user.get_username()
+        return username
+
+
+admin.site.login_form = EmailOrUsernameAdminAuthenticationForm
 
 
 class UserPersonalityInline(admin.StackedInline):

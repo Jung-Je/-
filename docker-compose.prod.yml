@@ -8,6 +8,8 @@
 # Building on Apple Silicon for an amd64 server? Add --platform linux/amd64
 # to the `docker compose ... build` step (some arm64 wheels SIGILL under
 # Docker Desktop's Apple Silicon VM).
+name: matching-api-prod
+
 services:
   db:
     image: postgres:15

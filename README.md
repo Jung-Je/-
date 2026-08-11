@@ -82,6 +82,13 @@ scripts/lint.sh    # 린트만
 
 같은 체크(포맷팅/린트/Django check/테스트+커버리지)는 `.github/workflows/ci.yml`을 통해 push/PR마다 자동으로도 실행됩니다.
 
+프론트엔드는 `frontend/`에서 별도로 체크합니다:
+
+```bash
+npm run lint   # oxlint
+npm run test   # vitest
+```
+
 ## Docker로 실행하기
 
 ### 개발 환경

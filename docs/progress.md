@@ -1,17 +1,25 @@
 # 매칭 API 프로젝트 진행 상황
 
 ## 🚦 현재 상태 (마지막 업데이트: 2026-08-11)
-백엔드 앱 내부 구조 리팩터링 — `apps/matching/`·`apps/users/`의 `models.py`/`serializers.py`/`views.py`(+ matching의 `services.py`)가 코드가 늘어날수록(특히 matching의 `views.py` 407줄, `models.py` 334줄) 뭐가 어디 있는지 찾기 어려워져서, 각각 같은 이름의 **패키지**로 바꾸고 도메인별 파일로 쪼갬:
-- `models/` — matching: `interest.py`/`matching_request.py`/`connection.py`, users: `user.py`/`personality.py`
-- `serializers/` — matching: `interest.py`/`matching_request.py`/`connection.py`, users: `user.py`/`auth.py`
-- `views/` — matching: `interest.py`/`matching_request.py`/`connection.py`/`notification_summary.py`, users: `user.py`/`auth.py`(기존 최상위 `auth_views.py`를 여기로 접어넣음 — 실제로 View들이라 같은 자리가 맞음)
-- `services/` — matching: `matching.py`(채점 알고리즘) + `notifications.py`(연결 요청/수락 이메일 알림), users: `image_processing.py`(프로필 이미지 최적화) + `validators.py`(`PasswordComplexityValidator`) — 전부 뷰/모델/설정이 호출하는 실제 비즈니스 로직이라는 피드백을 받고 순차적으로 옮김(처음엔 matching.py만, 그다음 notifications.py/image_processing.py, 마지막으로 validators.py). 반대로 `caching.py`(캐시 버전 관리)·`signals.py`(캐시 무효화 시그널)는 비즈니스 로직이라기보다 인프라 코드라 최상위에 그대로 둠
+저장소 정리 + 사용자 제보 매칭 버그 2건 수정.
 
-각 패키지의 `__init__.py`가 전부 재수출하므로 `from apps.matching.models import Connection`처럼 기존 임포트 구문은 전부 그대로 동작 — 다른 파일은 한 곳도 안 고쳐도 됨. 예외적으로 손댄 곳: `config/urls.py`가 삭제된 `auth_views` 모듈을 직접 import하던 것, `AUTH_PASSWORD_VALIDATORS`의 `"NAME"` 문자열 경로, 테스트의 `monkeypatch.setattr("apps.matching.notifications...")` 같은 문자열 경로 참조. 모델 재배치는 DB에 영향 없음을 `makemigrations --check`로 확인. 전체 137개 테스트 통과 + 실제 dev 서버로 회원가입/로그인/비밀번호 검증기/매칭 요청 생성(채점 포함)/연결 요청 생성(이메일 알림 서비스 경유)/알림 요약까지 curl로 스모크 테스트.
+**정리**
+1. `backend/conftest.py` import 순서(isort) 수정 — `scripts/lint.sh`/`format.sh`가 `backend/apps/`·`backend/config/`만 대상이라 이 파일은 체크에서 빠져 있었음
+2. `pyproject.toml`을 Poetry 2.0 PEP 621 `[project]` 테이블로 마이그레이션 (`poetry check` deprecation 경고 해소, `poetry.lock` content-hash만 갱신·의존성 버전 변경 없음)
+3. `docker-compose.yml`/`.prod.yml`에 명시적 `name:` 추가 — 저장소 루트 폴더명이 `-`라 `docker compose`가 project name을 못 잡던 문제 해결
+4. 프론트엔드에 vitest + Testing Library 테스트 인프라 처음 도입(`npm run test`), 예시 테스트 2종(`apiClient`, `CardStackMark`) 작성 — 그동안 백엔드만 테스트/CI가 붙어있었음
+5. 아무 데서도 안 쓰이던 `ComingSoonPage` 컴포넌트 삭제 (도메인 기반 구조 재편 때 만든 placeholder가 그대로 남아있던 dead code)
+6. 로컬 `var/`(pytest 캐시·커버리지·staticfiles·로그)·`media/`(테스트 업로드 이미지) 캐시 정리 — 전부 gitignore 대상이라 저장소엔 영향 없음, 다음 실행 시 자동 재생성
 
-이전엔 관리자 이메일 로그인, 매칭/연결 알림 뱃지, 그 전엔 사용자 제보 버그 2건(비밀번호 복잡도 미검증, 매칭 요청 중복 생성)을 수정 — 자세한 내용은 `완료된 기능` 섹션과 `git log` 참고.
+**버그 수정** — "로그인 후 매칭시작을 누르면 뜨면 안 되는 관리자가 뜨고, 이미 떠 있는데 또 누르면 중복으로 계속 뜬다"는 제보:
+1. `_get_candidate_queryset()`(`apps/matching/services/matching.py`)이 `is_staff`/`is_superuser`를 걸러내지 않아서, `createsuperuser`로 만든 관리자 계정도 `is_active_for_matching` 기본값(True) 때문에 일반 유저처럼 채점·매칭됐음 → 후보 조회에서 명시적으로 제외
+2. `MatchingResultViewSet.get_queryset()`이 요청자의 **전체 매칭 요청 이력**을 다 합쳐서 보여줘서(`MatchingResult`의 유니크 제약이 요청 단위라 같은 사람이 새 요청에서 또 뽑히면 새 row로 쌓임), "매칭 시작"을 다시 누를 때마다 이전 결과 위에 새 결과가 중복으로 쌓였음 → list는 가장 최근 완료된 매칭 요청 결과만 보여주도록 좁힘(retrieve는 이미 생성된 연결 요청 등이 과거 결과를 가리킬 수 있어 그대로 둠)
 
-- 커밋 상태: 이번 구조 리팩터링은 아직 커밋 전(사용자가 "커밋해줘"라고 하면 진행). 그 전 커밋들은 전부 완료, origin에는 아직 push 전
+회귀 테스트 2개 추가, 전체 테스트 스위트 139개 통과(커버리지 95%).
+
+이전엔 matching/users 앱 내부 구조를 도메인별 패키지로 분리, 그 전엔 관리자 이메일 로그인, 매칭/연결 알림 뱃지, 그 전엔 사용자 제보 버그 2건(비밀번호 복잡도 미검증, 매칭 요청 중복 생성)을 수정 — 자세한 내용은 `완료된 기능` 섹션과 `git log` 참고.
+
+- 커밋 상태: 전부 커밋 완료, origin/feature에도 push 완료
 - 각 기능의 상세 구현 배경/발견한 버그/검증 방법은 `git log`의 커밋 메시지 참고 (커밋 메시지에 자세히 적어둠)
 - 프론트엔드 화면 설계 방향은 `PRODUCT.md`/`DESIGN.md` 참고 (impeccable shape 브리프로 확정한 "포토카드 바인더" 세계관)
 
@@ -36,7 +44,7 @@
 **CI/CD & 인프라**
 - [x] GitHub Actions CI (`.github/workflows/ci.yml`) — format/lint/check/pytest, postgres+redis 서비스
 - [x] Docker 컨테이너화 — 백엔드(dev/prod 멀티스테이지, 프로덕션 보안 체크 게이트) + 프론트엔드(`docker/Dockerfile.frontend`, dev: 라이브 리로드 / prod: nginx 정적 서빙 + SPA `try_files` fallback), `docker-compose.yml`/`docker-compose.prod.yml`에 둘 다 통합. `docker compose up`으로 스택 전체(DB+Redis+백엔드+프론트) 기동 검증 완료
-- [x] pytest 테스트 스위트 97개, 커버리지 90%
+- [x] pytest 테스트 스위트 139개, 커버리지 95%
 - [x] 테스트/빌드 산출물(staticfiles, 로그, 커버리지, pytest 캐시)을 `var/` 한 곳으로 통합
 
 **보안 & 기능 확장**
@@ -54,6 +62,7 @@
 - [x] JSON 로그인/로그아웃 API (`apps/users/views/auth.py`) — axes 브루트포스 잠금 응답을 프론트 계약(403)에 맞춤, DRF Request 래퍼로 인해 axes 잠금 플래그가 미들웨어에 전달되지 않던 버그 수정
 - [x] 로그인 화면 ↔ 백엔드 실동작 검증 — `CSRF_TRUSTED_ORIGINS` 미설정으로 프론트(:3000)/백엔드(:8000) 간 인증된 요청(로그아웃 등)이 전부 CSRF Origin 검증에 막히던 버그 발견/수정 (pytest 기본 클라이언트는 Origin 헤더를 안 보내 못 잡던 문제)
 - [x] Django 관리자(`/admin/`) 이메일 로그인 지원 — `apps/users/admin.py`의 `EmailOrUsernameAdminAuthenticationForm`(`admin.site.login_form`으로 등록)이 관리자 로그인 폼에 입력된 이메일을 실제 username으로 바꿔서 인증. 전역 `AUTHENTICATION_BACKENDS`/`USERNAME_FIELD`는 안 건드리고 관리자 로그인 폼에만 영향을 주도록 범위를 좁힘
+- [x] 매칭 후보에 관리자 계정 노출 + "매칭 시작" 재클릭 시 결과 중복 누적 버그 수정 — 관리자(`is_staff`/`is_superuser`)를 후보 조회에서 명시적으로 제외하고, 매칭 결과 목록을 가장 최근 완료된 요청 것만 보여주도록 좁힘 (자세한 원인은 위 `현재 상태` 참고)
 
 **프론트엔드**
 - [x] React + Vite + TypeScript 스캐폴드 (`frontend/`), dev 서버 포트 3000
@@ -71,6 +80,7 @@
 - [x] 인앱 메시징 (`features/messaging/`) — 대화 목록(안 읽음 배지·마지막 메시지 미리보기, `/messages`)과 1:1 스레드(말풍선 UI·Enter 전송, `/messages/:connectionId`). `AppNav`에 "메시지" 추가, 매칭 결과 카드의 "연결하기"·연결 카드의 "메시지" 버튼과 연동. `listReceivedConnections`가 PENDING만 반환해 수락 후 상대방 목록에서 대화가 사라지던 버그 발견/수정(`listAllConnections`로 교체)
 - [x] 메시징 실시간화 (폴링) — 재사용 가능한 `usePolling` 훅(`lib/usePolling.ts`, 탭 백그라운드 시 일시정지·중복 호출 방지)으로 스레드는 3초·대화 목록은 5초마다 재조회. 스레드엔 "바닥 근처일 때만 자동 스크롤" 로직 추가. 검증 중 `#root`의 `min-height`/`height` 차이로 `.thread-messages` 내부 스크롤이 실제론 동작하지 않던 버그 발견/수정
 - [x] 매칭/연결 알림 뱃지 — `NotificationSummaryView`(`GET /api/v1/matching/notifications/summary/`)가 안 본 매칭 결과 수·응답 안 한 받은 연결 요청 수를 집계. `AppNav`가 마운트 시 조회 + 20초 폴링으로 두 탭에 배지 표시. 새 모델·필드 없이 기존 `is_viewed`/`PENDING` 상태만 재사용해서, 결과를 펼치거나 요청에 응답하면 배지가 자연히 줄어듦
+- [x] 테스트 인프라 (`npm run test`) — vitest + Testing Library + jsdom. 순수 함수(`apiClient.ts`)·컴포넌트(`CardStackMark.tsx`) 예시 테스트 각 1종
 
 ---
 

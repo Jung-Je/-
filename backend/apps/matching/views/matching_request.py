@@ -105,10 +105,34 @@ class MatchingResultViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        """현재 사용자의 매칭 결과만 조회"""
-        return MatchingResult.objects.filter(request__requester=self.request.user).select_related(
-            "request", "request__requester", "matched_user"
+        """현재 사용자의 매칭 결과만 조회.
+
+        list는 가장 최근 매칭 요청의 결과만 보여준다 — 과거 요청들까지 전부
+        합쳐서 보여주면 "매칭 시작"을 다시 누를 때마다 같은 사람이 새 요청의
+        결과로 또 쌓여 화면에 중복으로 보이게 된다. retrieve(상세 조회)는
+        이미 생성된 연결 요청 등이 과거 결과를 가리킬 수 있으므로 범위를
+        좁히지 않는다.
+        """
+        base_queryset = MatchingResult.objects.filter(
+            request__requester=self.request.user
+        ).select_related("request", "request__requester", "matched_user")
+
+        if self.action != "list":
+            return base_queryset
+
+        latest_request_id = (
+            MatchingRequest.objects.filter(
+                requester=self.request.user,
+                status=MatchingRequest.StatusChoices.COMPLETED,
+            )
+            .order_by("-created_at")
+            .values_list("id", flat=True)
+            .first()
         )
+        if latest_request_id is None:
+            return base_queryset.none()
+
+        return base_queryset.filter(request_id=latest_request_id)
 
     def retrieve(self, request, *args, **kwargs):
         """매칭 결과 조회 시 viewed 상태 업데이트"""

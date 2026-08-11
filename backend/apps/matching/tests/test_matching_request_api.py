@@ -4,6 +4,7 @@ from rest_framework.test import APIClient
 import pytest
 
 from apps.matching.models import MatchingRequest
+from apps.matching.services import process_matching_request
 from apps.matching.tests.factories import InterestFactory, UserInterestFactory
 from apps.users.tests.factories import UserFactory
 
@@ -161,3 +162,42 @@ class TestMatchingResults:
         response = client.get(RESULTS_URL)
         assert response.status_code == status.HTTP_200_OK
         assert response.data["results"] == []
+
+    def test_staff_and_superuser_are_never_candidates(self, auth_client):
+        """관리자 계정은 is_active_for_matching이 기본 True라도 후보에서 제외된다."""
+        client, requester = auth_client
+        interest = InterestFactory()
+        UserInterestFactory(user=requester, interest=interest)
+        staff = UserFactory(is_staff=True, location=requester.location)
+        UserInterestFactory(user=staff, interest=interest)
+        superuser = UserFactory(is_superuser=True, location=requester.location)
+        UserInterestFactory(user=superuser, interest=interest)
+
+        response = client.post(REQUESTS_URL, {"max_results": 5}, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["results_count"] == 0
+
+    def test_list_only_shows_latest_request_results(self, auth_client):
+        """ "매칭 시작"을 다시 눌러도 이전 요청 결과가 새 결과와 함께 쌓이지 않는다.
+
+        (뷰의 5초 중복 요청 방지 창을 API로 재현하려면 실제로 기다려야 해서
+        플레이키해지므로, 서비스 함수를 직접 두 번 호출해 두 개의 완료된
+        MatchingRequest를 만든다.)
+        """
+        client, requester = auth_client
+        interest = InterestFactory()
+        UserInterestFactory(user=requester, interest=interest)
+        matched = UserFactory(location=requester.location)
+        UserInterestFactory(user=matched, interest=interest)
+
+        first_request = MatchingRequest.objects.create(requester=requester, max_results=5)
+        process_matching_request(first_request)
+        second_request = MatchingRequest.objects.create(requester=requester, max_results=5)
+        process_matching_request(second_request)
+
+        response = client.get(RESULTS_URL)
+
+        assert response.data["count"] == 1
+        assert response.data["results"][0]["matched_user"] == matched.id
+        assert response.data["results"][0]["request"] == second_request.id

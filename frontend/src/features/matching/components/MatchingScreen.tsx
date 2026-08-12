@@ -3,6 +3,8 @@ import { AppNav } from '../../../components/AppNav'
 import { CardStackMark } from '../../../components/CardStackMark'
 import { ApiError } from '../../../lib/apiClient'
 import { RequireAuth } from '../../auth/components/RequireAuth'
+import { listAllConnections } from '../../connections/api/connectionsApi'
+import type { Connection } from '../../connections/types'
 import { listMatchingResults } from '../api/matchingApi'
 import type { MatchingRequestSummary, MatchingResult } from '../types'
 import { MatchingRequestForm } from './MatchingRequestForm'
@@ -21,11 +23,25 @@ function Screen() {
   const [results, setResults] = useState<MatchingResult[] | null>(null)
   const [loadError, setLoadError] = useState('')
   const [banner, setBanner] = useState<{ text: string; empty: boolean } | null>(null)
+  // 상대방 유저 id -> 나와의 기존 연결. 매칭 결과 카드가 이 유저와 이미
+  // 연결/요청 중인지 판단하는 데 쓴다 — is_contacted만 보면 "이 결과에서
+  // 연결했는지"만 알 수 있어서, 다른 매칭 요청이나 경로로 이미 연결된
+  // 사람이 새 결과에 다시 뽑혀도 "연결하기"가 그대로 떠 있었다.
+  const [connectionsByUserId, setConnectionsByUserId] = useState<Map<number, Connection>>(
+    new Map(),
+  )
 
   async function refreshResults() {
     try {
-      const data = await listMatchingResults()
+      const [data, connections] = await Promise.all([listMatchingResults(), listAllConnections()])
       setResults(data)
+
+      const nextMap = new Map<number, Connection>()
+      for (const connection of connections) {
+        nextMap.set(connection.from_user, connection)
+        nextMap.set(connection.to_user, connection)
+      }
+      setConnectionsByUserId(nextMap)
     } catch (error) {
       const detail =
         error instanceof ApiError
@@ -92,7 +108,12 @@ function Screen() {
           {results && results.length > 0 && (
             <div className="matching-result-list">
               {results.map((result) => (
-                <MatchingResultCard key={result.id} result={result} onViewed={handleViewed} />
+                <MatchingResultCard
+                  key={result.id}
+                  result={result}
+                  onViewed={handleViewed}
+                  existingConnection={connectionsByUserId.get(result.matched_user_detail.id)}
+                />
               ))}
             </div>
           )}

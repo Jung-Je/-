@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { AlertIcon, SpinnerIcon } from '../../../components/icons'
 import { ApiError } from '../../../lib/apiClient'
 import { createConnection } from '../../connections/api/connectionsApi'
+import type { Connection } from '../../connections/types'
 import { viewMatchingResult } from '../api/matchingApi'
 import type { MatchingResult } from '../types'
 
@@ -21,9 +23,14 @@ function scoreTier(totalScore: number): 'high' | 'mid' | 'low' {
 type Props = {
   result: MatchingResult
   onViewed: (resultId: number) => void
+  // 이 카드의 matched_user와 나 사이에 이미 존재하는 연결(있다면). 다른
+  // 매칭 요청이나 경로로 이미 연결/요청한 사람이 새 결과에 다시 뽑혀도
+  // "연결하기"를 다시 활성화된 채로 보여주지 않기 위해 필요하다 — result의
+  // is_contacted만으로는 "이 결과에서" 연결했는지만 알 수 있다.
+  existingConnection?: Connection
 }
 
-export function MatchingResultCard({ result, onViewed }: Props) {
+export function MatchingResultCard({ result, onViewed, existingConnection }: Props) {
   const [expanded, setExpanded] = useState(false)
   const [detail, setDetail] = useState<MatchingResult>(result)
   const [connectStatus, setConnectStatus] = useState<'idle' | 'submitting' | 'error'>('idle')
@@ -112,7 +119,11 @@ export function MatchingResultCard({ result, onViewed }: Props) {
       )}
 
       <div className="matching-result-card__actions">
-        {detail.is_contacted ? (
+        {existingConnection?.status === 'ACCEPTED' ? (
+          <Link to={`/messages/${existingConnection.id}`} className="connection-message-link">
+            메시지 보내기
+          </Link>
+        ) : existingConnection || detail.is_contacted ? (
           <span className="matching-result-card__contacted">연결 요청됨</span>
         ) : (
           <button

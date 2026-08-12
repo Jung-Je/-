@@ -295,16 +295,19 @@
   opacity: 0.85;
 }
 
+/* 세 그라디언트 전부 흰 텍스트(16px/800)가 어느 지점에 걸치든 WCAG AA
+   4.5:1을 넘도록 톤을 낮춰뒀다 — 예전엔 밝은 시작 stop이 2:1대까지
+   떨어져 점수 숫자가 배지 위에서 실제로 잘 안 보였음. */
 .matching-score-badge--high {
-  background: linear-gradient(135deg, #ff8a5c 0%, var(--color-coral) 55%, #d9391a 100%);
+  background: linear-gradient(135deg, #d62600 0%, #ad1f00 55%, #7a1600 100%);
 }
 
 .matching-score-badge--mid {
-  background: linear-gradient(135deg, #b0a3f7 0%, var(--color-violet) 55%, #6a54d6 100%);
+  background: linear-gradient(135deg, #6752eb 0%, #3f24e5 55%, #2c15b7 100%);
 }
 
 .matching-score-badge--low {
-  background: linear-gradient(135deg, #8fd6ca 0%, var(--color-teal) 55%, #1f8f7e 100%);
+  background: linear-gradient(135deg, #1f7a6e 0%, #185d54 55%, #103d37 100%);
 }
 
 .matching-result-card__bio {
@@ -323,7 +326,7 @@
   padding: 4px 12px;
   border-radius: var(--radius-pill);
   background: var(--color-coral-soft);
-  color: var(--color-coral);
+  color: var(--color-coral-text);
   font-size: 13px;
   font-weight: 600;
 }

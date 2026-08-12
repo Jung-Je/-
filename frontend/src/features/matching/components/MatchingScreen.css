@@ -240,7 +240,10 @@
   font-weight: 700;
   font-size: 16px;
   color: white;
-  background: var(--color-violet);
+  /* 매칭/연결/메시지 화면에서 색이 제각각(바이올렛/틸/틸)이라 같은
+     사람이 화면을 옮길 때마다 다른 색으로 보였다 — 관심사/성격/위치
+     어느 쪽 의미도 아니라서 세 색 다 안 쓰는 중립 잉크로 통일. */
+  background: var(--color-ink);
 }
 
 .matching-result-card__identity {

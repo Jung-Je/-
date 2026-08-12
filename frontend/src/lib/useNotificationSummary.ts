@@ -16,6 +16,7 @@ export function useNotificationSummary(): NotificationSummary {
   const [summary, setSummary] = useState<NotificationSummary>({
     unviewed_matching_results: 0,
     pending_connection_requests: 0,
+    unread_messages: 0,
   })
 
   useEffect(() => {

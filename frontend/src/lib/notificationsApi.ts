@@ -3,6 +3,7 @@ import { apiFetch } from './apiClient'
 export type NotificationSummary = {
   unviewed_matching_results: number
   pending_connection_requests: number
+  unread_messages: number
 }
 
 /**

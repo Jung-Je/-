@@ -1,3 +1,5 @@
+from datetime import date, timedelta
+
 from rest_framework import status
 from rest_framework.test import APIClient
 
@@ -99,3 +101,27 @@ class TestProfileCompletion:
         assert response.data["is_complete"] is True
         user.refresh_from_db()
         assert user.is_profile_complete is True
+
+
+@pytest.mark.django_db
+class TestDateOfBirthValidation:
+    """생년월일이 미래면 User.age가 음수를 반환해("-1세" 등) 화면에 그대로
+    노출된 사례가 있었음 — 프론트 온보딩 폼에 max 속성이 없어서 서버에서
+    막는다.
+    """
+
+    def test_rejects_future_date_of_birth(self, auth_client):
+        client, user = auth_client
+        tomorrow = (date.today() + timedelta(days=1)).isoformat()
+
+        response = client.patch(f"/api/v1/users/users/{user.id}/", {"date_of_birth": tomorrow})
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "date_of_birth" in response.data
+
+    def test_accepts_past_date_of_birth(self, auth_client):
+        client, user = auth_client
+
+        response = client.patch(f"/api/v1/users/users/{user.id}/", {"date_of_birth": "1995-01-01"})
+
+        assert response.status_code == status.HTTP_200_OK

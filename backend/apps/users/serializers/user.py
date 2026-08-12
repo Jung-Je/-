@@ -1,3 +1,5 @@
+from datetime import date
+
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
@@ -139,6 +141,14 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 f"이미지 파일은 {MAX_UPLOAD_SIZE // (1024 * 1024)}MB를 초과할 수 없습니다."
             )
+        return value
+
+    def validate_date_of_birth(self, value):
+        """미래 날짜 방지 — 프론트 온보딩 폼에 max 속성이 없어서 그대로
+        보내면 User.age 프로퍼티가 음수를 반환하고("-1세" 등), 화면에
+        가드 없이 그대로 노출된 사례가 있었음. 서버에서 원천 차단."""
+        if value and value > date.today():
+            raise serializers.ValidationError("생년월일은 미래 날짜일 수 없습니다.")
         return value
 
 

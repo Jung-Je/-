@@ -80,6 +80,10 @@ export function ProfileStep({ userId, onNext }: Props) {
             value={dateOfBirth}
             onChange={(event) => setDateOfBirth(event.target.value)}
             disabled={isSubmitting}
+            // 네이티브 날짜 선택기에서 미래 날짜를 아예 못 고르게 —
+            // 서버(validate_date_of_birth)에서도 다시 막지만, 실수로
+            // 연도를 잘못 눌러도 여기서 먼저 막히는 게 훨씬 자연스럽다.
+            max={new Date().toISOString().slice(0, 10)}
             required
           />
         </div>

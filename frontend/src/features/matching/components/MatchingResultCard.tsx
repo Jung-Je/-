@@ -14,6 +14,15 @@ const GENDER_LABELS: Record<string, string> = {
   N: '',
 }
 
+// 서버(User.age)도 이제 미래 생년월일을 막지만(validate_date_of_birth),
+// 그 전에 이미 들어간 데이터나 다른 경로로 들어온 값까지 안전하게
+// 가리기 위한 표시 단 가드 — "-1세"처럼 말이 안 되는 나이를 그대로
+// 보여주지 않는다.
+function formatAge(age: number | null): string | null {
+  if (age === null || age <= 0) return null
+  return `${age}세`
+}
+
 function scoreTier(totalScore: number): 'high' | 'mid' | 'low' {
   if (totalScore >= 70) return 'high'
   if (totalScore >= 40) return 'mid'
@@ -87,7 +96,7 @@ export function MatchingResultCard({ result, onViewed, existingConnection }: Pro
             <span>{user.username}</span>
           </div>
           <div className="matching-result-card__meta">
-            {[user.age ? `${user.age}세` : null, GENDER_LABELS[user.gender ?? ''], user.location]
+            {[formatAge(user.age), GENDER_LABELS[user.gender ?? ''], user.location]
               .filter(Boolean)
               .join(' · ')}
           </div>

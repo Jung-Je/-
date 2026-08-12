@@ -16,10 +16,16 @@ type Props = {
 
 type Group = { category: InterestCategory; interests: Interest[] }
 
+const DEFAULT_LEVEL = 3
+const LEVELS = [1, 2, 3, 4, 5]
+
 export function InterestsStep({ onNext, onBack }: Props) {
   const [groups, setGroups] = useState<Group[] | null>(null)
   const [loadError, setLoadError] = useState('')
-  const [selected, setSelected] = useState<Set<number>>(new Set())
+  // interestId -> 관심도(1~5). 선택 즉시 DEFAULT_LEVEL로 들어가고, 칩 아래
+  // 점 5개로 직접 조절할 수 있다 — 예전엔 이 값을 조절할 UI가 아예 없어서
+  // 항상 3으로만 저장됐음(매칭 알고리즘이 실제로 쓰는 값인데도).
+  const [levels, setLevels] = useState<Map<number, number>>(new Map())
   const [status, setStatus] = useState<'idle' | 'submitting' | 'error'>('idle')
   const [errorMessage, setErrorMessage] = useState('')
 
@@ -56,19 +62,28 @@ export function InterestsStep({ onNext, onBack }: Props) {
   }, [])
 
   function toggleInterest(interestId: number) {
-    setSelected((current) => {
-      const next = new Set(current)
+    setLevels((current) => {
+      const next = new Map(current)
       if (next.has(interestId)) {
         next.delete(interestId)
       } else {
-        next.add(interestId)
+        next.set(interestId, DEFAULT_LEVEL)
       }
       return next
     })
   }
 
+  function setLevel(interestId: number, level: number) {
+    setLevels((current) => {
+      if (!current.has(interestId)) return current
+      const next = new Map(current)
+      next.set(interestId, level)
+      return next
+    })
+  }
+
   async function handleSubmit() {
-    if (selected.size === 0) {
+    if (levels.size === 0) {
       setErrorMessage('관심사를 1개 이상 선택해주세요.')
       setStatus('error')
       return
@@ -78,7 +93,9 @@ export function InterestsStep({ onNext, onBack }: Props) {
     setErrorMessage('')
 
     try {
-      await Promise.all([...selected].map((interestId) => addUserInterest(interestId)))
+      await Promise.all(
+        [...levels].map(([interestId, level]) => addUserInterest(interestId, level)),
+      )
       await checkProfileCompletion()
       onNext()
     } catch (error) {
@@ -123,18 +140,44 @@ export function InterestsStep({ onNext, onBack }: Props) {
               <span>{group.category.name}</span>
             </div>
             <div className="onboarding-chip-grid">
-              {group.interests.map((interest) => (
-                <button
-                  key={interest.id}
-                  type="button"
-                  className="onboarding-chip"
-                  aria-pressed={selected.has(interest.id)}
-                  onClick={() => toggleInterest(interest.id)}
-                  disabled={isSubmitting}
-                >
-                  {interest.name}
-                </button>
-              ))}
+              {group.interests.map((interest) => {
+                const level = levels.get(interest.id)
+                const isSelected = level !== undefined
+
+                return (
+                  <div className="onboarding-chip-wrap" key={interest.id}>
+                    <button
+                      type="button"
+                      className="onboarding-chip"
+                      aria-pressed={isSelected}
+                      onClick={() => toggleInterest(interest.id)}
+                      disabled={isSubmitting}
+                    >
+                      {interest.name}
+                    </button>
+
+                    {isSelected && (
+                      <div
+                        className="onboarding-chip-level"
+                        role="group"
+                        aria-label={`${interest.name} 관심도 (1~5)`}
+                      >
+                        {LEVELS.map((n) => (
+                          <button
+                            key={n}
+                            type="button"
+                            className="onboarding-chip-level__dot"
+                            aria-pressed={level >= n}
+                            aria-label={`관심도 ${n}`}
+                            onClick={() => setLevel(interest.id, n)}
+                            disabled={isSubmitting}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           </div>
         ))}

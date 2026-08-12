@@ -72,7 +72,7 @@
 
 .onboarding-progress__step--active .onboarding-progress__dot {
   border-color: var(--color-coral);
-  color: var(--color-coral);
+  color: var(--color-coral-text);
 }
 
 .onboarding-progress__rule {
@@ -342,7 +342,41 @@
 .onboarding-chip[aria-pressed='true'] {
   background: var(--color-coral-soft);
   border-color: var(--color-coral);
-  color: var(--color-coral);
+  color: var(--color-coral-text);
+}
+
+/* 관심사를 고르면 칩 아래 점 5개가 나타난다 — 매칭 알고리즘이 실제로
+   쓰는 관심도(1~5)를 여기서 직접 조절한다. 안 누르면 기본값(3)로 저장. */
+.onboarding-chip-wrap {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.onboarding-chip-level {
+  display: flex;
+  gap: 4px;
+  padding-left: 4px;
+}
+
+.onboarding-chip-level__dot {
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--color-border-strong);
+  background: var(--color-surface);
+  cursor: pointer;
+}
+
+.onboarding-chip-level__dot:hover {
+  border-color: var(--color-coral);
+}
+
+.onboarding-chip-level__dot[aria-pressed='true'] {
+  background: var(--color-coral);
+  border-color: var(--color-coral);
 }
 
 .onboarding-interests-loading,

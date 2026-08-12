@@ -2,6 +2,7 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from .views import (
+    AdminConnectionViewSet,
     ConnectionViewSet,
     InterestCategoryViewSet,
     InterestViewSet,
@@ -20,6 +21,7 @@ router.register(r"user-interests", UserInterestViewSet, basename="user-interest"
 router.register(r"requests", MatchingRequestViewSet, basename="request")
 router.register(r"results", MatchingResultViewSet, basename="result")
 router.register(r"connections", ConnectionViewSet, basename="connection")
+router.register(r"admin/connections", AdminConnectionViewSet, basename="admin-connection")
 
 urlpatterns = [
     path("notifications/summary/", NotificationSummaryView.as_view(), name="notification-summary"),

@@ -1,23 +1,16 @@
 # 매칭 API 프로젝트 진행 상황
 
-## 🚦 현재 상태 (마지막 업데이트: 2026-08-11)
-저장소 정리 + 사용자 제보 매칭 버그 2건 수정.
+## 🚦 현재 상태 (마지막 업데이트: 2026-08-12)
+보안 점검 — 사용자가 "지금 보안 해야 할 것들이 있지 않아?" 물어봐서 배포 보안 체크·의존성 취약점·설정을 훑어보고 발견한 것들을 바로 조치:
 
-**정리**
-1. `backend/conftest.py` import 순서(isort) 수정 — `scripts/lint.sh`/`format.sh`가 `backend/apps/`·`backend/config/`만 대상이라 이 파일은 체크에서 빠져 있었음
-2. `pyproject.toml`을 Poetry 2.0 PEP 621 `[project]` 테이블로 마이그레이션 (`poetry check` deprecation 경고 해소, `poetry.lock` content-hash만 갱신·의존성 버전 변경 없음)
-3. `docker-compose.yml`/`.prod.yml`에 명시적 `name:` 추가 — 저장소 루트 폴더명이 `-`라 `docker compose`가 project name을 못 잡던 문제 해결
-4. 프론트엔드에 vitest + Testing Library 테스트 인프라 처음 도입(`npm run test`), 예시 테스트 2종(`apiClient`, `CardStackMark`) 작성 — 그동안 백엔드만 테스트/CI가 붙어있었음
-5. 아무 데서도 안 쓰이던 `ComingSoonPage` 컴포넌트 삭제 (도메인 기반 구조 재편 때 만든 placeholder가 그대로 남아있던 dead code)
-6. 로컬 `var/`(pytest 캐시·커버리지·staticfiles·로그)·`media/`(테스트 업로드 이미지) 캐시 정리 — 전부 gitignore 대상이라 저장소엔 영향 없음, 다음 실행 시 자동 재생성
+1. **`.envs/.env.prod`의 `SECRET_KEY`가 사실상 무력화돼 있었음** — 값에 따옴표 없이 `#`이 들어있어서 django-environ의 `.env` 파서가 `#` 이후를 주석으로 잘라버림. 파일엔 64자로 보였지만 실제 로드되는 값은 14자였고 `manage.py check --deploy`의 W009로 발견. `$`/`#` 둘 다 없는 새 키로 교체(이 파일은 gitignore 대상이라 git엔 diff 없음 — 실제 배포 서버가 따로 있다면 거기 env도 별도로 교체해야 함)
+2. **`ADMIN_URL` 설정이 죽어있었음** — `prod.py`가 환경변수로 관리자 경로를 바꿀 수 있게 정의는 해뒀는데 `config/urls.py`가 이를 안 읽고 `"admin/"`을 하드코딩 — 설정을 바꿔도 관리자 페이지가 항상 기본 경로에 노출됐음. `base.py`에 기본값을 두고 `urls.py`가 `settings.ADMIN_URL`을 참조하도록 연결
+3. **의존성 취약점** — `pip-audit`으로 확인, 런타임에 실제 노출되는 것만 업그레이드: `pillow` 10.4.0→12.3.0(프로필 이미지 업로드 처리에 직접 사용, CVE 다수), `gunicorn` 21.2.0→22.0.0(운영 WSGI 서버). `black`/`pytest`/`pip`에도 취약점이 남지만 전부 dev 그룹이라 프로덕션 이미지(`poetry install --only main`)엔 안 들어가서 우선순위 낮게 보류
+4. 그 외 확인해서 문제없었던 것: CORS(명시적 origin 리스트)·CSRF trusted origins, 전체 ViewSet/APIView `permission_classes` 지정 여부, 비밀번호 재설정 이메일 미노출(enumeration 방지), DRF 전역 throttle, 로그인 브루트포스 방어(axes), 업로드 파일 크기 제한, `npm audit`/프론트 취약점 0건
 
-**버그 수정** — "로그인 후 매칭시작을 누르면 뜨면 안 되는 관리자가 뜨고, 이미 떠 있는데 또 누르면 중복으로 계속 뜬다"는 제보:
-1. `_get_candidate_queryset()`(`apps/matching/services/matching.py`)이 `is_staff`/`is_superuser`를 걸러내지 않아서, `createsuperuser`로 만든 관리자 계정도 `is_active_for_matching` 기본값(True) 때문에 일반 유저처럼 채점·매칭됐음 → 후보 조회에서 명시적으로 제외
-2. `MatchingResultViewSet.get_queryset()`이 요청자의 **전체 매칭 요청 이력**을 다 합쳐서 보여줘서(`MatchingResult`의 유니크 제약이 요청 단위라 같은 사람이 새 요청에서 또 뽑히면 새 row로 쌓임), "매칭 시작"을 다시 누를 때마다 이전 결과 위에 새 결과가 중복으로 쌓였음 → list는 가장 최근 완료된 매칭 요청 결과만 보여주도록 좁힘(retrieve는 이미 생성된 연결 요청 등이 과거 결과를 가리킬 수 있어 그대로 둠)
+전체 테스트 스위트 139개 통과 유지.
 
-회귀 테스트 2개 추가, 전체 테스트 스위트 139개 통과(커버리지 95%).
-
-이전엔 matching/users 앱 내부 구조를 도메인별 패키지로 분리, 그 전엔 관리자 이메일 로그인, 매칭/연결 알림 뱃지, 그 전엔 사용자 제보 버그 2건(비밀번호 복잡도 미검증, 매칭 요청 중복 생성)을 수정 — 자세한 내용은 `완료된 기능` 섹션과 `git log` 참고.
+이전엔 저장소 정리(isort/PEP 621 마이그레이션/docker-compose name/프론트 테스트 인프라/dead code 삭제) + 사용자 제보 매칭 버그 2건(관리자 계정 노출, "매칭 시작" 재클릭 시 결과 중복), 그 전엔 matching/users 앱 내부 구조를 도메인별 패키지로 분리, 그 전엔 관리자 이메일 로그인·매칭/연결 알림 뱃지를 완료 — 자세한 내용은 `완료된 기능` 섹션과 `git log` 참고.
 
 - 커밋 상태: 전부 커밋 완료, origin/feature에도 push 완료
 - 각 기능의 상세 구현 배경/발견한 버그/검증 방법은 `git log`의 커밋 메시지 참고 (커밋 메시지에 자세히 적어둠)
@@ -63,6 +56,7 @@
 - [x] 로그인 화면 ↔ 백엔드 실동작 검증 — `CSRF_TRUSTED_ORIGINS` 미설정으로 프론트(:3000)/백엔드(:8000) 간 인증된 요청(로그아웃 등)이 전부 CSRF Origin 검증에 막히던 버그 발견/수정 (pytest 기본 클라이언트는 Origin 헤더를 안 보내 못 잡던 문제)
 - [x] Django 관리자(`/admin/`) 이메일 로그인 지원 — `apps/users/admin.py`의 `EmailOrUsernameAdminAuthenticationForm`(`admin.site.login_form`으로 등록)이 관리자 로그인 폼에 입력된 이메일을 실제 username으로 바꿔서 인증. 전역 `AUTHENTICATION_BACKENDS`/`USERNAME_FIELD`는 안 건드리고 관리자 로그인 폼에만 영향을 주도록 범위를 좁힘
 - [x] 매칭 후보에 관리자 계정 노출 + "매칭 시작" 재클릭 시 결과 중복 누적 버그 수정 — 관리자(`is_staff`/`is_superuser`)를 후보 조회에서 명시적으로 제외하고, 매칭 결과 목록을 가장 최근 완료된 요청 것만 보여주도록 좁힘 (자세한 원인은 위 `현재 상태` 참고)
+- [x] 보안 점검 — `.env.prod`의 `SECRET_KEY`가 `#` 때문에 런타임엔 14자로 잘려 로드되던 것 발견/교체, 죽어있던 `ADMIN_URL` 설정을 `urls.py`에 실제로 연결, `pillow`/`gunicorn` 알려진 취약점 패치 버전으로 업그레이드 (자세한 내용은 위 `현재 상태` 참고)
 
 **프론트엔드**
 - [x] React + Vite + TypeScript 스캐폴드 (`frontend/`), dev 서버 포트 3000

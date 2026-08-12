@@ -48,11 +48,12 @@ class UserSerializer(serializers.ModelSerializer):
             "profile_image",
             "is_profile_complete",
             "is_active_for_matching",
+            "is_staff",
             "personality",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "age", "created_at", "updated_at"]
+        read_only_fields = ["id", "age", "is_staff", "created_at", "updated_at"]
         extra_kwargs = {
             "email": {"required": True},
         }

@@ -295,19 +295,24 @@
   opacity: 0.85;
 }
 
-/* 세 그라디언트 전부 흰 텍스트(16px/800)가 어느 지점에 걸치든 WCAG AA
-   4.5:1을 넘도록 톤을 낮춰뒀다 — 예전엔 밝은 시작 stop이 2:1대까지
-   떨어져 점수 숫자가 배지 위에서 실제로 잘 안 보였음. */
+/* 등급 색은 코랄(관심사)·바이올렛(성격)·틸(위치)과 완전히 분리된 독립
+   팔레트다 — 예전엔 이 세 색을 "점수 등급"이라는 별개 축에 그대로
+   재사용해서, DESIGN.md의 Weighted Color Rule("이 세 색의 매핑은 화면을
+   막론하고 절대 뒤바뀌지 않는다")을 정작 배지 자신이 어기고 있었다.
+   대신 "포토카드 바인더" 세계관의 카드 등급(골드/실버/브론즈) 은유를
+   가져왔다 — 트레이딩 카드의 레어도 표시와 같은 문법이라 세계관에도
+   맞고, 세 색과 절대 헷갈릴 일이 없다. 세 그라디언트 전부 흰 텍스트
+   (16px/800)가 어느 지점에 걸치든 WCAG AA 4.5:1을 넘도록 잡았다. */
 .matching-score-badge--high {
-  background: linear-gradient(135deg, #d62600 0%, #ad1f00 55%, #7a1600 100%);
+  background: linear-gradient(135deg, #866313 0%, #674c0f 55%, #47350a 100%); /* 골드 */
 }
 
 .matching-score-badge--mid {
-  background: linear-gradient(135deg, #6752eb 0%, #3f24e5 55%, #2c15b7 100%);
+  background: linear-gradient(135deg, #5c6984 0%, #495469 55%, #363e4e 100%); /* 실버 */
 }
 
 .matching-score-badge--low {
-  background: linear-gradient(135deg, #1f7a6e 0%, #185d54 55%, #103d37 100%);
+  background: linear-gradient(135deg, #864a27 0%, #67391e 55%, #472715 100%); /* 브론즈 */
 }
 
 .matching-result-card__bio {
@@ -338,14 +343,17 @@
   gap: var(--space-3);
 }
 
+/* 토큰 주석("코랄 = 주 CTA 채움")과 로그인/회원가입/매칭 시작/수락/저장이
+   전부 코랄인 것과 다르게, 이 화면에서 제일 중요한 클릭(연결하기)만 틸을
+   쓰고 있었다 — 코랄로 맞춤. */
 .matching-connect {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
   border: none;
   border-radius: var(--radius-control);
-  background: var(--color-teal);
-  color: white;
+  background: var(--color-coral);
+  color: var(--color-on-coral);
   font-size: 13px;
   font-weight: 700;
   padding: 8px 16px;
@@ -358,7 +366,7 @@
 }
 
 .matching-connect:disabled {
-  background: rgba(47, 184, 166, 0.5);
+  background: rgba(255, 90, 54, 0.45);
   cursor: not-allowed;
 }
 

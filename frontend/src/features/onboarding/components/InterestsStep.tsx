@@ -1,5 +1,15 @@
 import { useEffect, useState } from 'react'
-import { AlertIcon, SpinnerIcon } from '../../../components/icons'
+import {
+  AlertIcon,
+  ArtIcon,
+  FoodIcon,
+  MusicIcon,
+  SpinnerIcon,
+  SportsIcon,
+  TagIcon,
+  TechIcon,
+  TravelIcon,
+} from '../../../components/icons'
 import { ApiError } from '../../../lib/apiClient'
 import {
   addUserInterest,
@@ -15,6 +25,25 @@ type Props = {
 }
 
 type Group = { category: InterestCategory; interests: Interest[] }
+
+// 카테고리 icon 필드는 seed_interests 명령어가 이모지로 채워둔 값이라
+// (icons.tsx 자신이 "유니코드 글리프/이모지를 아이콘 대용으로 쓰지
+// 않는다"고 명시함) 그대로 렌더링하지 않고, 카테고리 이름으로 authored
+// 아이콘을 골라 쓴다. 목록에 없는 이름이 추가돼도 TagIcon으로 안전하게
+// 대체된다.
+const CATEGORY_ICONS: Record<string, typeof TechIcon> = {
+  기술: TechIcon,
+  스포츠: SportsIcon,
+  여행: TravelIcon,
+  '예술/문화': ArtIcon,
+  음식: FoodIcon,
+  음악: MusicIcon,
+}
+
+function CategoryIcon({ name }: { name: string }) {
+  const Icon = CATEGORY_ICONS[name] ?? TagIcon
+  return <Icon size={16} />
+}
 
 const DEFAULT_LEVEL = 3
 const LEVELS = [1, 2, 3, 4, 5]
@@ -136,7 +165,7 @@ export function InterestsStep({ onNext, onBack }: Props) {
         groups.map((group) => (
           <div className="onboarding-interest-group" key={group.category.id}>
             <div className="onboarding-interest-group__title">
-              <span aria-hidden="true">{group.category.icon}</span>
+              <CategoryIcon name={group.category.name} />
               <span>{group.category.name}</span>
             </div>
             <div className="onboarding-chip-grid">

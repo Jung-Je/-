@@ -1,15 +1,9 @@
-import { apiFetch } from '../../../lib/apiClient'
+import { apiFetch, type PaginatedResponse } from '../../../lib/apiClient'
 import type { MatchingRequestPayload, MatchingRequestSummary, MatchingResult } from '../types'
 
-// DRF의 DEFAULT_PAGINATION_CLASS(PageNumberPagination)가 list 응답을 이
-// 모양으로 감싼다. 결과가 PAGE_SIZE(20)를 넘어가는 경우의 "더 보기"는
-// 아직 다루지 않는다 — 첫 페이지만 보여준다.
-type PaginatedResponse<T> = {
-  count: number
-  next: string | null
-  previous: string | null
-  results: T[]
-}
+// PaginatedResponse는 lib/apiClient.ts에 공용으로 있다 — 결과가
+// PAGE_SIZE(20)를 넘어가는 경우의 "더 보기"는 아직 다루지 않는다 —
+// 첫 페이지만 보여준다.
 
 /**
  * 매칭 요청 생성 (백엔드: MatchingRequestViewSet.create). 생성과 동시에

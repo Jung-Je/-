@@ -1,0 +1,330 @@
+/*
+  스태프 화면 공용 스타일. 소비자 화면들의 카드 스킨모피즘(--shadow-card,
+  --radius-card)은 안 쓰고, 표/필터 위주의 플랫한 유틸리티 톤으로
+  통일한다 — DESIGN.md가 말하는 "조용한 화면" 중에서도 가장 조용한 층.
+  모든 스태프 화면(StaffUsersScreen/StaffConnectionsScreen/
+  StaffConnectionDetailScreen)이 StaffLayout 안에서 렌더되므로, 이 파일
+  하나만 import(StaffLayout.tsx)해도 아래 클래스 전부 쓸 수 있다.
+*/
+
+.staff-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-6) var(--space-4) var(--space-8);
+  gap: var(--space-5);
+}
+
+.staff-header {
+  width: 100%;
+  max-width: 960px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.staff-header__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.staff-header__top h1 {
+  font-size: 22px;
+}
+
+.staff-header__back {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-ink-muted);
+  text-decoration: none;
+}
+
+.staff-header__back:hover {
+  color: var(--color-ink);
+  text-decoration: underline;
+}
+
+.staff-tabs {
+  display: flex;
+  gap: var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.staff-tabs__link {
+  padding: var(--space-2) 2px var(--space-3);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-ink-muted);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.staff-tabs__link:hover {
+  color: var(--color-ink);
+}
+
+.staff-tabs__link--active {
+  color: var(--color-ink);
+  border-bottom-color: var(--color-coral);
+}
+
+.staff-content {
+  width: 100%;
+  max-width: 960px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* 필터 행 */
+.staff-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.staff-filters input[type='text'],
+.staff-filters select {
+  font: inherit;
+  font-size: 14px;
+  padding: 8px 12px;
+  border-radius: var(--radius-control);
+  border: 1.5px solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+
+.staff-filters input[type='text']:focus-visible,
+.staff-filters select:focus-visible {
+  outline: none;
+  border-color: var(--color-focus-ring);
+  box-shadow: var(--shadow-focus);
+}
+
+/* 표 */
+.staff-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+}
+
+.staff-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.staff-table th,
+.staff-table td {
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.staff-table th {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.staff-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.staff-table tbody tr:hover {
+  background: var(--color-bg);
+  cursor: pointer;
+}
+
+.staff-row-detail {
+  background: var(--color-bg);
+}
+
+.staff-row-detail:hover {
+  cursor: default;
+  background: var(--color-bg);
+}
+
+.staff-row-detail td {
+  white-space: normal;
+}
+
+/* 배지 */
+.staff-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.staff-badge--neutral {
+  background: var(--color-border);
+  color: var(--color-ink-muted);
+}
+
+.staff-badge--positive {
+  background: var(--color-teal-soft);
+  color: var(--color-teal-text);
+}
+
+.staff-badge--warning {
+  background: var(--color-coral-soft);
+  color: var(--color-coral-text);
+}
+
+.staff-badge--danger {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+/* 2클릭 확인 버튼 (ConfirmButton) */
+.staff-confirm-group {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.staff-confirm-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: var(--radius-control);
+  border: 1.5px solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.staff-confirm-btn:hover:not(:disabled) {
+  border-color: rgba(27, 29, 41, 0.32);
+}
+
+.staff-confirm-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.staff-confirm-btn--danger {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+  background: var(--color-danger-bg);
+}
+
+.staff-confirm-btn .spinner-icon {
+  animation: staff-spin 0.8s linear infinite;
+}
+
+@keyframes staff-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.staff-confirm-cancel {
+  border: none;
+  background: transparent;
+  color: var(--color-ink-muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.staff-confirm-cancel:hover:not(:disabled) {
+  color: var(--color-ink);
+  text-decoration: underline;
+}
+
+/* 페이지네이션 */
+.staff-pagination {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: 13px;
+  color: var(--color-ink-muted);
+}
+
+.staff-pagination button {
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: var(--radius-control);
+  border: 1.5px solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.staff-pagination button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* 상세/디테일 패널 */
+.staff-detail-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.staff-detail-card__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+  font-size: 14px;
+}
+
+.staff-detail-card__row dt {
+  font-weight: 700;
+  color: var(--color-ink-muted);
+  margin-right: var(--space-2);
+  display: inline;
+}
+
+.staff-detail-card__row dd {
+  display: inline;
+  margin: 0;
+}
+
+.staff-empty,
+.staff-loading {
+  color: var(--color-ink-muted);
+  font-size: 14px;
+  padding: var(--space-5) 0;
+}
+
+.staff-error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  border-radius: var(--radius-control);
+  font-size: 14px;
+}
+
+@media (max-width: 480px) {
+  .staff-table th,
+  .staff-table td {
+    padding: var(--space-2) var(--space-3);
+  }
+}

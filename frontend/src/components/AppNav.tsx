@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom'
+import { useCurrentUser } from '../features/auth/hooks/useCurrentUser'
 import { useNotificationSummary } from '../lib/useNotificationSummary'
 import './AppNav.css'
 
@@ -11,16 +12,23 @@ import './AppNav.css'
  * is_viewed/PENDING/read_at 상태를 그대로 반영하는 것이라, 결과를
  * 펼치거나(매칭) 요청에 응답하면(연결) 스레드를 열면(메시지) 자연히
  * 줄어든다.
+ *
+ * 스태프 계정에만 "관리자" 탭이 붙는다 — useCurrentUser를 여기서 직접
+ * 호출해서 화면마다 prop을 넘길 필요가 없게 했다(이미 로그인 상태에서만
+ * 렌더되는 컴포넌트라 /users/me/ 중복 호출은 감수).
  */
 export function AppNav() {
   const { unviewed_matching_results, pending_connection_requests, unread_messages } =
     useNotificationSummary()
+  const currentUser = useCurrentUser()
+  const isStaff = currentUser.status === 'authenticated' && currentUser.user.is_staff
 
   const links = [
     { to: '/matching', label: '매칭', badge: unviewed_matching_results },
     { to: '/connections', label: '연결', badge: pending_connection_requests },
     { to: '/messages', label: '메시지', badge: unread_messages },
     { to: '/settings', label: '설정', badge: 0 },
+    ...(isStaff ? [{ to: '/staff/users', label: '관리자', badge: 0 }] : []),
   ]
 
   return (

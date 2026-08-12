@@ -8,6 +8,9 @@ import { ConnectionsPage } from './app/connections/page'
 import { SettingsPage } from './app/settings/page'
 import { MessagesPage } from './app/messages/page'
 import { MessageThreadPage } from './app/messages/thread/page'
+import { StaffUsersPage } from './app/staff/users/page'
+import { StaffConnectionsPage } from './app/staff/connections/page'
+import { StaffConnectionDetailPage } from './app/staff/connections/detail/page'
 import { NotFoundPage } from './app/not-found/page'
 
 function App() {
@@ -25,6 +28,9 @@ function App() {
       <Route path="/settings" element={<SettingsPage />} />
       <Route path="/messages" element={<MessagesPage />} />
       <Route path="/messages/:connectionId" element={<MessageThreadPage />} />
+      <Route path="/staff/users" element={<StaffUsersPage />} />
+      <Route path="/staff/connections" element={<StaffConnectionsPage />} />
+      <Route path="/staff/connections/:connectionId" element={<StaffConnectionDetailPage />} />
       {/* 그 외 안 맞는 경로는 전부 여기로 — 예전엔 빈 화면으로 떨어졌음. */}
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

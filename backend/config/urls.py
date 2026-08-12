@@ -12,8 +12,8 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, Spec
 from apps.users.views import LoginView, LogoutView, csrf_view
 
 urlpatterns = [
-    # Admin
-    path("admin/", admin.site.urls),
+    # Admin (경로는 settings.ADMIN_URL — prod에서 ADMIN_URL 환경 변수로 바꿀 수 있음)
+    path(settings.ADMIN_URL, admin.site.urls),
     # API v1
     path("api/v1/users/", include("apps.users.urls")),
     path("api/v1/matching/", include("apps.matching.urls")),

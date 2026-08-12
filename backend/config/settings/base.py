@@ -27,6 +27,10 @@ DEBUG = env("DEBUG")
 
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")
 
+# config/urls.py의 admin path가 여기를 참조한다. prod.py가 ADMIN_URL 환경
+# 변수로 덮어쓸 수 있게 기본값만 여기 둔다 — dev에선 항상 "admin/" 그대로.
+ADMIN_URL = "admin/"
+
 # Custom User Model
 AUTH_USER_MODEL = "users.User"
 

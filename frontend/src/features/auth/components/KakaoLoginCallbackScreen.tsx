@@ -39,6 +39,11 @@ export function KakaoLoginCallbackScreen() {
   const [errorMessage, setErrorMessage] = useState('')
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
+  // 카카오가 이메일을 줬으면(동의항목 허용) 그 값을 신뢰하고 수정 못하게
+  // 잠근다 — 계정을 만든 뒤 실제로 쓰는 이메일과 로그인에 쓰인 카카오
+  // 계정 이메일이 달라지는 걸 막기 위함. 카카오가 안 줬을 때만(None)
+  // 직접 입력받는다.
+  const [emailLocked, setEmailLocked] = useState(false)
   const [dateOfBirth, setDateOfBirth] = useState('')
   const attempted = useRef(false)
 
@@ -59,6 +64,7 @@ export function KakaoLoginCallbackScreen() {
           return
         }
         setEmail(result.suggested_email ?? '')
+        setEmailLocked(Boolean(result.suggested_email))
         setStatus('signup_form')
       })
       .catch((error: unknown) => {
@@ -167,10 +173,13 @@ export function KakaoLoginCallbackScreen() {
               onChange={(event) => setEmail(event.target.value)}
               aria-invalid={hasFormError}
               aria-describedby={hasFormError ? errorId : undefined}
-              disabled={isSubmitting}
+              disabled={isSubmitting || emailLocked}
               required
             />
           </div>
+          {emailLocked && (
+            <p className="auth-field__hint">카카오 계정 이메일이라 수정할 수 없어요.</p>
+          )}
         </div>
 
         <div className="auth-field">

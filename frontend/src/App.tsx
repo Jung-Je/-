@@ -11,6 +11,9 @@ import { MessageThreadPage } from './app/messages/thread/page'
 import { StaffUsersPage } from './app/staff/users/page'
 import { StaffConnectionsPage } from './app/staff/connections/page'
 import { StaffConnectionDetailPage } from './app/staff/connections/detail/page'
+import { StaffInterestsPage } from './app/staff/interests/page'
+import { StaffMatchingRequestsPage } from './app/staff/matching-requests/page'
+import { StaffMatchingRequestDetailPage } from './app/staff/matching-requests/detail/page'
 import { NotFoundPage } from './app/not-found/page'
 
 function App() {
@@ -31,6 +34,12 @@ function App() {
       <Route path="/staff/users" element={<StaffUsersPage />} />
       <Route path="/staff/connections" element={<StaffConnectionsPage />} />
       <Route path="/staff/connections/:connectionId" element={<StaffConnectionDetailPage />} />
+      <Route path="/staff/interests" element={<StaffInterestsPage />} />
+      <Route path="/staff/matching-requests" element={<StaffMatchingRequestsPage />} />
+      <Route
+        path="/staff/matching-requests/:requestId"
+        element={<StaffMatchingRequestDetailPage />}
+      />
       {/* 그 외 안 맞는 경로는 전부 여기로 — 예전엔 빈 화면으로 떨어졌음. */}
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

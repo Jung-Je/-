@@ -274,6 +274,34 @@
   cursor: not-allowed;
 }
 
+/* 관심사 관리 화면의 카테고리 확장 행 안, 관심사 목록 */
+.staff-interest-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0 0 var(--space-4);
+  list-style: none;
+}
+
+.staff-interest-list li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.staff-interest-list li:last-child {
+  border-bottom: none;
+}
+
+.staff-interest-list__desc {
+  color: var(--color-ink-muted);
+  font-size: 13px;
+  flex: 1;
+}
+
 /* 상세/디테일 패널 */
 .staff-detail-card {
   background: var(--color-surface);

@@ -6,8 +6,9 @@ from rest_framework.response import Response
 
 from drf_spectacular.utils import extend_schema, extend_schema_view
 
-from ..models import User
-from ..serializers.admin import AdminUserModerationSerializer, AdminUserSerializer
+from apps.users.models import User
+
+from ..serializers import AdminUserModerationSerializer, AdminUserSerializer
 
 logger = logging.getLogger(__name__)
 

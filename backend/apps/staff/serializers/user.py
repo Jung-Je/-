@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
-from ..models import User
-from .user import UserPersonalitySerializer
+from apps.users.models import User
+from apps.users.serializers import UserPersonalitySerializer
 
 
 class AdminUserSerializer(serializers.ModelSerializer):

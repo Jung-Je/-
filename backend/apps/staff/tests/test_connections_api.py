@@ -6,7 +6,7 @@ import pytest
 from apps.matching.models import Connection, Message
 from apps.users.tests.factories import UserFactory
 
-ADMIN_CONNECTIONS_URL = "/api/v1/matching/admin/connections/"
+ADMIN_CONNECTIONS_URL = "/api/v1/staff/connections/"
 
 
 def staff_client():

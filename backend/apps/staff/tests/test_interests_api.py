@@ -7,8 +7,8 @@ from apps.matching.models import Interest, InterestCategory
 from apps.matching.tests.factories import InterestCategoryFactory, InterestFactory
 from apps.users.tests.factories import UserFactory
 
-ADMIN_CATEGORIES_URL = "/api/v1/matching/admin/interest-categories/"
-ADMIN_INTERESTS_URL = "/api/v1/matching/admin/interests/"
+ADMIN_CATEGORIES_URL = "/api/v1/staff/interest-categories/"
+ADMIN_INTERESTS_URL = "/api/v1/staff/interests/"
 
 
 def staff_client():

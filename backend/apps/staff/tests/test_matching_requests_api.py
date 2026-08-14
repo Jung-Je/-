@@ -8,7 +8,7 @@ import pytest
 from apps.matching.models import MatchingRequest, MatchingResult
 from apps.users.tests.factories import UserFactory
 
-ADMIN_REQUESTS_URL = "/api/v1/matching/admin/matching-requests/"
+ADMIN_REQUESTS_URL = "/api/v1/staff/matching-requests/"
 
 
 def staff_client():

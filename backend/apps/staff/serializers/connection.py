@@ -1,8 +1,7 @@
 from rest_framework import serializers
 
+from apps.matching.models import Connection, Message
 from apps.users.serializers import UserDetailSerializer
-
-from ..models import Connection, Message
 
 
 class AdminConnectionSerializer(serializers.ModelSerializer):

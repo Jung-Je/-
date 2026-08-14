@@ -5,7 +5,7 @@ import pytest
 
 from apps.users.tests.factories import UserFactory, UserPersonalityFactory
 
-ADMIN_USERS_URL = "/api/v1/users/admin/users/"
+ADMIN_USERS_URL = "/api/v1/staff/users/"
 
 
 def staff_client():

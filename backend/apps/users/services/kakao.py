@@ -42,6 +42,12 @@ def verify_kakao_adult(code: str, redirect_uri: str) -> dict:
     (age_range 동의항목) -> 판정. 반환값: {"kakao_id": str, "is_adult": bool}.
     설정 누락/HTTP 오류/동의 거부는 전부 KakaoVerificationError로 통일해서
     던진다.
+
+    현재는 회원가입 흐름에서 안 쓰임(age_range 동의항목이 카카오
+    "비즈니스 앱" 전환 + 사업자등록번호를 요구해서 막혀, 자기신고
+    생년월일 검증으로 대체됨 — apps/users/serializers/user.py 참고).
+    나중에 사업자등록을 하게 되면 다시 연결할 수 있도록 지우지 않고
+    남겨둔다.
     """
     if not settings.KAKAO_CLIENT_ID:
         raise KakaoVerificationError("카카오 로그인이 아직 설정되지 않았습니다.")
@@ -59,6 +65,30 @@ def verify_kakao_adult(code: str, redirect_uri: str) -> dict:
     is_adult = age_range in _ADULT_AGE_RANGES
 
     return {"kakao_id": kakao_account["kakao_id"], "is_adult": is_adult}
+
+
+def fetch_kakao_profile(code: str, redirect_uri: str) -> dict:
+    """소셜 로그인/가입용 — age_range는 아예 안 건드리고 카카오 식별자·
+    기본 프로필만 가져온다(닉네임/이메일은 카카오 동의항목 상태에 따라
+    없을 수 있어 항상 None 가능성을 감안해야 함 — 호출부가 직접 입력
+    폴백을 제공).
+
+    반환값: {"kakao_id": str, "nickname": str | None, "email": str | None}
+    """
+    if not settings.KAKAO_CLIENT_ID:
+        raise KakaoVerificationError("카카오 로그인이 아직 설정되지 않았습니다.")
+
+    access_token = _exchange_code_for_token(code, redirect_uri)
+    kakao_account = _fetch_kakao_account(access_token)
+
+    if kakao_account.get("kakao_id") is None:
+        raise KakaoVerificationError("카카오 인증에 실패했습니다. 다시 시도해주세요.")
+
+    return {
+        "kakao_id": kakao_account["kakao_id"],
+        "nickname": kakao_account.get("nickname"),
+        "email": kakao_account.get("email"),
+    }
 
 
 def _exchange_code_for_token(code: str, redirect_uri: str) -> str:
@@ -113,8 +143,19 @@ def _fetch_kakao_account(access_token: str) -> dict:
 
     data = response.json()
     kakao_account = data.get("kakao_account", {})
+    properties = data.get("properties", {})
+
+    # 이메일은 email_needs_agreement가 True(동의 안 함)면 값이 있어도
+    # 신뢰하면 안 되는 상태라 None으로 취급 — 호출부(fetch_kakao_profile)가
+    # "카카오가 안 줬다"와 같은 방식으로 처리해서 수동 입력으로 폴백한다.
+    email = None
+    if not kakao_account.get("email_needs_agreement", True):
+        email = kakao_account.get("email")
+
     return {
         "kakao_id": str(data["id"]) if "id" in data else None,
         "age_range_needs_agreement": kakao_account.get("age_range_needs_agreement", True),
         "age_range": kakao_account.get("age_range"),
+        "nickname": properties.get("nickname"),
+        "email": email,
     }

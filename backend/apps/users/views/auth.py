@@ -23,10 +23,22 @@ from rest_framework.views import APIView
 from drf_spectacular.utils import extend_schema
 
 from ..models import User
-from ..serializers import LoginSerializer, UserSerializer
-from ..services import KakaoVerificationError, verify_kakao_adult
+from ..serializers import KakaoSignupCompletionSerializer, LoginSerializer, UserSerializer
+from ..services import KakaoVerificationError, fetch_kakao_profile, verify_kakao_adult
 
 logger = logging.getLogger(__name__)
+
+
+def _login_without_password(django_request, user):
+    """authenticate()를 거치지 않고 바로 세션을 만들 때 쓴다(카카오 소셜
+    로그인/가입 — 비밀번호 자체가 없거나 확인할 필요가 없는 경우).
+    django_login()은 보통 authenticate()가 user.backend에 심어준 값으로
+    어느 인증 백엔드가 이 로그인을 승인했는지 판단하는데, 여기선 그
+    과정을 안 거치니 직접 지정해줘야 한다 — 안 그러면
+    AUTHENTICATION_BACKENDS가 2개(axes 포함)라 장고가 어느 쪽인지 판단을
+    못 해 AttributeError를 던진다."""
+    user.backend = "django.contrib.auth.backends.ModelBackend"
+    django_login(django_request, user)
 
 
 @require_GET
@@ -153,3 +165,96 @@ class KakaoAgeVerificationView(APIView):
         logger.info("카카오 성인인증 완료: kakao_id=%s", result["kakao_id"])
 
         return Response({"verified": True})
+
+
+class KakaoLoginView(APIView):
+    """카카오 소셜 로그인/가입 1단계. 이미 연결된 계정이면 바로
+    로그인시키고, 처음 보는 kakao_id면 계정을 만들지 않고 부족한 정보
+    (KakaoSignupCompletionView에서 마저 받을 것들)만 세션에 잠깐
+    담아둔다. age_range 성인인증(KakaoAgeVerificationView)과는 완전히
+    별개 흐름이라 세션 키도 겹치지 않게 kakao_pending_* 접두사를 쓴다.
+    """
+
+    permission_classes = [AllowAny]
+
+    @extend_schema(summary="카카오 소셜 로그인/가입 1단계", tags=["Auth"])
+    def post(self, request):
+        code = request.data.get("code")
+        redirect_uri = request.data.get("redirect_uri")
+        if not code or not redirect_uri:
+            return Response(
+                {"detail": "code와 redirect_uri가 필요합니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            profile = fetch_kakao_profile(code, redirect_uri)
+        except KakaoVerificationError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = User.objects.filter(kakao_id=profile["kakao_id"]).first()
+        if user is not None:
+            # django_login()은 authenticate()를 안 거치므로, 계정 정지
+            # 여부를 여기서 직접 확인해야 한다 — 안 그러면 정지된 계정도
+            # 카카오로는 로그인이 되는 구멍이 생긴다.
+            if not user.is_active:
+                return Response(
+                    {"detail": "정지된 계정입니다."}, status=status.HTTP_400_BAD_REQUEST
+                )
+            _login_without_password(request._request, user)
+            logger.info("카카오 소셜 로그인 성공: user_id=%s", user.id)
+            return Response({"status": "logged_in", "user": UserSerializer(user).data})
+
+        request.session["kakao_pending_id"] = profile["kakao_id"]
+        request.session["kakao_pending_nickname"] = profile["nickname"]
+        request.session["kakao_pending_email"] = profile["email"]
+        logger.info("카카오 소셜 가입 필요: kakao_id=%s", profile["kakao_id"])
+
+        return Response(
+            {
+                "status": "signup_required",
+                "suggested_username": profile["nickname"],
+                "suggested_email": profile["email"],
+            }
+        )
+
+
+class KakaoSignupCompletionView(APIView):
+    """카카오 소셜 가입 2단계. KakaoLoginView가 signup_required를 준
+    직후에만 호출 의미가 있다 — session의 kakao_pending_id가 그
+    관문이다. 비밀번호 없는 계정을 만든다(User.objects.create_user에
+    password=None을 넘기면 장고가 자동으로 사용 불가능한 비밀번호로
+    설정 — 이후 이메일/비밀번호 로그인은 자연히 실패하고 카카오로만
+    로그인 가능해진다).
+    """
+
+    permission_classes = [AllowAny]
+
+    @extend_schema(summary="카카오 소셜 가입 완료", tags=["Auth"])
+    def post(self, request):
+        kakao_id = request.session.get("kakao_pending_id")
+        if not kakao_id:
+            return Response(
+                {"detail": "카카오 인증을 다시 진행해주세요."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = KakaoSignupCompletionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = User.objects.create_user(
+            username=serializer.validated_data["username"],
+            email=serializer.validated_data["email"],
+            date_of_birth=serializer.validated_data["date_of_birth"],
+            password=None,
+            kakao_id=kakao_id,
+            is_adult_verified=True,
+        )
+
+        for key in ("kakao_pending_id", "kakao_pending_nickname", "kakao_pending_email"):
+            request.session.pop(key, None)
+
+        _login_without_password(request._request, user)
+        logger.info("카카오 소셜 가입 완료: user_id=%s", user.id)
+
+        return Response({"user": UserSerializer(user).data}, status=status.HTTP_201_CREATED)

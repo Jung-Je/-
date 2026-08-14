@@ -8,6 +8,19 @@ from ..models import User, UserPersonality
 from ..services import MAX_UPLOAD_SIZE, MIN_ADULT_AGE, is_adult_birthdate
 
 
+def _validate_signup_date_of_birth(value):
+    """미래 날짜 방지 + 최소 연령(만 19세) 검증 — 자기신고라 마음만
+    먹으면 속일 수 있지만, 검증이 전혀 없던 것보다는 실질적 방어.
+    UserCreateSerializer(이메일 가입)와 KakaoSignupCompletionSerializer
+    (카카오 소셜 가입) 둘 다 같은 관문을 통과해야 하므로 여기 한 곳에
+    모아두고 재사용한다."""
+    if value > date.today():
+        raise serializers.ValidationError("생년월일은 미래 날짜일 수 없습니다.")
+    if not is_adult_birthdate(value):
+        raise serializers.ValidationError(f"회원가입은 만 {MIN_ADULT_AGE}세 이상만 가능합니다.")
+    return value
+
+
 class UserPersonalitySerializer(serializers.ModelSerializer):
     """사용자 성격 정보 시리얼라이저"""
 
@@ -127,13 +140,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
         }
 
     def validate_date_of_birth(self, value):
-        """미래 날짜 방지 + 최소 연령(만 19세) 검증 — 자기신고라 마음만
-        먹으면 속일 수 있지만, 검증이 전혀 없던 것보다는 실질적 방어."""
-        if value > date.today():
-            raise serializers.ValidationError("생년월일은 미래 날짜일 수 없습니다.")
-        if not is_adult_birthdate(value):
-            raise serializers.ValidationError(f"회원가입은 만 {MIN_ADULT_AGE}세 이상만 가능합니다.")
-        return value
+        return _validate_signup_date_of_birth(value)
 
     def validate(self, attrs):
         """비밀번호 확인 검증"""

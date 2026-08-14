@@ -9,7 +9,14 @@ from django.urls import include, path
 
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
-from apps.users.views import KakaoAgeVerificationView, LoginView, LogoutView, csrf_view
+from apps.users.views import (
+    KakaoAgeVerificationView,
+    KakaoLoginView,
+    KakaoSignupCompletionView,
+    LoginView,
+    LogoutView,
+    csrf_view,
+)
 
 urlpatterns = [
     # Admin (경로는 settings.ADMIN_URL — prod에서 ADMIN_URL 환경 변수로 바꿀 수 있음)
@@ -23,11 +30,19 @@ urlpatterns = [
     path("api/v1/auth/csrf/", csrf_view, name="auth-csrf"),
     path("api/v1/auth/login/", LoginView.as_view(), name="auth-login"),
     path("api/v1/auth/logout/", LogoutView.as_view(), name="auth-logout"),
-    # 회원가입 전 성인인증(카카오 로그인 age_range 연동)
+    # 회원가입 전 성인인증(카카오 로그인 age_range 연동, 현재 미사용 —
+    # docs/progress.md 참고)
     path(
         "api/v1/auth/kakao/verify/",
         KakaoAgeVerificationView.as_view(),
         name="auth-kakao-verify",
+    ),
+    # 카카오 소셜 로그인/가입 (성인인증과 별개)
+    path("api/v1/auth/kakao/login/", KakaoLoginView.as_view(), name="auth-kakao-login"),
+    path(
+        "api/v1/auth/kakao/complete-signup/",
+        KakaoSignupCompletionView.as_view(),
+        name="auth-kakao-complete-signup",
     ),
     # API Schema & Documentation
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),

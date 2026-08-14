@@ -27,6 +27,7 @@
   --color-coral: #ff5a36;
   --color-coral-soft: rgba(255, 90, 54, 0.12);
   --color-on-coral: #1b1d29; /* 코랄 위 텍스트, 대비 5.4:1 */
+  --color-coral-text: #c22400; /* 흰 배경 위 텍스트, 대비 5.9:1 — violet-text/teal-text와 짝을 맞춤 */
 
   /* 성격 (가중치 30%) */
   --color-violet: #8c7cf0;

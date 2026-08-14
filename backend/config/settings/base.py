@@ -27,6 +27,10 @@ DEBUG = env("DEBUG")
 
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")
 
+# config/urls.py의 admin path가 여기를 참조한다. prod.py가 ADMIN_URL 환경
+# 변수로 덮어쓸 수 있게 기본값만 여기 둔다 — dev에선 항상 "admin/" 그대로.
+ADMIN_URL = "admin/"
+
 # Custom User Model
 AUTH_USER_MODEL = "users.User"
 
@@ -53,6 +57,7 @@ THIRD_PARTY_APPS = [
 LOCAL_APPS = [
     "apps.users",
     "apps.matching",
+    "apps.staff",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -145,6 +150,9 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
+    },
+    {
+        "NAME": "apps.users.services.validators.PasswordComplexityValidator",
     },
 ]
 

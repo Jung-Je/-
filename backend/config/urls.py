@@ -9,18 +9,20 @@ from django.urls import include, path
 
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
-from apps.users import auth_views
+from apps.users.views import LoginView, LogoutView, csrf_view
 
 urlpatterns = [
-    # Admin
-    path("admin/", admin.site.urls),
+    # Admin (경로는 settings.ADMIN_URL — prod에서 ADMIN_URL 환경 변수로 바꿀 수 있음)
+    path(settings.ADMIN_URL, admin.site.urls),
     # API v1
     path("api/v1/users/", include("apps.users.urls")),
     path("api/v1/matching/", include("apps.matching.urls")),
+    # 스태프 전용 관리자 REST API — 도메인 앱에 흩어지지 않도록 한 곳에 모음
+    path("api/v1/staff/", include("apps.staff.urls")),
     # 세션 기반 JSON 로그인/로그아웃 (계약: frontend/src/api/auth.ts)
-    path("api/v1/auth/csrf/", auth_views.csrf_view, name="auth-csrf"),
-    path("api/v1/auth/login/", auth_views.LoginView.as_view(), name="auth-login"),
-    path("api/v1/auth/logout/", auth_views.LogoutView.as_view(), name="auth-logout"),
+    path("api/v1/auth/csrf/", csrf_view, name="auth-csrf"),
+    path("api/v1/auth/login/", LoginView.as_view(), name="auth-login"),
+    path("api/v1/auth/logout/", LogoutView.as_view(), name="auth-logout"),
     # API Schema & Documentation
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),

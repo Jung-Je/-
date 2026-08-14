@@ -191,7 +191,7 @@ class TestConnectionEmailNotifications:
 
         client, _from_user = auth_client
         to_user = UserFactory()
-        monkeypatch.setattr("apps.matching.notifications.send_mail", _broken_send_mail)
+        monkeypatch.setattr("apps.matching.services.notifications.send_mail", _broken_send_mail)
 
         response = client.post(CONNECTIONS_URL, {"to_user": to_user.id}, format="json")
 

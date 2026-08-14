@@ -29,9 +29,19 @@ export function OnboardingWizard() {
 
 function Wizard({ userId, alreadyComplete }: { userId: number; alreadyComplete: boolean }) {
   const [step, setStep] = useState<Step>(alreadyComplete ? 'done' : 'profile')
+  // alreadyComplete는 마운트 시점 상태라 "방금 3단계를 막 끝냈는지"와
+  // "원래 완성돼 있던 카드를 다시 보러 왔는지"를 구분 못 한다 — 예전엔
+  // 두 경우가 완전히 같은 화면으로 떨어져서, 정작 축하해야 할 첫 완성
+  // 순간이 재방문자용 상태 화면과 똑같이 밋밋했다.
+  const [justCompleted, setJustCompleted] = useState(false)
 
   const activeIndex = STEPS.findIndex((s) => s.key === step)
-  const cardModifier = step === 'done' ? '' : ` onboarding-card--${step}`
+  const cardModifier =
+    step === 'done'
+      ? justCompleted
+        ? ' onboarding-card--celebrate'
+        : ''
+      : ` onboarding-card--${step}`
 
   return (
     <div className="onboarding-screen">
@@ -73,12 +83,26 @@ function Wizard({ userId, alreadyComplete }: { userId: number; alreadyComplete: 
           <PersonalityStep onNext={() => setStep('interests')} onBack={() => setStep('profile')} />
         )}
         {step === 'interests' && (
-          <InterestsStep onNext={() => setStep('done')} onBack={() => setStep('personality')} />
+          <InterestsStep
+            onNext={() => {
+              setJustCompleted(true)
+              setStep('done')
+            }}
+            onBack={() => setStep('personality')}
+          />
         )}
         {step === 'done' && (
-          <div className="onboarding-done">
-            <span className="onboarding-done__badge">카드 완성</span>
-            <h2>카드가 완성됐어요</h2>
+          <div className={'onboarding-done' + (justCompleted ? ' onboarding-done--celebrate' : '')}>
+            <span
+              className={
+                'onboarding-done__badge' + (justCompleted ? ' onboarding-done__badge--celebrate' : '')
+              }
+            >
+              {justCompleted ? '카드 완성!' : '카드 완성'}
+            </span>
+            <h2>
+              {justCompleted ? '첫 카드가 완성됐어요' : '카드가 완성됐어요'}
+            </h2>
             <p>이제 매칭을 시작할 수 있어요. 취향이 비슷한 사람을 찾아드릴게요.</p>
             <Link to="/matching">매칭 시작하기</Link>
           </div>

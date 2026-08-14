@@ -99,6 +99,11 @@
     box-shadow 0.15s ease;
 }
 
+.settings-field__hint {
+  font-size: 13px;
+  color: var(--color-ink-placeholder);
+}
+
 .settings-field textarea {
   resize: vertical;
   min-height: 76px;

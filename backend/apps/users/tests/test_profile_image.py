@@ -6,7 +6,7 @@ from rest_framework import status
 import pytest
 from PIL import Image
 
-from apps.users.image_processing import (
+from apps.users.services.image_processing import (
     JPEG_QUALITY,
     MAX_DIMENSION,
     MAX_UPLOAD_SIZE,

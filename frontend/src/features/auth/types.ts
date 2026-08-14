@@ -12,6 +12,7 @@ export type AuthUser = {
   bio: string
   is_profile_complete: boolean
   is_active_for_matching: boolean
+  is_staff: boolean
 }
 
 export type SignupPayload = {

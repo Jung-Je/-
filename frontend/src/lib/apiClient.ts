@@ -13,6 +13,16 @@ export class ApiError extends Error {
   }
 }
 
+// DRF의 DEFAULT_PAGINATION_CLASS(PageNumberPagination)가 list 응답을 이
+// 모양으로 감싼다 — matchingApi/connectionsApi/onboardingApi가 각자 똑같이
+// 다시 선언하던 걸 여기 한 곳으로 모음.
+export type PaginatedResponse<T> = {
+  count: number
+  next: string | null
+  previous: string | null
+  results: T[]
+}
+
 function readCookie(name: string): string | null {
   const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`))
   return match ? decodeURIComponent(match[1]) : null

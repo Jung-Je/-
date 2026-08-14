@@ -1,5 +1,15 @@
 import { useEffect, useState } from 'react'
-import { AlertIcon, SpinnerIcon } from '../../../components/icons'
+import {
+  AlertIcon,
+  ArtIcon,
+  FoodIcon,
+  MusicIcon,
+  SpinnerIcon,
+  SportsIcon,
+  TagIcon,
+  TechIcon,
+  TravelIcon,
+} from '../../../components/icons'
 import { ApiError } from '../../../lib/apiClient'
 import {
   addUserInterest,
@@ -16,10 +26,35 @@ type Props = {
 
 type Group = { category: InterestCategory; interests: Interest[] }
 
+// 카테고리 icon 필드는 seed_interests 명령어가 이모지로 채워둔 값이라
+// (icons.tsx 자신이 "유니코드 글리프/이모지를 아이콘 대용으로 쓰지
+// 않는다"고 명시함) 그대로 렌더링하지 않고, 카테고리 이름으로 authored
+// 아이콘을 골라 쓴다. 목록에 없는 이름이 추가돼도 TagIcon으로 안전하게
+// 대체된다.
+const CATEGORY_ICONS: Record<string, typeof TechIcon> = {
+  기술: TechIcon,
+  스포츠: SportsIcon,
+  여행: TravelIcon,
+  '예술/문화': ArtIcon,
+  음식: FoodIcon,
+  음악: MusicIcon,
+}
+
+function CategoryIcon({ name }: { name: string }) {
+  const Icon = CATEGORY_ICONS[name] ?? TagIcon
+  return <Icon size={16} />
+}
+
+const DEFAULT_LEVEL = 3
+const LEVELS = [1, 2, 3, 4, 5]
+
 export function InterestsStep({ onNext, onBack }: Props) {
   const [groups, setGroups] = useState<Group[] | null>(null)
   const [loadError, setLoadError] = useState('')
-  const [selected, setSelected] = useState<Set<number>>(new Set())
+  // interestId -> 관심도(1~5). 선택 즉시 DEFAULT_LEVEL로 들어가고, 칩 아래
+  // 점 5개로 직접 조절할 수 있다 — 예전엔 이 값을 조절할 UI가 아예 없어서
+  // 항상 3으로만 저장됐음(매칭 알고리즘이 실제로 쓰는 값인데도).
+  const [levels, setLevels] = useState<Map<number, number>>(new Map())
   const [status, setStatus] = useState<'idle' | 'submitting' | 'error'>('idle')
   const [errorMessage, setErrorMessage] = useState('')
 
@@ -56,19 +91,28 @@ export function InterestsStep({ onNext, onBack }: Props) {
   }, [])
 
   function toggleInterest(interestId: number) {
-    setSelected((current) => {
-      const next = new Set(current)
+    setLevels((current) => {
+      const next = new Map(current)
       if (next.has(interestId)) {
         next.delete(interestId)
       } else {
-        next.add(interestId)
+        next.set(interestId, DEFAULT_LEVEL)
       }
       return next
     })
   }
 
+  function setLevel(interestId: number, level: number) {
+    setLevels((current) => {
+      if (!current.has(interestId)) return current
+      const next = new Map(current)
+      next.set(interestId, level)
+      return next
+    })
+  }
+
   async function handleSubmit() {
-    if (selected.size === 0) {
+    if (levels.size === 0) {
       setErrorMessage('관심사를 1개 이상 선택해주세요.')
       setStatus('error')
       return
@@ -78,7 +122,9 @@ export function InterestsStep({ onNext, onBack }: Props) {
     setErrorMessage('')
 
     try {
-      await Promise.all([...selected].map((interestId) => addUserInterest(interestId)))
+      await Promise.all(
+        [...levels].map(([interestId, level]) => addUserInterest(interestId, level)),
+      )
       await checkProfileCompletion()
       onNext()
     } catch (error) {
@@ -119,22 +165,48 @@ export function InterestsStep({ onNext, onBack }: Props) {
         groups.map((group) => (
           <div className="onboarding-interest-group" key={group.category.id}>
             <div className="onboarding-interest-group__title">
-              <span aria-hidden="true">{group.category.icon}</span>
+              <CategoryIcon name={group.category.name} />
               <span>{group.category.name}</span>
             </div>
             <div className="onboarding-chip-grid">
-              {group.interests.map((interest) => (
-                <button
-                  key={interest.id}
-                  type="button"
-                  className="onboarding-chip"
-                  aria-pressed={selected.has(interest.id)}
-                  onClick={() => toggleInterest(interest.id)}
-                  disabled={isSubmitting}
-                >
-                  {interest.name}
-                </button>
-              ))}
+              {group.interests.map((interest) => {
+                const level = levels.get(interest.id)
+                const isSelected = level !== undefined
+
+                return (
+                  <div className="onboarding-chip-wrap" key={interest.id}>
+                    <button
+                      type="button"
+                      className="onboarding-chip"
+                      aria-pressed={isSelected}
+                      onClick={() => toggleInterest(interest.id)}
+                      disabled={isSubmitting}
+                    >
+                      {interest.name}
+                    </button>
+
+                    {isSelected && (
+                      <div
+                        className="onboarding-chip-level"
+                        role="group"
+                        aria-label={`${interest.name} 관심도 (1~5)`}
+                      >
+                        {LEVELS.map((n) => (
+                          <button
+                            key={n}
+                            type="button"
+                            className="onboarding-chip-level__dot"
+                            aria-pressed={level >= n}
+                            aria-label={`관심도 ${n}`}
+                            onClick={() => setLevel(interest.id, n)}
+                            disabled={isSubmitting}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           </div>
         ))}

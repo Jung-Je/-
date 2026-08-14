@@ -1,4 +1,4 @@
-import { apiFetch } from '../../../lib/apiClient'
+import { apiFetch, type PaginatedResponse } from '../../../lib/apiClient'
 import type {
   Interest,
   InterestCategory,
@@ -7,14 +7,8 @@ import type {
   ProfileFormValues,
 } from '../types'
 
-// DRF의 DEFAULT_PAGINATION_CLASS(PageNumberPagination)가 모든 list 응답을
-// 이 모양으로 감싼다 — 결과가 PAGE_SIZE(20)보다 적어도 항상 감싸져 있다.
-type PaginatedResponse<T> = {
-  count: number
-  next: string | null
-  previous: string | null
-  results: T[]
-}
+// PaginatedResponse는 lib/apiClient.ts에 공용으로 있다 — 결과가
+// PAGE_SIZE(20)보다 적어도 항상 감싸져 있다.
 
 /**
  * 프로필 업데이트 (백엔드: UserViewSet.partial_update, UserUpdateSerializer).

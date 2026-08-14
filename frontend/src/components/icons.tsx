@@ -42,6 +42,103 @@ export function AlertIcon({ size = 18 }: IconProps) {
   )
 }
 
+export function TechIcon({ size = 18 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <rect x="2.5" y="3.5" width="15" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.75" />
+      <path d="M7 17h6M10 13.5V17" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+export function SportsIcon({ size = 18 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <circle cx="10" cy="10" r="7.25" stroke="currentColor" strokeWidth="1.75" />
+      <path
+        d="M10 2.75V17.25M2.75 10h14.5M4.3 5.3c2 1.7 3.6 2.8 5.7 2.8s3.7-1.1 5.7-2.8M4.3 14.7c2-1.7 3.6-2.8 5.7-2.8s3.7 1.1 5.7 2.8"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+export function TravelIcon({ size = 18 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path
+        d="M17.25 2.75 2.75 8.9l5.4 2.1M17.25 2.75 11.15 17.25l-2.1-5.4m8.2-9.1-8.2 9.1"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+export function ArtIcon({ size = 18 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <rect x="2.5" y="3.5" width="15" height="13" rx="1.5" stroke="currentColor" strokeWidth="1.75" />
+      <circle cx="7" cy="8" r="1.4" stroke="currentColor" strokeWidth="1.5" />
+      <path
+        d="m3.5 15 4.3-4.3a1.5 1.5 0 0 1 2.12 0L12.5 13.3 15 10.8a1.5 1.5 0 0 1 2.12 0l1.38 1.38"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+export function FoodIcon({ size = 18 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path
+        d="M4.5 3v5.5a2.5 2.5 0 0 0 5 0V3M7 8.5V17M13 3v6a2 2 0 0 0 2 2v6M13 3v5"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+export function MusicIcon({ size = 18 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <circle cx="5.5" cy="15" r="2.25" stroke="currentColor" strokeWidth="1.75" />
+      <circle cx="13.5" cy="13" r="2.25" stroke="currentColor" strokeWidth="1.75" />
+      <path
+        d="M7.75 15V4.75L15.75 3v10"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+export function TagIcon({ size = 18 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path
+        d="M10.6 2.75h4.65a2 2 0 0 1 2 2v4.65a2 2 0 0 1-.59 1.42l-7.4 7.4a2 2 0 0 1-2.83 0l-4.65-4.65a2 2 0 0 1 0-2.83l7.4-7.4a2 2 0 0 1 1.42-.59Z"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinejoin="round"
+      />
+      <circle cx="13.5" cy="6.5" r="1.1" fill="currentColor" />
+    </svg>
+  )
+}
+
 export function SpinnerIcon({ size = 18 }: IconProps) {
   return (
     <svg

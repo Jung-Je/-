@@ -7,6 +7,7 @@ from .views import (
     InterestViewSet,
     MatchingRequestViewSet,
     MatchingResultViewSet,
+    NotificationSummaryView,
     UserInterestViewSet,
 )
 
@@ -21,5 +22,6 @@ router.register(r"results", MatchingResultViewSet, basename="result")
 router.register(r"connections", ConnectionViewSet, basename="connection")
 
 urlpatterns = [
+    path("notifications/summary/", NotificationSummaryView.as_view(), name="notification-summary"),
     path("", include(router.urls)),
 ]

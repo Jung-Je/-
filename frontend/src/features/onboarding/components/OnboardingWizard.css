@@ -72,7 +72,7 @@
 
 .onboarding-progress__step--active .onboarding-progress__dot {
   border-color: var(--color-coral);
-  color: var(--color-coral);
+  color: var(--color-coral-text);
 }
 
 .onboarding-progress__rule {
@@ -101,6 +101,12 @@
 
 .onboarding-card--interests {
   --onboarding-accent: rgba(255, 90, 54, 0.5); /* 관심사 = 코랄 */
+}
+
+/* 방금 3단계를 끝내고 막 도착한 완료 화면에만 붙는다 — 재방문자의
+   "이미 완성돼 있음" 상태 화면은 아래 기본(중립) 엣지 그대로 둔다. */
+.onboarding-card--celebrate {
+  --onboarding-accent: var(--color-coral);
 }
 
 .onboarding-step__heading {
@@ -342,7 +348,41 @@
 .onboarding-chip[aria-pressed='true'] {
   background: var(--color-coral-soft);
   border-color: var(--color-coral);
-  color: var(--color-coral);
+  color: var(--color-coral-text);
+}
+
+/* 관심사를 고르면 칩 아래 점 5개가 나타난다 — 매칭 알고리즘이 실제로
+   쓰는 관심도(1~5)를 여기서 직접 조절한다. 안 누르면 기본값(3)로 저장. */
+.onboarding-chip-wrap {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.onboarding-chip-level {
+  display: flex;
+  gap: 4px;
+  padding-left: 4px;
+}
+
+.onboarding-chip-level__dot {
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--color-border-strong);
+  background: var(--color-surface);
+  cursor: pointer;
+}
+
+.onboarding-chip-level__dot:hover {
+  border-color: var(--color-coral);
+}
+
+.onboarding-chip-level__dot[aria-pressed='true'] {
+  background: var(--color-coral);
+  border-color: var(--color-coral);
 }
 
 .onboarding-interests-loading,
@@ -359,6 +399,21 @@
   text-align: left;
 }
 
+.onboarding-done--celebrate {
+  animation: onboarding-celebrate-in 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes onboarding-celebrate-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 .onboarding-done__badge {
   display: inline-flex;
   align-items: center;
@@ -370,6 +425,11 @@
   color: var(--color-teal-text);
   font-size: 13px;
   font-weight: 700;
+}
+
+.onboarding-done__badge--celebrate {
+  background: var(--color-coral-soft);
+  color: var(--color-coral-text);
 }
 
 .onboarding-done p {

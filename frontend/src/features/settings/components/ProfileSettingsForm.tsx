@@ -125,6 +125,7 @@ export function ProfileSettingsForm({ user }: Props) {
                 setStatus('idle')
               }}
               disabled={isSubmitting}
+              max={new Date().toISOString().slice(0, 10)}
             />
           </div>
         </div>

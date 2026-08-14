@@ -22,8 +22,8 @@ from rest_framework.views import APIView
 
 from drf_spectacular.utils import extend_schema
 
-from .models import User
-from .serializers import LoginSerializer, UserSerializer
+from ..models import User
+from ..serializers import LoginSerializer, UserSerializer
 
 logger = logging.getLogger(__name__)
 

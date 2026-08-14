@@ -1,4 +1,4 @@
-import { apiFetch } from '../../../lib/apiClient'
+import { apiFetch, type PaginatedResponse } from '../../../lib/apiClient'
 import type { Connection, ConnectionAction } from '../types'
 
 /**
@@ -32,13 +32,6 @@ export async function listReceivedConnections(): Promise<Connection[]> {
 
 export async function listSentConnections(): Promise<Connection[]> {
   return apiFetch<Connection[]>('/api/v1/matching/connections/sent/')
-}
-
-type PaginatedResponse<T> = {
-  count: number
-  next: string | null
-  previous: string | null
-  results: T[]
 }
 
 /**

@@ -122,6 +122,11 @@ function Thread({ currentUserId }: { currentUserId: number }) {
           <Link to="/messages" className="thread-header__back" aria-label="대화 목록으로">
             ←
           </Link>
+          {counterpart && (
+            <div className="thread-header__avatar" aria-hidden="true">
+              {counterpart.username.slice(0, 1).toUpperCase()}
+            </div>
+          )}
           <span className="thread-header__name">{counterpart?.username ?? '대화'}</span>
         </div>
 

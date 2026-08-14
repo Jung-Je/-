@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from apps.users.models import User
 
-from .models import Connection, MatchingRequest, MatchingResult, UserInterest
+from ..models import Connection, MatchingRequest, MatchingResult, UserInterest
 
 logger = logging.getLogger(__name__)
 
@@ -130,7 +130,12 @@ def _passes_age_filter(user: User, matching_request: MatchingRequest) -> bool:
 
 
 def _get_candidate_queryset(matching_request: MatchingRequest):
-    """매칭 후보 사용자 조회 (요청자 본인 및 차단 관계 제외)."""
+    """매칭 후보 사용자 조회 (요청자 본인, 차단 관계, 관리자 계정 제외).
+
+    관리자(is_staff/is_superuser) 계정은 createsuperuser로 생성돼도
+    is_active_for_matching 기본값이 True라 걸러내지 않으면 일반 유저와
+    똑같이 매칭 후보로 나온다 — 실제 매칭 대상이 아니므로 명시적으로 제외.
+    """
     requester = matching_request.requester
 
     blocked_pairs = Connection.objects.filter(
@@ -144,7 +149,7 @@ def _get_candidate_queryset(matching_request: MatchingRequest):
         excluded_ids.add(to_id)
 
     return (
-        User.objects.filter(is_active_for_matching=True)
+        User.objects.filter(is_active_for_matching=True, is_staff=False, is_superuser=False)
         .exclude(id__in=excluded_ids)
         .select_related("personality")
         .prefetch_related("user_interests")

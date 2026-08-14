@@ -38,7 +38,9 @@ export async function getCurrentUser(): Promise<AuthUser> {
  * UserCreateSerializer):
  *   POST /api/v1/users/users/ -> 201 { id, username, email, ... } | 400 { ...필드별 오류 }
  * 계정 생성만 하고 세션은 만들지 않으므로, 성공 후 login()을 이어서 호출해야 한다.
- * 프로필(이름/관심사/성격 등)은 회원가입 범위 밖 — 온보딩 단계에서 따로 수집한다.
+ * date_of_birth는 회원가입이 만 19세 이상만 가능해서 받는 최소연령 검증용
+ * — 이름/관심사/성격 등 나머지 프로필은 회원가입 범위 밖(온보딩 단계에서
+ * 따로 수집).
  */
 export async function signup(payload: SignupPayload): Promise<void> {
   await apiFetch<unknown>('/api/v1/users/users/', {
@@ -46,6 +48,7 @@ export async function signup(payload: SignupPayload): Promise<void> {
     body: JSON.stringify({
       username: payload.username,
       email: payload.email,
+      date_of_birth: payload.dateOfBirth,
       password: payload.password,
       password_confirm: payload.passwordConfirm,
     }),

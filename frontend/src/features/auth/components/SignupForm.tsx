@@ -1,100 +1,59 @@
-import { useEffect, useId, useState, type FormEvent } from 'react'
+import { useId, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { AlertIcon, EyeIcon, EyeOffIcon, SpinnerIcon } from '../../../components/icons'
 import { ApiError } from '../../../lib/apiClient'
-import { buildKakaoAuthorizeUrl, isKakaoConfigured } from '../../../lib/kakaoAuth'
-import { getKakaoVerificationStatus, login, primeCsrf, signup } from '../api/authApi'
+import { login, primeCsrf, signup } from '../api/authApi'
 import { AuthScreen } from './AuthScreen'
 
 type Status = 'idle' | 'submitting' | 'error'
-type GateStatus = 'checking' | 'locked' | 'unlocked'
+
+const MIN_ADULT_AGE = 19
+
+// 네이티브 날짜 선택기의 max 속성용 — 오늘부터 19년 전 날짜를 넘기면
+// 애초에 만 19세 미만이 되는 생년월일을 고를 수 없게 원천 차단한다.
+// (features/onboarding/components/ProfileStep.tsx의 미래 날짜 방지와
+// 같은 패턴, 여기는 "미래 방지"가 아니라 "최소 연령" 기준이 다름)
+function maxAdultBirthDate(): string {
+  const date = new Date()
+  date.setFullYear(date.getFullYear() - MIN_ADULT_AGE)
+  return date.toISOString().slice(0, 10)
+}
+
+function isAdultBirthdate(value: string): boolean {
+  const birthDate = new Date(value)
+  if (Number.isNaN(birthDate.getTime())) return false
+
+  const today = new Date()
+  let age = today.getFullYear() - birthDate.getFullYear()
+  const hasHadBirthdayThisYear =
+    today.getMonth() > birthDate.getMonth() ||
+    (today.getMonth() === birthDate.getMonth() && today.getDate() >= birthDate.getDate())
+  if (!hasHadBirthdayThisYear) age -= 1
+
+  return age >= MIN_ADULT_AGE
+}
 
 /**
- * 회원가입은 계정(닉네임/이메일/비밀번호)만 만든다. 이름·관심사·성격 같은
- * 프로필 정보는 다음 단계인 온보딩("내 카드 만들기")에서 따로 받는다 —
- * 백엔드 UserCreateSerializer가 요구하는 필드도 딱 이만큼뿐이다.
+ * 회원가입은 계정(닉네임/이메일/비밀번호) + 생년월일만 받는다. 이름·관심사
+ * 등 나머지 프로필은 다음 단계인 온보딩("내 카드 만들기")에서 따로 받는다.
  * 가입에 성공하면 같은 자격증명으로 바로 로그인까지 이어서, 사용자가
  * 방금 입력한 비밀번호를 다시 치지 않고 곧장 온보딩으로 넘어가게 한다.
  *
- * 회원가입은 만 19세 이상만 가능해서, 계정 정보 폼을 그리기 전에 카카오
- * 로그인 age_range 동의항목으로 성인인증부터 거치게 한다(진짜 방어선은
- * 서버 — 여기서 폼을 숨기는 건 UX일 뿐, UserCreateSerializer가 세션
- * 플래그를 다시 확인한다). 마운트마다 서버에 상태를 물어보는 이유는
- * 세션이 기준이라 새로고침·뒤로가기에도 정확하기 때문.
+ * 회원가입은 만 19세 이상만 가능 — 원래는 카카오 로그인 age_range
+ * 동의항목으로 실제 신원인증을 붙이려 했으나(연동 코드는
+ * lib/kakaoAuth.ts·features/auth/components/KakaoCallbackScreen.tsx에
+ * 남아있음), 그 동의항목이 "비즈니스 앱" 전환 + 사업자등록번호를 요구해서
+ * 이 프로젝트 규모에서는 막힘 — 자기신고 생년월일 + 최소연령 검증으로
+ * 전환했다. 진짜 신원 확인은 아니지만(마음만 먹으면 속일 수 있음)
+ * 검증이 전혀 없던 것보다는 실질적 방어. 진짜 방어선은 서버
+ * (UserCreateSerializer.validate_date_of_birth) — 여기 클라이언트 체크는
+ * 빠른 피드백일 뿐.
  */
 export function SignupForm() {
-  const [gateStatus, setGateStatus] = useState<GateStatus>('checking')
-
-  useEffect(() => {
-    let cancelled = false
-    getKakaoVerificationStatus()
-      .then(({ verified }) => {
-        if (!cancelled) setGateStatus(verified ? 'unlocked' : 'locked')
-      })
-      .catch(() => {
-        if (!cancelled) setGateStatus('locked')
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  if (gateStatus === 'checking') {
-    return (
-      <AuthScreen>
-        <div className="auth-success">
-          <SpinnerIcon />
-          <p>확인 중…</p>
-        </div>
-      </AuthScreen>
-    )
-  }
-
-  if (gateStatus === 'locked') {
-    return <KakaoVerificationGate />
-  }
-
-  return <SignupAccountForm />
-}
-
-function KakaoVerificationGate() {
-  const configured = isKakaoConfigured()
-
-  return (
-    <AuthScreen>
-      <div className="auth-card__heading">
-        <h2>성인인증이 필요해요</h2>
-        <p>회원가입은 만 19세 이상만 가능합니다. 카카오로 먼저 인증해 주세요.</p>
-      </div>
-
-      {configured ? (
-        <button
-          type="button"
-          className="auth-submit"
-          onClick={() => {
-            window.location.href = buildKakaoAuthorizeUrl()
-          }}
-        >
-          카카오로 성인인증하기
-        </button>
-      ) : (
-        <p className="auth-error" role="alert">
-          <AlertIcon />
-          <span>성인인증 기능이 아직 설정되지 않았습니다. 관리자에게 문의해 주세요.</span>
-        </p>
-      )}
-
-      <div className="auth-links">
-        <Link to="/">이미 계정이 있으신가요? 로그인</Link>
-      </div>
-    </AuthScreen>
-  )
-}
-
-function SignupAccountForm() {
   const navigate = useNavigate()
   const usernameId = useId()
   const emailId = useId()
+  const dateOfBirthId = useId()
   const passwordId = useId()
   const passwordHintId = useId()
   const passwordConfirmId = useId()
@@ -102,6 +61,7 @@ function SignupAccountForm() {
 
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
+  const [dateOfBirth, setDateOfBirth] = useState('')
   const [password, setPassword] = useState('')
   const [passwordConfirm, setPasswordConfirm] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -114,6 +74,12 @@ function SignupAccountForm() {
     event.preventDefault()
     setErrorMessage('')
 
+    if (!isAdultBirthdate(dateOfBirth)) {
+      setErrorMessage(`회원가입은 만 ${MIN_ADULT_AGE}세 이상만 가능합니다.`)
+      setStatus('error')
+      return
+    }
+
     if (password !== passwordConfirm) {
       setErrorMessage('비밀번호가 일치하지 않습니다.')
       setStatus('error')
@@ -124,7 +90,7 @@ function SignupAccountForm() {
 
     try {
       await primeCsrf()
-      await signup({ username, email, password, passwordConfirm })
+      await signup({ username, email, dateOfBirth, password, passwordConfirm })
       await login(email, password)
       navigate('/onboarding', { replace: true })
     } catch (error) {
@@ -140,9 +106,8 @@ function SignupAccountForm() {
   return (
     <AuthScreen>
       <div className="auth-card__heading">
-        <span className="auth-success__badge">성인인증 완료</span>
         <h2>회원가입</h2>
-        <p>닉네임, 이메일, 비밀번호만 있으면 바로 시작할 수 있어요.</p>
+        <p>닉네임, 이메일, 생년월일, 비밀번호만 있으면 바로 시작할 수 있어요.</p>
       </div>
 
       <form className="auth-form" onSubmit={handleSubmit} noValidate>
@@ -182,6 +147,26 @@ function SignupAccountForm() {
               required
             />
           </div>
+        </div>
+
+        <div className="auth-field">
+          <label htmlFor={dateOfBirthId}>생년월일</label>
+          <div className="auth-field__control">
+            <input
+              id={dateOfBirthId}
+              name="date_of_birth"
+              type="date"
+              autoComplete="bday"
+              value={dateOfBirth}
+              onChange={(event) => setDateOfBirth(event.target.value)}
+              aria-invalid={status === 'error'}
+              aria-describedby={status === 'error' ? errorId : undefined}
+              disabled={isSubmitting}
+              max={maxAdultBirthDate()}
+              required
+            />
+          </div>
+          <p className="auth-field__hint">회원가입은 만 {MIN_ADULT_AGE}세 이상만 가능해요.</p>
         </div>
 
         <div className="auth-field auth-field--password">

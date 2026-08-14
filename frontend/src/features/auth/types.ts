@@ -18,6 +18,7 @@ export type AuthUser = {
 export type SignupPayload = {
   username: string
   email: string
+  dateOfBirth: string
   password: string
   passwordConfirm: string
 }

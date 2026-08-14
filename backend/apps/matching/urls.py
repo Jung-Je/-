@@ -5,6 +5,7 @@ from .views import (
     AdminConnectionViewSet,
     AdminInterestCategoryViewSet,
     AdminInterestViewSet,
+    AdminMatchingRequestViewSet,
     ConnectionViewSet,
     InterestCategoryViewSet,
     InterestViewSet,
@@ -28,6 +29,9 @@ router.register(
     r"admin/interest-categories", AdminInterestCategoryViewSet, basename="admin-interest-category"
 )
 router.register(r"admin/interests", AdminInterestViewSet, basename="admin-interest")
+router.register(
+    r"admin/matching-requests", AdminMatchingRequestViewSet, basename="admin-matching-request"
+)
 
 urlpatterns = [
     path("notifications/summary/", NotificationSummaryView.as_view(), name="notification-summary"),

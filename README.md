@@ -7,6 +7,7 @@
 ## 주요 기능
 
 - 🔐 사용자 인증 및 프로필 관리 (온보딩 3단계: 프로필·성격·관심사)
+- 🪪 회원가입 성인인증 — 카카오 로그인 `age_range` 동의항목으로 만 19세 미만 가입 차단 (카카오 REST API 키 설정 필요, [`docs/progress.md`](docs/progress.md) 참고)
 - 🎯 세밀한 취향 기반 매칭 알고리즘
 - 💬 사용자 간 연결 요청/수락/거절/차단 및 인앱 메시징
 - 🛡️ 스태프 전용 관리자 패널 — 유저 모더레이션, 연결·메시지 관리, 관심사 큐레이션, 매칭 현황 조회/취소 (`apps/staff`, 프론트 `/staff/*`)
@@ -146,7 +147,8 @@ matching-api/
 ## API 엔드포인트
 
 ### 사용자 (Users)
-- `POST /api/v1/users/users/` - 회원가입
+- `GET/POST /api/v1/auth/kakao/verify/` - 회원가입 성인인증 상태 조회/수행(카카오 age_range) — 회원가입 전 필수
+- `POST /api/v1/users/users/` - 회원가입 (성인인증 세션 없으면 400)
 - `GET /api/v1/users/users/me/` - 내 정보 조회
 - `PATCH /api/v1/users/users/{id}/` - 프로필 수정
 - `POST /api/v1/users/users/change_password/` - 비밀번호 변경

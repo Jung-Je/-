@@ -32,7 +32,7 @@ export type KakaoVerificationStatus = {
 // 정보를 더 받아야 함, KakaoSignupCompletionScreen에서 처리).
 export type KakaoLoginResult =
   | { status: 'logged_in'; user: AuthUser }
-  | { status: 'signup_required'; suggested_username: string | null; suggested_email: string | null }
+  | { status: 'signup_required'; suggested_email: string | null }
 
 export type KakaoSignupCompletionPayload = {
   username: string

@@ -92,18 +92,14 @@ export function SignupForm() {
             type="button"
             className="auth-kakao-button"
             onClick={() => {
-              // scope 없이 요청 — profile_nickname/account_email까지
-              // 요청했더니 그 동의항목들이 카카오 콘솔에서 "설정"되어
-              // 있지 않아 인가 요청 자체가 KOE205로 거부되는 걸 실제로
-              // 확인했다(age_range와 같은 증상). 콘솔에서 그 항목들을
-              // 켜기 전까지는 최소 범위(카카오 식별만)로 요청해야 버튼이
-              // 동작한다 — 닉네임/이메일이 없어도
-              // KakaoLoginCallbackScreen이 수동 입력으로 안전하게
-              // 폴백하므로 기능 자체는 그대로 동작한다. 콘솔에서 두
-              // 항목을 켠 뒤에는 scope: 'profile_nickname,account_email'
-              // 을 다시 넣어주면 prefill이 살아난다.
+              // account_email만 요청한다 — 닉네임은 카카오와 무관하게
+              // 항상 사이트에서 직접 입력받기로 해서(사용자 확정)
+              // profile_nickname 동의항목 자체를 요청하지 않는다. 이메일도
+              // 카카오 동의항목 상태에 따라 안 올 수 있어
+              // KakaoLoginCallbackScreen이 수동 입력으로 폴백한다.
               window.location.href = buildKakaoAuthorizeUrl({
                 redirectUri: kakaoLoginRedirectUri(),
+                scope: 'account_email',
               })
             }}
           >

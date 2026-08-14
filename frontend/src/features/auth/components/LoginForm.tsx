@@ -56,12 +56,12 @@ export function LoginForm() {
             type="button"
             className="auth-kakao-button"
             onClick={() => {
-              // scope 없이 요청하는 이유는 SignupForm.tsx의 같은 버튼
-              // 주석 참고 — profile_nickname/account_email이 카카오
-              // 콘솔에서 아직 설정 안 돼 있으면 인가 요청 자체가
-              // KOE205로 거부된다.
+              // account_email만 요청한다 — 닉네임은 카카오와 무관하게
+              // 항상 사이트에서 직접 입력받기로 해서(사용자 확정)
+              // profile_nickname 동의항목 자체를 요청하지 않는다.
               window.location.href = buildKakaoAuthorizeUrl({
                 redirectUri: kakaoLoginRedirectUri(),
+                scope: 'account_email',
               })
             }}
           >

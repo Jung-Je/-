@@ -120,10 +120,11 @@ export async function verifyKakaoAdult(code: string, redirectUri: string): Promi
 /**
  * 카카오 소셜 로그인/가입 API 계약 (백엔드: apps/users/views/auth.py
  * KakaoLoginView / KakaoSignupCompletionView) — 성인인증(age_range)과는
- * 완전히 별개, 닉네임/이메일만 다룬다.
+ * 완전히 별개, 이메일만 다룬다(닉네임은 카카오와 무관하게 항상 사이트에서
+ * 직접 입력받음).
  *   POST /api/v1/auth/kakao/login/ { code, redirect_uri } ->
  *     200 { status: 'logged_in', user } | 200 { status: 'signup_required',
- *     suggested_username, suggested_email } | 400 { detail }
+ *     suggested_email } | 400 { detail }
  *   POST /api/v1/auth/kakao/complete-signup/ { username, email,
  *     date_of_birth } -> 201 { user } | 400 { detail | ...필드별 오류 }
  *     signup_required 이후에만 의미 있음(서버 세션에 저장된 카카오

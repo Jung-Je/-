@@ -20,8 +20,10 @@ type Status = 'checking' | 'signup_form' | 'submitting' | 'form_error' | 'fatal_
  * 인가코드는 1회용이라 두 번 소비하면 실패한다 — React 18 StrictMode가
  * 개발 모드에서 effect를 두 번 실행하는 것까지 감안해 ref로 가드한다.
  * 이미 연결된 계정이면 그대로 로그인까지 끝나서 온보딩으로 넘어가고,
- * 처음 보는 카카오 계정이면 부족한 정보(카카오가 안 준 닉네임/이메일,
- * 카카오로는 절대 못 받는 생년월일)만 마저 받는 폼을 보여준다.
+ * 처음 보는 카카오 계정이면 부족한 정보(닉네임은 항상 직접 입력 —
+ * 카카오톡 닉네임과 매칭 서비스 닉네임은 성격이 달라 의도적으로 안
+ * 가져옴, 카카오가 안 준 이메일, 카카오로는 절대 못 받는 생년월일)만
+ * 마저 받는 폼을 보여준다.
  */
 export function KakaoLoginCallbackScreen() {
   const [searchParams] = useSearchParams()
@@ -56,7 +58,6 @@ export function KakaoLoginCallbackScreen() {
           navigate('/onboarding', { replace: true })
           return
         }
-        setUsername(result.suggested_username ?? '')
         setEmail(result.suggested_email ?? '')
         setStatus('signup_form')
       })

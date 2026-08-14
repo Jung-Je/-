@@ -119,6 +119,17 @@ class TestDateOfBirthValidation:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "date_of_birth" in response.data
 
+    def test_rejects_date_of_birth_under_minimum_age(self, auth_client):
+        """회원가입 때의 최소연령(만 19세) 검증을 가입 후 프로필 수정으로
+        우회 못 하게 여기서도 같이 막는다."""
+        client, user = auth_client
+        ten_years_ago = date.today().replace(year=date.today().year - 10).isoformat()
+
+        response = client.patch(f"/api/v1/users/users/{user.id}/", {"date_of_birth": ten_years_ago})
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "date_of_birth" in response.data
+
     def test_accepts_past_date_of_birth(self, auth_client):
         client, user = auth_client
 

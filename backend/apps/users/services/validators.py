@@ -1,10 +1,34 @@
 import re
+from datetime import date
 
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext as _
 
 # ASCII 특수문자(공백 제외) 전체 — string.punctuation과 동일
 SPECIAL_CHARACTERS = r"""!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~"""
+
+# 회원가입 최소 연령. 원래는 카카오 로그인 age_range 동의항목으로 실제
+# 신원인증을 붙이려 했으나(연동 코드는 services/kakao.py에 남아있음),
+# 그 동의항목이 "비즈니스 앱" 전환 + 사업자등록번호를 요구해서 이 프로젝트
+# 규모에서는 막혀 자기신고 생년월일 + 최소연령 검증으로 전환했다.
+MIN_ADULT_AGE = 19
+
+
+def calculate_age(birth_date):
+    """생년월일로부터 만 나이 계산. User.age 프로퍼티와 같은 로직인데,
+    회원가입 시점엔 아직 User 인스턴스가 없어 프로퍼티를 못 쓰므로 여기
+    별도로 둔다."""
+    today = date.today()
+    return (
+        today.year
+        - birth_date.year
+        - ((today.month, today.day) < (birth_date.month, birth_date.day))
+    )
+
+
+def is_adult_birthdate(birth_date):
+    """자기신고 생년월일이 회원가입 최소 연령(만 19세) 이상인지 확인."""
+    return calculate_age(birth_date) >= MIN_ADULT_AGE
 
 
 class PasswordComplexityValidator:

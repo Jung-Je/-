@@ -1,5 +1,5 @@
 import { apiFetch } from '../../../lib/apiClient'
-import type { AuthUser, SignupPayload } from '../types'
+import type { AuthUser, KakaoVerificationStatus, SignupPayload } from '../types'
 
 /**
  * shape 브리프에서 확정한 로그인 API 계약:
@@ -85,5 +85,25 @@ export async function confirmPasswordReset(payload: ConfirmPasswordResetPayload)
       new_password: payload.newPassword,
       new_password_confirm: payload.newPasswordConfirm,
     }),
+  })
+}
+
+/**
+ * 회원가입 성인인증 API 계약 (백엔드: apps/users/views/auth.py
+ * KakaoAgeVerificationView):
+ *   GET  /api/v1/auth/kakao/verify/ -> 200 { verified } — 세션에 인증
+ *     플래그가 있는지 조회. 회원가입 폼을 열지 말지 판단하는 용도.
+ *   POST /api/v1/auth/kakao/verify/ { code, redirect_uri } -> 200
+ *     { verified: true } | 400 { detail } — 성공하면 세션에 플래그가
+ *     세팅되고, 회원가입 성공과 동시에 1회성으로 소모된다.
+ */
+export async function getKakaoVerificationStatus(): Promise<KakaoVerificationStatus> {
+  return apiFetch<KakaoVerificationStatus>('/api/v1/auth/kakao/verify/')
+}
+
+export async function verifyKakaoAdult(code: string, redirectUri: string): Promise<void> {
+  await apiFetch<unknown>('/api/v1/auth/kakao/verify/', {
+    method: 'POST',
+    body: JSON.stringify({ code, redirect_uri: redirectUri }),
   })
 }

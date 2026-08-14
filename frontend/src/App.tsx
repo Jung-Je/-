@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { LoginPage } from './app/login/page'
 import { SignupPage } from './app/signup/page'
+import { KakaoCallbackPage } from './app/auth/kakao/callback/page'
 import { ResetPasswordPage } from './app/reset-password/page'
 import { OnboardingPage } from './app/onboarding/page'
 import { MatchingPage } from './app/matching/page'
@@ -24,6 +25,7 @@ function App() {
           공유 링크, 습관적인 타이핑)가 흔해서 조용히 죽게 두지 않고 돌려보낸다. */}
       <Route path="/login" element={<Navigate to="/" replace />} />
       <Route path="/signup" element={<SignupPage />} />
+      <Route path="/auth/kakao/callback" element={<KakaoCallbackPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/onboarding" element={<OnboardingPage />} />
       <Route path="/matching" element={<MatchingPage />} />

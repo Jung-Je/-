@@ -21,3 +21,7 @@ export type SignupPayload = {
   password: string
   passwordConfirm: string
 }
+
+export type KakaoVerificationStatus = {
+  verified: boolean
+}

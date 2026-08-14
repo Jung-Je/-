@@ -25,7 +25,7 @@
 
 이전엔 보안 점검(SECRET_KEY `#` 문자로 인한 무력화, 죽어있던 `ADMIN_URL` 설정, pillow/gunicorn 취약점 패치), 그 전엔 저장소 정리 + 사용자 제보 매칭 버그 2건, 그 전엔 matching/users 앱 내부 구조를 도메인별 패키지로 분리 — 자세한 내용은 `완료된 기능` 섹션과 `git log` 참고.
 
-- 커밋 상태: 전부 커밋 완료, origin/feature 푸시 예정
+- 커밋 상태: 전부 커밋 완료, PR #6으로 `origin/main`에 머지 완료(`feature` 브랜치는 이제 정리해도 됨)
 - 각 기능의 상세 구현 배경/발견한 버그/검증 방법은 `git log`의 커밋 메시지 참고 (커밋 메시지에 자세히 적어둠)
 - 프론트엔드 화면 설계 방향은 `PRODUCT.md`/`DESIGN.md` 참고 (impeccable shape 브리프로 확정한 "포토카드 바인더" 세계관)
 
@@ -96,7 +96,7 @@
 ---
 
 ## 📋 다음 작업
-최초 로드맵(인증 3종 + 온보딩 + 매칭 + 연결 + 설정)에 이어 인앱 메시징 + 실시간화(폴링) + 알림 뱃지까지 완료. 다음 세션 시작 시 사용자와 함께 방향을 다시 정할 것 — 후보:
+최초 로드맵(인증 3종 + 온보딩 + 매칭 + 연결 + 설정)에 이어 인앱 메시징 + 실시간화(폴링) + 알림 뱃지, UI 크리틱 후속조치 17건, 스태프 관리자 패널(Phase 1·2 + `apps/staff` 통합)까지 완료. 다음 세션 시작 시 사용자와 함께 방향을 다시 정할 것 — 후보:
 - [ ] E2E 테스트 자동화 (지금까지는 매 기능마다 수동으로 브라우저 검증)
 - [ ] 배포 준비 (prod 빌드 점검, 환경변수 정리)
 
@@ -180,7 +180,7 @@ psql matching_db -c "\dt"
 ```
 matching-api/
 ├── .envs/                    # 환경 변수 (Git 제외) — .env.dev, .env.prod
-├── .github/workflows/        # CI (GitHub Actions, 백엔드만 — 프론트는 아직 CI 미연결)
+├── .github/workflows/        # CI (GitHub Actions) — 백엔드(format/lint/check/pytest)·프론트엔드(oxlint/tsc/build) 둘 다 실행. 프론트는 vitest는 아직 CI에서 안 돌림
 ├── backend/
 │   ├── apps/
 │   │   ├── users/             # 사용자 앱 (인증, 프로필, 성격)
@@ -188,12 +188,15 @@ matching-api/
 │   │   │   ├── serializers/    # user.py, auth.py
 │   │   │   ├── views/          # user.py, auth.py(로그인/로그아웃/csrf)
 │   │   │   └── services/       # image_processing.py(프로필 이미지 최적화), validators.py(비밀번호 검증기)
-│   │   └── matching/          # 매칭 앱 (관심사, 매칭 요청/결과, 연결, 메시지)
-│   │       ├── models/         # interest.py, matching_request.py, connection.py
-│   │       ├── serializers/    # interest.py, matching_request.py, connection.py
-│   │       ├── views/          # interest.py, matching_request.py, connection.py, notification_summary.py
-│   │       ├── services/       # matching.py(채점 알고리즘), notifications.py(이메일 알림)
-│   │       └── management/commands/seed_interests.py
+│   │   ├── matching/          # 매칭 앱 (관심사, 매칭 요청/결과, 연결, 메시지)
+│   │   │   ├── models/         # interest.py, matching_request.py, connection.py
+│   │   │   ├── serializers/    # interest.py, matching_request.py, connection.py
+│   │   │   ├── views/          # interest.py, matching_request.py, connection.py, notification_summary.py
+│   │   │   ├── services/       # matching.py(채점 알고리즘), notifications.py(이메일 알림)
+│   │   │   └── management/commands/seed_interests.py
+│   │   └── staff/              # 스태프 전용 관리자 REST API(모델 없음, users/matching 모델·소비자용 시리얼라이저 재사용)
+│   │       ├── views/           # user.py, connection.py, interest.py, matching_request.py
+│   │       └── serializers/     # user.py, connection.py
 │   ├── config/
 │   │   ├── settings/          # base.py, dev.py, prod.py
 │   │   └── urls.py
@@ -211,15 +214,17 @@ matching-api/
 │       │   ├── login/page.tsx, signup/page.tsx, reset-password/page.tsx
 │       │   ├── onboarding/page.tsx, matching/page.tsx
 │       │   ├── connections/page.tsx, settings/page.tsx
-│       │   └── messages/page.tsx, messages/thread/page.tsx
+│       │   ├── messages/page.tsx, messages/thread/page.tsx
+│       │   └── staff/            # users/page.tsx, connections/{page,detail/page}.tsx, interests/page.tsx, matching-requests/{page,detail/page}.tsx
 │       ├── features/           # 도메인별 기능 묶음 (Django apps에 해당) — 각 api/ · components/ · types.ts
-│       │   ├── auth/             # 로그인/가입/재설정, useCurrentUser, RequireAuth
+│       │   ├── auth/             # 로그인/가입/재설정, useCurrentUser, RequireAuth·RequireStaff
 │       │   ├── onboarding/       # 내 카드 만들기 3단계 마법사
 │       │   ├── matching/         # 매칭 요청/결과
 │       │   ├── connections/      # 연결 요청/수락/거절/차단
 │       │   ├── settings/         # 프로필/비밀번호/계정
-│       │   └── messaging/        # 대화 목록/1:1 스레드
-│       ├── components/        # 도메인 무관 공용 UI (아이콘, 워드마크, AppNav, 플레이스홀더)
+│       │   ├── messaging/        # 대화 목록/1:1 스레드
+│       │   └── staff/            # 스태프 관리자 화면 — StaffLayout·ConfirmButton(2클릭 확인) + 유저/연결·메시지/관심사/매칭현황 4개 화면
+│       ├── components/        # 도메인 무관 공용 UI (아이콘, 워드마크, AppNav — 스태프에겐 "관리자" 탭 추가, 플레이스홀더)
 │       ├── lib/                # 외부 통신 계층 (apiClient.ts — fetch 래퍼 + CSRF + 에러 처리)
 │       └── styles/            # 전역 디자인 토큰 (tokens.css)
 ├── scripts/                  # format.sh, lint.sh, check-all.sh

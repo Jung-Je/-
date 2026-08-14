@@ -18,8 +18,8 @@ ADULT_BIRTH_DATE = date.today().replace(year=date.today().year - 25).isoformat()
 MINOR_BIRTH_DATE = date.today().replace(year=date.today().year - 10).isoformat()
 
 
-def _profile(kakao_id="12345", nickname="카카오유저", email="kakao@example.com"):
-    return {"kakao_id": kakao_id, "nickname": nickname, "email": email}
+def _profile(kakao_id="12345", email="kakao@example.com"):
+    return {"kakao_id": kakao_id, "email": email}
 
 
 def _login_payload():
@@ -60,34 +60,31 @@ class TestKakaoLoginView:
 
         with patch(
             "apps.users.views.auth.fetch_kakao_profile",
-            return_value=_profile(kakao_id="99999", nickname="새유저", email="new@example.com"),
+            return_value=_profile(kakao_id="99999", email="new@example.com"),
         ):
             response = client.post(KAKAO_LOGIN_URL, _login_payload(), format="json")
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data["status"] == "signup_required"
-        assert response.data["suggested_username"] == "새유저"
         assert response.data["suggested_email"] == "new@example.com"
         assert not User.objects.filter(kakao_id="99999").exists()
 
         session = client.session
         assert session["kakao_pending_id"] == "99999"
-        assert session["kakao_pending_nickname"] == "새유저"
         assert session["kakao_pending_email"] == "new@example.com"
 
-    def test_handles_missing_nickname_and_email_gracefully(self):
-        """카카오가 닉네임/이메일 동의를 안 줬을 때 — None으로 넘어와도
-        에러 없이 signup_required로 진행돼야 함(프론트에서 수동 입력)."""
+    def test_handles_missing_email_gracefully(self):
+        """카카오가 이메일 동의를 안 줬을 때 — None으로 넘어와도 에러
+        없이 signup_required로 진행돼야 함(프론트에서 수동 입력)."""
         client = APIClient()
 
         with patch(
             "apps.users.views.auth.fetch_kakao_profile",
-            return_value=_profile(kakao_id="88888", nickname=None, email=None),
+            return_value=_profile(kakao_id="88888", email=None),
         ):
             response = client.post(KAKAO_LOGIN_URL, _login_payload(), format="json")
 
         assert response.status_code == status.HTTP_200_OK
-        assert response.data["suggested_username"] is None
         assert response.data["suggested_email"] is None
 
     def test_requires_code_and_redirect_uri(self):
@@ -106,11 +103,10 @@ class TestKakaoLoginView:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
-def _authenticated_pending_client(kakao_id="99999", nickname="새유저", email="new@example.com"):
+def _authenticated_pending_client(kakao_id="99999", email="new@example.com"):
     client = APIClient()
     session = client.session
     session["kakao_pending_id"] = kakao_id
-    session["kakao_pending_nickname"] = nickname
     session["kakao_pending_email"] = email
     session.save()
     return client

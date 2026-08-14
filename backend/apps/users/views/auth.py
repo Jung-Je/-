@@ -205,15 +205,14 @@ class KakaoLoginView(APIView):
             logger.info("카카오 소셜 로그인 성공: user_id=%s", user.id)
             return Response({"status": "logged_in", "user": UserSerializer(user).data})
 
+        # 처음 보는 kakao_id — 닉네임은 항상 사이트에서 직접 입력받으므로
+        # (사용자 확정) 세션엔 이메일까지만 잠깐 담아둔다.
         request.session["kakao_pending_id"] = profile["kakao_id"]
-        request.session["kakao_pending_nickname"] = profile["nickname"]
         request.session["kakao_pending_email"] = profile["email"]
         logger.info("카카오 소셜 가입 필요: kakao_id=%s", profile["kakao_id"])
-
         return Response(
             {
                 "status": "signup_required",
-                "suggested_username": profile["nickname"],
                 "suggested_email": profile["email"],
             }
         )
@@ -251,7 +250,7 @@ class KakaoSignupCompletionView(APIView):
             is_adult_verified=True,
         )
 
-        for key in ("kakao_pending_id", "kakao_pending_nickname", "kakao_pending_email"):
+        for key in ("kakao_pending_id", "kakao_pending_email"):
             request.session.pop(key, None)
 
         _login_without_password(request._request, user)

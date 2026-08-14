@@ -69,11 +69,13 @@ def verify_kakao_adult(code: str, redirect_uri: str) -> dict:
 
 def fetch_kakao_profile(code: str, redirect_uri: str) -> dict:
     """소셜 로그인/가입용 — age_range는 아예 안 건드리고 카카오 식별자·
-    기본 프로필만 가져온다(닉네임/이메일은 카카오 동의항목 상태에 따라
-    없을 수 있어 항상 None 가능성을 감안해야 함 — 호출부가 직접 입력
-    폴백을 제공).
+    이메일만 가져온다. 닉네임은 일부러 안 가져온다 — 카카오톡 닉네임과
+    매칭 서비스에서 쓸 이름(바인더 닉네임)은 성격이 달라서 항상 직접
+    입력받기로 했다(사용자 확정). 이메일도 카카오 동의항목 상태에 따라
+    없을 수 있어 None 가능성을 감안해야 함 — 호출부가 직접 입력 폴백을
+    제공.
 
-    반환값: {"kakao_id": str, "nickname": str | None, "email": str | None}
+    반환값: {"kakao_id": str, "email": str | None}
     """
     if not settings.KAKAO_CLIENT_ID:
         raise KakaoVerificationError("카카오 로그인이 아직 설정되지 않았습니다.")
@@ -86,7 +88,6 @@ def fetch_kakao_profile(code: str, redirect_uri: str) -> dict:
 
     return {
         "kakao_id": kakao_account["kakao_id"],
-        "nickname": kakao_account.get("nickname"),
         "email": kakao_account.get("email"),
     }
 
@@ -143,7 +144,6 @@ def _fetch_kakao_account(access_token: str) -> dict:
 
     data = response.json()
     kakao_account = data.get("kakao_account", {})
-    properties = data.get("properties", {})
 
     # 이메일은 email_needs_agreement가 True(동의 안 함)면 값이 있어도
     # 신뢰하면 안 되는 상태라 None으로 취급 — 호출부(fetch_kakao_profile)가
@@ -156,6 +156,5 @@ def _fetch_kakao_account(access_token: str) -> dict:
         "kakao_id": str(data["id"]) if "id" in data else None,
         "age_range_needs_agreement": kakao_account.get("age_range_needs_agreement", True),
         "age_range": kakao_account.get("age_range"),
-        "nickname": properties.get("nickname"),
         "email": email,
     }

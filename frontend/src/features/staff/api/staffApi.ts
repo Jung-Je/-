@@ -1,7 +1,12 @@
 import { apiFetch, type PaginatedResponse } from '../../../lib/apiClient'
+import type { MatchingResult } from '../../matching/types'
 import type {
   AdminConnection,
   AdminConnectionStatus,
+  AdminInterest,
+  AdminInterestCategory,
+  AdminMatchingRequest,
+  AdminMatchingRequestStatus,
   AdminMessage,
   AdminUser,
   AdminUserModerationPayload,
@@ -76,4 +81,93 @@ export async function overrideConnectionStatus(
     method: 'PATCH',
     body: JSON.stringify({ status }),
   })
+}
+
+export type AdminInterestCategoryListParams = {
+  search?: string
+  page?: number
+}
+
+export async function listAdminInterestCategories(
+  params: AdminInterestCategoryListParams = {},
+): Promise<PaginatedResponse<AdminInterestCategory>> {
+  return apiFetch<PaginatedResponse<AdminInterestCategory>>(
+    `/api/v1/matching/admin/interest-categories/${toQueryString(params)}`,
+  )
+}
+
+export async function createAdminInterestCategory(payload: {
+  name: string
+  description?: string
+  icon?: string
+}): Promise<AdminInterestCategory> {
+  return apiFetch<AdminInterestCategory>('/api/v1/matching/admin/interest-categories/', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function deleteAdminInterestCategory(categoryId: number): Promise<void> {
+  await apiFetch<unknown>(`/api/v1/matching/admin/interest-categories/${categoryId}/`, {
+    method: 'DELETE',
+  })
+}
+
+export async function listAdminInterests(categoryId?: number): Promise<AdminInterest[]> {
+  const response = await apiFetch<PaginatedResponse<AdminInterest>>(
+    `/api/v1/matching/admin/interests/${toQueryString({ category: categoryId, page_size: 200 })}`,
+  )
+  return response.results
+}
+
+export async function createAdminInterest(payload: {
+  category: number
+  name: string
+  description?: string
+}): Promise<AdminInterest> {
+  return apiFetch<AdminInterest>('/api/v1/matching/admin/interests/', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function deleteAdminInterest(interestId: number): Promise<void> {
+  await apiFetch<unknown>(`/api/v1/matching/admin/interests/${interestId}/`, {
+    method: 'DELETE',
+  })
+}
+
+export type AdminMatchingRequestListParams = {
+  search?: string
+  status?: AdminMatchingRequestStatus
+  page?: number
+}
+
+export async function listAdminMatchingRequests(
+  params: AdminMatchingRequestListParams = {},
+): Promise<PaginatedResponse<AdminMatchingRequest>> {
+  return apiFetch<PaginatedResponse<AdminMatchingRequest>>(
+    `/api/v1/matching/admin/matching-requests/${toQueryString(params)}`,
+  )
+}
+
+export async function getAdminMatchingRequest(requestId: number): Promise<AdminMatchingRequest> {
+  return apiFetch<AdminMatchingRequest>(`/api/v1/matching/admin/matching-requests/${requestId}/`)
+}
+
+export async function cancelAdminMatchingRequest(
+  requestId: number,
+): Promise<AdminMatchingRequest> {
+  return apiFetch<AdminMatchingRequest>(
+    `/api/v1/matching/admin/matching-requests/${requestId}/cancel/`,
+    { method: 'POST' },
+  )
+}
+
+export async function listAdminMatchingRequestResults(
+  requestId: number,
+): Promise<MatchingResult[]> {
+  return apiFetch<MatchingResult[]>(
+    `/api/v1/matching/admin/matching-requests/${requestId}/results/`,
+  )
 }

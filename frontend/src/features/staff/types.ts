@@ -60,3 +60,47 @@ export type AdminMessage = {
   created_at: string
   read_at: string | null
 }
+
+// InterestCategorySerializer(백엔드, 소비자용을 관리자 뷰셋도 그대로
+// 재사용)와 1:1 대응.
+export type AdminInterestCategory = {
+  id: number
+  name: string
+  description: string
+  icon: string
+  interests_count: number
+  created_at: string
+  updated_at: string
+}
+
+// InterestSerializer(백엔드, 소비자용을 관리자 뷰셋도 그대로 재사용)와
+// 1:1 대응.
+export type AdminInterest = {
+  id: number
+  category: number
+  category_name: string
+  name: string
+  description: string
+  created_at: string
+  updated_at: string
+}
+
+// MatchingRequestSerializer(백엔드, 소비자용을 관리자 뷰셋도 그대로
+// 재사용)와 1:1 대응. requester_detail은 UserDetailSerializer라
+// MatchedUserDetail과 모양이 같다.
+export type AdminMatchingRequestStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'CANCELLED'
+
+export type AdminMatchingRequest = {
+  id: number
+  requester: number
+  requester_detail: MatchedUserDetail
+  status: AdminMatchingRequestStatus
+  min_age: number | null
+  max_age: number | null
+  preferred_location: string
+  max_results: number
+  results_count: number
+  created_at: string
+  updated_at: string
+  completed_at: string | null
+}

@@ -7,6 +7,7 @@
 ## 주요 기능
 
 - 🔐 사용자 인증 및 프로필 관리 (온보딩 3단계: 프로필·성격·관심사)
+- 💛 카카오 소셜 로그인/가입 — 비밀번호 없는 계정, 카카오 계정으로 로그인/가입(Redirect URI를 카카오 콘솔에 등록해야 동작, [`docs/progress.md`](docs/progress.md) 참고)
 - 🪪 회원가입 성인인증 — 자기신고 생년월일 기반 최소연령(만 19세) 검증. 카카오 로그인 `age_range` 연동을 시도했으나 사업자등록번호를 요구해 막힘(연동 코드는 남겨둠, [`docs/progress.md`](docs/progress.md) 참고)
 - 🎯 세밀한 취향 기반 매칭 알고리즘
 - 💬 사용자 간 연결 요청/수락/거절/차단 및 인앱 메시징
@@ -148,6 +149,8 @@ matching-api/
 
 ### 사용자 (Users)
 - `POST /api/v1/users/users/` - 회원가입 (닉네임/이메일/생년월일/비밀번호, 만 19세 미만이면 400)
+- `POST /api/v1/auth/kakao/login/` - 카카오 소셜 로그인/가입 1단계 (연결된 계정이면 로그인, 처음이면 signup_required)
+- `POST /api/v1/auth/kakao/complete-signup/` - 카카오 소셜 가입 완료 (닉네임/이메일/생년월일, 비밀번호 없는 계정 생성)
 - `GET/POST /api/v1/auth/kakao/verify/` - 카카오 성인인증(현재 미사용 — 사업자등록번호 필요해 연동 코드만 남겨둠)
 - `GET /api/v1/users/users/me/` - 내 정보 조회
 - `PATCH /api/v1/users/users/{id}/` - 프로필 수정

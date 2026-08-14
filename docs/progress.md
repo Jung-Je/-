@@ -1,7 +1,14 @@
 # 매칭 API 프로젝트 진행 상황
 
 ## 🚦 현재 상태 (마지막 업데이트: 2026-08-14)
-"실제 서비스로 내놓기엔 UI가 너무 대충이다"라는 사용자 피드백으로 시작해서 여러 갈래로 이어짐: (1) impeccable 정식 크리틱으로 UI 전반 품질 문제 17개를 찾아 전부 처리, (2) "Django 기본 관리자 페이지는 실제 서비스에 못 쓴다"는 지적으로 스태프 전용 관리자 패널을 새로 구축(Phase 1 → Phase 2로 이어서 완료), (3) 관리자 REST API가 유지보수 관점에서 도메인 앱에 흩어져 있으면 안 된다는 지적으로 전용 `apps/staff` 앱으로 통합, (4) "회원가입이 성인부터인데 실제로 나이를 검증 안 한다"는 지적으로 성인인증 추가 — 카카오 로그인을 먼저 시도했으나 사업자등록 요구에 막혀 자기신고 생년월일 검증으로 전환.
+"실제 서비스로 내놓기엔 UI가 너무 대충이다"라는 사용자 피드백으로 시작해서 여러 갈래로 이어짐: (1) impeccable 정식 크리틱으로 UI 전반 품질 문제 17개를 찾아 전부 처리, (2) "Django 기본 관리자 페이지는 실제 서비스에 못 쓴다"는 지적으로 스태프 전용 관리자 패널을 새로 구축(Phase 1 → Phase 2로 이어서 완료), (3) 관리자 REST API가 유지보수 관점에서 도메인 앱에 흩어져 있으면 안 된다는 지적으로 전용 `apps/staff` 앱으로 통합, (4) "회원가입이 성인부터인데 실제로 나이를 검증 안 한다"는 지적으로 성인인증 추가 — 카카오 로그인을 먼저 시도했으나 사업자등록 요구에 막혀 자기신고 생년월일 검증으로 전환, (5) "카카오 REST API 키가 아깝다"는 지적으로 같은 앱을 성인인증과 무관한 카카오 소셜 로그인/가입 편의 기능으로 재활용.
+
+**카카오 소셜 로그인/가입 (신규, 성인인증과 별개)** — `age_range` 동의항목만 사업자 인증이 필요한 거고, 닉네임/이메일 같은 기본 프로필은 지금 등록된 앱으로도 요청 가능하다는 걸 확인해서, 회원가입 성인인증용으로 발급받은 REST API 키를 "카카오로 3초 로그인/가입" 편의 기능으로 재활용:
+- 로그인·회원가입 화면에 "카카오로 계속하기" 버튼(`isKakaoConfigured()`일 때만 노출) → 카카오 동의 화면 → 콜백(`/auth/kakao/login`, 기존 성인인증 콜백과 별개 라우트) → 이미 연결된 계정이면 바로 로그인, 처음이면 부족한 정보(닉네임/이메일은 카카오가 주면 prefill, 생년월일은 필수 — 카카오로는 못 받으므로 항상 직접 입력)만 받는 완료 폼
+- **비밀번호 없는 계정**(`User.objects.create_user(..., password=None)`, 장고가 자동으로 `set_unusable_password()`) — 이후 이메일/비밀번호 로그인은 자연히 실패, 카카오로만 로그인 가능. `django_login()`이 `authenticate()`를 안 거쳐서 `user.backend`를 직접 세팅해줘야 하는 함정 발견(안 그러면 `AUTHENTICATION_BACKENDS`가 2개라 `AttributeError`) + 비활성 계정 로그인 방지를 직접 체크(`authenticate()`가 해주던 것을 우회하므로)
+- 실제 라이브 테스트로 **`profile_nickname`/`account_email` 동의항목도 콘솔에서 "설정"돼 있지 않으면 인가 요청 자체가 `KOE205`로 거부**되는 걸 발견 — 버튼을 scope 없이(카카오 식별자만) 요청하도록 낮춰서, 콘솔에서 그 항목들을 아직 안 켰어도 기능 자체는 동작하게 함(닉네임/이메일은 그 경우 수동 입력으로 폴백, 이미 그렇게 설계돼 있었음). 두 항목을 나중에 켜면 코드에 `scope: 'profile_nickname,account_email'`만 다시 넣어주면 prefill이 살아남
+- 프론트 날짜 계산에서 실제 버그 하나 발견/수정: `new Date("YYYY-MM-DD")`가 UTC 자정으로 파싱돼서 로컬 타임존이 UTC보다 뒤처지면 자정 근처에서 하루가 밀리는 문제 — `lib/age.ts`를 만들어 연/월/일 정수만 직접 비교하는 방식으로 다시 짬(회원가입 생년월일 검증에도 같이 적용)
+- 회귀 테스트 11개 추가(총 226개), 라이브 브라우저로 로그인·회원가입 화면의 카카오 버튼 노출과 인가 URL 조립까지 확인 완료. **실제 카카오 계정으로 끝까지 로그인하는 것은 사용자가 카카오 콘솔에 `http://localhost:3000/auth/kakao/login`을 Redirect URI로 추가 등록해야 가능**(제가 대신 등록 못 함 — 계정 콘솔 설정 영역) — 등록 전까지는 `KOE006`으로 막힘, 코드 자체의 문제는 아님
 
 **회원가입 성인인증 — 자기신고 생년월일 + 최소연령 검증 (카카오 시도 후 전환)** — `date_of_birth`는 "미래 날짜 아님"만 검증하고 최소 연령 자체는 전혀 확인 안 하던 걸 발견. PASS는 PG 대행사 사업자 계약이 필요해 셀프서비스로 못 붙여서, 처음엔 대안으로 카카오 로그인 `age_range`(연령대) 동의항목을 붙였다(REST API 키 발급까지 받아 실제 연동 코드 완성). 그런데 실제로 테스트해보니 **`age_range` 동의항목 자체가 카카오 "비즈니스 앱" 전환을 요구하고, 그 전환이 사업자등록번호를 요구**(`KOE205` 에러로 확인) — PASS를 피하려던 이유와 똑같은 벽에 부딪힘. 네이버 로그인도 사실상 같은 제약일 가능성이 높아, 최종적으로 **자기신고 생년월일 + 서버 측 최소연령(만 19세) 검증**으로 전환:
 - 회원가입 폼에 생년월일 필드 추가(닉네임/이메일/비밀번호와 함께 한 화면에서 받음). 네이티브 날짜 선택기의 `max`를 "19년 전"으로 걸어 애초에 미달 연령을 고를 수 없게 하고, 제출 시 클라이언트에서도 한 번 더 계산해서 빠른 피드백을 줌
@@ -28,7 +35,7 @@
 - **연결·메시지 모더레이션** (`/staff/connections`): 참여자 아닌 연결도 전부 조회(소비자용 API와의 핵심 차이), 메시지 이력 조회(스태프가 봐도 상대방 안읽음 배지 안 줄어듦), 부적절한 메시지 삭제, 연결 상태 강제 변경(차단 등)
 - 새 DRF 뷰셋 2개(`IsAdminUser` 권한), 새 화면 3개(`StaffLayout`+`ConfirmButton` 2클릭 확인 재사용 패턴), `AppNav`에 스태프 전용 "관리자" 탭. DB 스키마 변경 없음(기존 필드만 노출). 회귀 테스트 22개 추가, 라이브 브라우저로 전체 플로우(정지→DB 반영, 참여자 아닌 연결 조회, 메시지 삭제, 상태 강제 변경→DB 반영까지) 검증 완료. 관심사/매칭결과 등 나머지 7개 모델은 Phase 2로 보류.
 
-전체 백엔드 테스트 스위트 215개(이번 세션 성인인증 관련 신규 20개 포함) 통과.
+전체 백엔드 테스트 스위트 226개(이번 세션 카카오 소셜 로그인/가입 신규 11개 포함) 통과.
 
 이전엔 보안 점검(SECRET_KEY `#` 문자로 인한 무력화, 죽어있던 `ADMIN_URL` 설정, pillow/gunicorn 취약점 패치), 그 전엔 저장소 정리 + 사용자 제보 매칭 버그 2건, 그 전엔 matching/users 앱 내부 구조를 도메인별 패키지로 분리 — 자세한 내용은 `완료된 기능` 섹션과 `git log` 참고.
 
@@ -83,6 +90,7 @@
 - [x] 로그인 화면 — 폼/에러/로딩/성공 상태, WCAG AA 대비, 키보드 포커스
 - [x] 회원가입 화면 — 닉네임/이메일/비밀번호만 받고 가입 즉시 자동 로그인 (이름·관심사 등 프로필은 온보딩 단계로 미룸)
 - [x] 회원가입 성인인증(자기신고 생년월일 + 최소연령 검증) — 회원가입 폼에 생년월일 필드를 추가해 만 19세 미만 가입을 서버(`UserCreateSerializer.validate_date_of_birth`)에서 막음. 카카오 로그인 `age_range` 연동을 먼저 시도했으나 그 동의항목이 사업자등록번호를 요구해 막혀서 전환 — 카카오 연동 코드(`apps/users/services/kakao.py`, `KakaoAgeVerificationView`)는 삭제하지 않고 남겨둠(나중에 사업자등록 하면 재연결 가능). `User.is_adult_verified` 필드로 가입 시점 통과 여부 기록, 프로필 수정으로 더 어린 생년월일로 우회하는 것도 `UserUpdateSerializer`에서 같이 막음 (자세한 내용은 위 `현재 상태` 참고)
+- [x] 카카오 소셜 로그인/가입 (`KakaoLoginView`/`KakaoSignupCompletionView`, `/auth/kakao/login`) — 성인인증과 완전히 별개, 비밀번호 없는 계정으로 카카오 계정 자체를 로그인 수단으로 씀. 로그인/회원가입 화면에 "카카오로 계속하기" 버튼, 생년월일만 직접 입력받는 완료 폼. `django_login()`이 `authenticate()`를 안 거쳐서 `user.backend`를 직접 세팅해야 하는 함정 발견/수정, `lib/age.ts`에서 날짜 파싱 타임존 버그(UTC 자정 파싱으로 인한 하루 밀림) 발견/수정 (자세한 내용은 위 `현재 상태` 참고)
 - [x] API 클라이언트 (`frontend/src/lib/apiClient.ts`) — 로그인 API 계약을 먼저 확정해 백엔드 구현 전에 맞춰 짜둠. DRF 필드별 검증 오류(`{field: [msg]}`)에서 첫 메시지를 뽑아 보여주는 공통 로직 포함
 - [x] 디자인 시스템 기록 (`DESIGN.md`, `.impeccable/design.json`) — "포토카드 바인더" 세계관
 - [x] 프론트엔드 구조를 도메인(`features/`) 기반으로 재편 — `app/`(라우팅 진입점)·`features/<도메인>/`(api·components·types)·`lib/`(외부 통신)·`components/`(도메인 무관 공용 UI). 새 도메인(매칭·연결 등) 추가 시 `features/`에 폴더만 늘리면 되는 구조
@@ -104,7 +112,8 @@
 ---
 
 ## 📋 다음 작업
-최초 로드맵(인증 3종 + 온보딩 + 매칭 + 연결 + 설정)에 이어 인앱 메시징 + 실시간화(폴링) + 알림 뱃지, UI 크리틱 후속조치 17건, 스태프 관리자 패널(Phase 1·2 + `apps/staff` 통합), 회원가입 최소연령 검증까지 완료. 다음 세션 시작 시 사용자와 함께 방향을 다시 정할 것 — 후보:
+최초 로드맵(인증 3종 + 온보딩 + 매칭 + 연결 + 설정)에 이어 인앱 메시징 + 실시간화(폴링) + 알림 뱃지, UI 크리틱 후속조치 17건, 스태프 관리자 패널(Phase 1·2 + `apps/staff` 통합), 회원가입 최소연령 검증, 카카오 소셜 로그인/가입까지 완료. 다음 세션 시작 시 사용자와 함께 방향을 다시 정할 것 — 후보:
+- [ ] **카카오 콘솔에 Redirect URI 등록** — `http://localhost:3000/auth/kakao/login`을 카카오 로그인 콘솔에 추가 등록해야 "카카오로 계속하기" 버튼이 실제로 동작함(지금은 `KOE006` 미등록 에러로 막힘 — 코드 문제 아님, 콘솔 설정만 남음). 등록 후 실제 카카오 계정으로 로그인/가입까지 끝까지 라이브 검증 필요. 여유가 되면 `profile_nickname`/`account_email` 동의항목도 콘솔에서 "설정"해서 닉네임/이메일 자동완성도 살리고 싶다면, 두 화면의 버튼 핸들러에 `scope: 'profile_nickname,account_email'`을 다시 추가
 - [ ] E2E 테스트 자동화 (지금까지는 매 기능마다 수동으로 브라우저 검증)
 - [ ] 배포 준비 (prod 빌드 점검, 환경변수 정리)
 
@@ -196,7 +205,7 @@ matching-api/
 │   │   │   ├── models/         # user.py, personality.py
 │   │   │   ├── serializers/    # user.py, auth.py
 │   │   │   ├── views/          # user.py, auth.py(로그인/로그아웃/csrf)
-│   │   │   └── services/       # image_processing.py(프로필 이미지 최적화), validators.py(비밀번호 검증기), kakao.py(회원가입 성인인증)
+│   │   │   └── services/       # image_processing.py(프로필 이미지 최적화), validators.py(비밀번호 검증기+최소연령), kakao.py(성인인증+소셜 로그인 공용)
 │   │   ├── matching/          # 매칭 앱 (관심사, 매칭 요청/결과, 연결, 메시지)
 │   │   │   ├── models/         # interest.py, matching_request.py, connection.py
 │   │   │   ├── serializers/    # interest.py, matching_request.py, connection.py
@@ -227,7 +236,7 @@ matching-api/
 │       │   ├── messages/page.tsx, messages/thread/page.tsx
 │       │   └── staff/            # users/page.tsx, connections/{page,detail/page}.tsx, interests/page.tsx, matching-requests/{page,detail/page}.tsx
 │       ├── features/           # 도메인별 기능 묶음 (Django apps에 해당) — 각 api/ · components/ · types.ts
-│       │   ├── auth/             # 로그인/가입(카카오 성인인증 게이트 포함)/재설정, useCurrentUser, RequireAuth·RequireStaff
+│       │   ├── auth/             # 로그인/가입(카카오 소셜 로그인 버튼 포함)/재설정, useCurrentUser, RequireAuth·RequireStaff
 │       │   ├── onboarding/       # 내 카드 만들기 3단계 마법사
 │       │   ├── matching/         # 매칭 요청/결과
 │       │   ├── connections/      # 연결 요청/수락/거절/차단
@@ -235,7 +244,7 @@ matching-api/
 │       │   ├── messaging/        # 대화 목록/1:1 스레드
 │       │   └── staff/            # 스태프 관리자 화면 — StaffLayout·ConfirmButton(2클릭 확인) + 유저/연결·메시지/관심사/매칭현황 4개 화면
 │       ├── components/        # 도메인 무관 공용 UI (아이콘, 워드마크, AppNav — 스태프에겐 "관리자" 탭 추가, 플레이스홀더)
-│       ├── lib/                # 외부 통신 계층 (apiClient.ts — fetch 래퍼 + CSRF + 에러 처리, kakaoAuth.ts — 카카오 인가 URL 조립)
+│       ├── lib/                # 외부 통신 계층 (apiClient.ts — fetch 래퍼 + CSRF + 에러 처리, kakaoAuth.ts — 카카오 인가 URL 조립, age.ts — 최소연령 순수 함수)
 │       └── styles/            # 전역 디자인 토큰 (tokens.css)
 ├── scripts/                  # format.sh, lint.sh, check-all.sh
 ├── docs/progress.md          # 이 파일

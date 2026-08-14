@@ -1,7 +1,12 @@
 # 매칭 API 프로젝트 진행 상황
 
-## 🚦 현재 상태 (마지막 업데이트: 2026-08-12)
-"실제 서비스로 내놓기엔 UI가 너무 대충이다"라는 사용자 피드백으로 시작해서 두 갈래로 이어짐: (1) impeccable 정식 크리틱으로 UI 전반 품질 문제 17개를 찾아 전부 처리, (2) 이어서 "Django 기본 관리자 페이지는 실제 서비스에 못 쓴다"는 지적으로 스태프 전용 관리자 패널을 새로 구축(Phase 1).
+## 🚦 현재 상태 (마지막 업데이트: 2026-08-14)
+"실제 서비스로 내놓기엔 UI가 너무 대충이다"라는 사용자 피드백으로 시작해서 두 갈래로 이어짐: (1) impeccable 정식 크리틱으로 UI 전반 품질 문제 17개를 찾아 전부 처리, (2) 이어서 "Django 기본 관리자 페이지는 실제 서비스에 못 쓴다"는 지적으로 스태프 전용 관리자 패널을 새로 구축(Phase 1 → Phase 2로 이어서 완료).
+
+**스태프 관리자 패널 Phase 2 (신규)** — Phase 1(유저 관리 + 연결·메시지 모더레이션)에 이어, Django admin이 지원하던 나머지 모델 중 운영 가치가 높은 4개(InterestCategory·Interest·MatchingRequest·MatchingResult)를 마저 옮김. UserInterest는 단순 유저↔관심사 태그라 별도 모더레이션 액션이 없어 스킵(유저 상세 화면에서 이미 노출 중):
+- **관심사 관리** (`/staff/interests`): 카테고리·관심사 생성/삭제. Phase 1과 달리 민감 필드가 없는 콘텐츠 큐레이션이라 소비자용 시리얼라이저(`InterestCategorySerializer`/`InterestSerializer`)를 그대로 재사용, 새 Admin 시리얼라이저 없이 뷰만 추가. 카테고리 삭제 시 CASCADE로 관심사도 같이 지워지는데, 확인 버튼에 영향받는 관심사 수를 미리 보여줌. 카테고리 행을 펼치면 그 안 관심사 목록 + 추가 폼(인라인)
+- **매칭 현황** (`/staff/matching-requests`): 참여자 제한 없이 전체 매칭 요청 조회(소비자용 API는 자기 요청만 봄 — 핵심 차이), status 필터·요청자명 검색, `PENDING`/`PROCESSING` 요청 취소(완료된 요청은 취소 불가, 서버가 400으로 막음). 상세 화면에서 해당 요청의 매칭 결과(점수 4종·공통 관심사 수·조회/연결시도 여부)를 표로 확인
+- 새 DRF 뷰셋 3개(`AdminInterestCategoryViewSet`/`AdminInterestViewSet` ModelViewSet, `AdminMatchingRequestViewSet` ReadOnlyModelViewSet + `cancel`/`results` 커스텀 액션), 새 화면 3개(Phase 1의 `StaffLayout`/`ConfirmButton` 패턴 그대로 재사용), `StaffLayout` 탭 4개로 확장. DB 스키마 변경 없음. 백엔드 회귀 테스트 24개 추가(총 195개 통과), 라이브 브라우저로 카테고리·관심사 생성/삭제(CASCADE 확인 포함)·온보딩 화면에서 캐시 무효화 즉시 반영·매칭 요청 상태 필터·취소 2클릭→DB 반영·상세 화면 결과 표까지 전부 검증 완료. 이걸로 Django admin이 지원하던 9개 모델 전부(User·Connection·Message·InterestCategory·Interest·MatchingRequest·MatchingResult, UserPersonality/UserInterest는 상위 화면에 인라인으로 흡수) 자체 관리자 화면으로 이전 완료.
 
 **UI 크리틱 (P0~P3, 17개 발견 → 15개 조치 + 2개는 검증 결과 실제 결함 아님으로 스킵)**
 - P0(4): 404 라우트 부재로 안 맞는 URL이 빈 화면으로 떨어지던 문제, 온보딩 관심사 레벨(1~5) UI 부재(매칭 알고리즘이 실제로 쓰는 값인데 늘 3 고정 전송됐음), 코랄 텍스트 WCAG AA 대비 실패 다발, 이미 연결된 사람이 매칭 결과에 재노출돼도 "연결하기"가 그대로 뜨던 문제
@@ -14,11 +19,11 @@
 - **연결·메시지 모더레이션** (`/staff/connections`): 참여자 아닌 연결도 전부 조회(소비자용 API와의 핵심 차이), 메시지 이력 조회(스태프가 봐도 상대방 안읽음 배지 안 줄어듦), 부적절한 메시지 삭제, 연결 상태 강제 변경(차단 등)
 - 새 DRF 뷰셋 2개(`IsAdminUser` 권한), 새 화면 3개(`StaffLayout`+`ConfirmButton` 2클릭 확인 재사용 패턴), `AppNav`에 스태프 전용 "관리자" 탭. DB 스키마 변경 없음(기존 필드만 노출). 회귀 테스트 22개 추가, 라이브 브라우저로 전체 플로우(정지→DB 반영, 참여자 아닌 연결 조회, 메시지 삭제, 상태 강제 변경→DB 반영까지) 검증 완료. 관심사/매칭결과 등 나머지 7개 모델은 Phase 2로 보류.
 
-전체 테스트 스위트 193개(백엔드 171 + 이번 세션 회귀 22 신규) 통과.
+전체 백엔드 테스트 스위트 195개(이번 세션 Phase 2 신규 24개 포함) 통과.
 
 이전엔 보안 점검(SECRET_KEY `#` 문자로 인한 무력화, 죽어있던 `ADMIN_URL` 설정, pillow/gunicorn 취약점 패치), 그 전엔 저장소 정리 + 사용자 제보 매칭 버그 2건, 그 전엔 matching/users 앱 내부 구조를 도메인별 패키지로 분리 — 자세한 내용은 `완료된 기능` 섹션과 `git log` 참고.
 
-- 커밋 상태: 전부 커밋 완료, origin/feature에도 push 완료
+- 커밋 상태: Phase 2 변경사항 커밋 예정 (이 문서 갱신 직후 커밋)
 - 각 기능의 상세 구현 배경/발견한 버그/검증 방법은 `git log`의 커밋 메시지 참고 (커밋 메시지에 자세히 적어둠)
 - 프론트엔드 화면 설계 방향은 `PRODUCT.md`/`DESIGN.md` 참고 (impeccable shape 브리프로 확정한 "포토카드 바인더" 세계관)
 
@@ -83,6 +88,7 @@
 - [x] 테스트 인프라 (`npm run test`) — vitest + Testing Library + jsdom. 순수 함수(`apiClient.ts`)·컴포넌트(`CardStackMark.tsx`) 예시 테스트 각 1종
 - [x] UI 크리틱 후속 조치 15건 — 404 페이지, 온보딩 관심사 레벨(1~5) UI, 코랄 텍스트 대비, 매칭 결과 카드 기존 연결 인지, 매칭 CTA 색, 점수 배지 골드/실버/브론즈 독립 팔레트, 메시지 뱃지, authored 관심사 아이콘, 온보딩 첫 완료 축하 상태, 아바타 색 통일, 메시지 스레드 헤더 아바타, 생년월일 미래 날짜 방어(서버+프론트 3중), DESIGN.md 브레이크포인트 문서 (자세한 내용은 위 `현재 상태` 참고)
 - [x] 스태프 관리자 패널 Phase 1 (`features/staff/`) — Django `/admin/` 대신 세션 인증 그대로 쓰는 자체 관리자 화면. 유저 관리(`/staff/users`: 검색/필터/인라인 프로필·성격/정지·매칭풀 토글, `is_staff`/`is_superuser` 편집은 미제공, 자기잠금 방지), 연결·메시지 모더레이션(`/staff/connections`: 참여자 아닌 연결도 전체 조회, 메시지 이력·삭제, 상태 강제 변경). `StaffLayout`(소비자용 AppNav와 분리된 조용한 톤)·`ConfirmButton`(2클릭 확인, 4곳 재사용). `AppNav`에 스태프 전용 "관리자" 탭. 백엔드는 새 `IsAdminUser` 뷰셋 2개(`/api/v1/users/admin/users/`, `/api/v1/matching/admin/connections/`), DB 스키마 변경 없음
+- [x] 스태프 관리자 패널 Phase 2 (`features/staff/`) — Phase 1에 이어 관심사 관리(`/staff/interests`: 카테고리·관심사 생성/삭제, CASCADE 영향 범위 사전 고지)와 매칭 현황(`/staff/matching-requests`: 전체 매칭 요청 조회·필터·검색·취소, 상세 화면에서 매칭 결과 표). 소비자용 시리얼라이저 재사용(민감 필드 없음)으로 새 Admin 시리얼라이저 불필요, 뷰·라우팅만 추가. `StaffLayout` 탭 4개로 확장(유저 관리·연결·메시지 관리·관심사 관리·매칭 현황). 새 DRF 뷰셋 3개, DB 스키마 변경 없음. 이걸로 Django admin이 지원하던 9개 모델 전부 자체 관리자 화면 이전 완료 (자세한 내용은 위 `현재 상태` 참고)
 
 ---
 

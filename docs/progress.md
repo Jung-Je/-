@@ -1,7 +1,9 @@
 # 매칭 API 프로젝트 진행 상황
 
 ## 🚦 현재 상태 (마지막 업데이트: 2026-08-14)
-"실제 서비스로 내놓기엔 UI가 너무 대충이다"라는 사용자 피드백으로 시작해서 두 갈래로 이어짐: (1) impeccable 정식 크리틱으로 UI 전반 품질 문제 17개를 찾아 전부 처리, (2) 이어서 "Django 기본 관리자 페이지는 실제 서비스에 못 쓴다"는 지적으로 스태프 전용 관리자 패널을 새로 구축(Phase 1 → Phase 2로 이어서 완료).
+"실제 서비스로 내놓기엔 UI가 너무 대충이다"라는 사용자 피드백으로 시작해서 두 갈래로 이어짐: (1) impeccable 정식 크리틱으로 UI 전반 품질 문제 17개를 찾아 전부 처리, (2) 이어서 "Django 기본 관리자 페이지는 실제 서비스에 못 쓴다"는 지적으로 스태프 전용 관리자 패널을 새로 구축(Phase 1 → Phase 2로 이어서 완료), (3) 관리자 REST API가 유지보수 관점에서 도메인 앱에 흩어져 있으면 안 된다는 지적으로 전용 `apps/staff` 앱으로 통합.
+
+**관리자 REST API를 `apps/staff` 앱으로 통합 (리팩터링)** — Phase 1·2에서 만든 `Admin*ViewSet`/`Admin*Serializer`가 다루는 모델에 따라 `apps/users`(유저)·`apps/matching`(연결·관심사·매칭 요청)에 흩어져 있던 걸, 관리자 기능이 어디 있는지 한 곳에서 보이도록 전용 `apps/staff` 앱으로 옮김. 장고 내장 관리자 사이트(`/admin/`, 각 앱 `admin.py`의 `ModelAdmin`)는 대상 아님 — 모델을 소유한 앱에 그대로 두는 게 컨벤션이라 그건 안 건드림. 클래스 이름(`AdminUserViewSet` 등)은 그대로, import 경로만 절대경로로 바뀌었고 반대 방향 참조가 없어 순환 참조 없음. API 경로도 도메인 앱에서 분리되며 한 프리픽스로 통합됨: `/api/v1/{users,matching}/admin/...` → `/api/v1/staff/...`. 새 모델 없음(DB 스키마 변경 없음), 테스트는 위치만 옮겨서 195개 그대로 통과. 프론트 `staffApi.ts`는 URL 문자열만 새 경로로 갱신(화면·타입 무변경), 라이브 브라우저로 `/staff/*` 화면 4개 전부 재검증 완료.
 
 **스태프 관리자 패널 Phase 2 (신규)** — Phase 1(유저 관리 + 연결·메시지 모더레이션)에 이어, Django admin이 지원하던 나머지 모델 중 운영 가치가 높은 4개(InterestCategory·Interest·MatchingRequest·MatchingResult)를 마저 옮김. UserInterest는 단순 유저↔관심사 태그라 별도 모더레이션 액션이 없어 스킵(유저 상세 화면에서 이미 노출 중):
 - **관심사 관리** (`/staff/interests`): 카테고리·관심사 생성/삭제. Phase 1과 달리 민감 필드가 없는 콘텐츠 큐레이션이라 소비자용 시리얼라이저(`InterestCategorySerializer`/`InterestSerializer`)를 그대로 재사용, 새 Admin 시리얼라이저 없이 뷰만 추가. 카테고리 삭제 시 CASCADE로 관심사도 같이 지워지는데, 확인 버튼에 영향받는 관심사 수를 미리 보여줌. 카테고리 행을 펼치면 그 안 관심사 목록 + 추가 폼(인라인)
@@ -23,7 +25,7 @@
 
 이전엔 보안 점검(SECRET_KEY `#` 문자로 인한 무력화, 죽어있던 `ADMIN_URL` 설정, pillow/gunicorn 취약점 패치), 그 전엔 저장소 정리 + 사용자 제보 매칭 버그 2건, 그 전엔 matching/users 앱 내부 구조를 도메인별 패키지로 분리 — 자세한 내용은 `완료된 기능` 섹션과 `git log` 참고.
 
-- 커밋 상태: Phase 2 변경사항 커밋 예정 (이 문서 갱신 직후 커밋)
+- 커밋 상태: 전부 커밋 완료, origin/feature 푸시 예정
 - 각 기능의 상세 구현 배경/발견한 버그/검증 방법은 `git log`의 커밋 메시지 참고 (커밋 메시지에 자세히 적어둠)
 - 프론트엔드 화면 설계 방향은 `PRODUCT.md`/`DESIGN.md` 참고 (impeccable shape 브리프로 확정한 "포토카드 바인더" 세계관)
 
@@ -89,6 +91,7 @@
 - [x] UI 크리틱 후속 조치 15건 — 404 페이지, 온보딩 관심사 레벨(1~5) UI, 코랄 텍스트 대비, 매칭 결과 카드 기존 연결 인지, 매칭 CTA 색, 점수 배지 골드/실버/브론즈 독립 팔레트, 메시지 뱃지, authored 관심사 아이콘, 온보딩 첫 완료 축하 상태, 아바타 색 통일, 메시지 스레드 헤더 아바타, 생년월일 미래 날짜 방어(서버+프론트 3중), DESIGN.md 브레이크포인트 문서 (자세한 내용은 위 `현재 상태` 참고)
 - [x] 스태프 관리자 패널 Phase 1 (`features/staff/`) — Django `/admin/` 대신 세션 인증 그대로 쓰는 자체 관리자 화면. 유저 관리(`/staff/users`: 검색/필터/인라인 프로필·성격/정지·매칭풀 토글, `is_staff`/`is_superuser` 편집은 미제공, 자기잠금 방지), 연결·메시지 모더레이션(`/staff/connections`: 참여자 아닌 연결도 전체 조회, 메시지 이력·삭제, 상태 강제 변경). `StaffLayout`(소비자용 AppNav와 분리된 조용한 톤)·`ConfirmButton`(2클릭 확인, 4곳 재사용). `AppNav`에 스태프 전용 "관리자" 탭. 백엔드는 새 `IsAdminUser` 뷰셋 2개(`/api/v1/users/admin/users/`, `/api/v1/matching/admin/connections/`), DB 스키마 변경 없음
 - [x] 스태프 관리자 패널 Phase 2 (`features/staff/`) — Phase 1에 이어 관심사 관리(`/staff/interests`: 카테고리·관심사 생성/삭제, CASCADE 영향 범위 사전 고지)와 매칭 현황(`/staff/matching-requests`: 전체 매칭 요청 조회·필터·검색·취소, 상세 화면에서 매칭 결과 표). 소비자용 시리얼라이저 재사용(민감 필드 없음)으로 새 Admin 시리얼라이저 불필요, 뷰·라우팅만 추가. `StaffLayout` 탭 4개로 확장(유저 관리·연결·메시지 관리·관심사 관리·매칭 현황). 새 DRF 뷰셋 3개, DB 스키마 변경 없음. 이걸로 Django admin이 지원하던 9개 모델 전부 자체 관리자 화면 이전 완료 (자세한 내용은 위 `현재 상태` 참고)
+- [x] 관리자 REST API를 전용 `apps/staff` 장고 앱으로 통합 — Phase 1·2에서 `apps/users`·`apps/matching`에 흩어져 있던 `Admin*ViewSet`/`Admin*Serializer`를 한 곳으로 이동, API 경로도 `/api/v1/staff/...`로 통합(장고 내장 `/admin/`은 대상 아님). 클래스 이름 그대로, import·URL 프리픽스만 변경, DB 스키마 변경 없음, 테스트 195개 위치만 옮겨서 그대로 통과 (자세한 내용은 위 `현재 상태` 참고)
 
 ---
 

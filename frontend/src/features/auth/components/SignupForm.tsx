@@ -1,37 +1,13 @@
 import { useId, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { AlertIcon, EyeIcon, EyeOffIcon, SpinnerIcon } from '../../../components/icons'
+import { isAdultBirthdate, maxAdultBirthDate, MIN_ADULT_AGE } from '../../../lib/age'
 import { ApiError } from '../../../lib/apiClient'
+import { buildKakaoAuthorizeUrl, isKakaoConfigured, kakaoLoginRedirectUri } from '../../../lib/kakaoAuth'
 import { login, primeCsrf, signup } from '../api/authApi'
 import { AuthScreen } from './AuthScreen'
 
 type Status = 'idle' | 'submitting' | 'error'
-
-const MIN_ADULT_AGE = 19
-
-// 네이티브 날짜 선택기의 max 속성용 — 오늘부터 19년 전 날짜를 넘기면
-// 애초에 만 19세 미만이 되는 생년월일을 고를 수 없게 원천 차단한다.
-// (features/onboarding/components/ProfileStep.tsx의 미래 날짜 방지와
-// 같은 패턴, 여기는 "미래 방지"가 아니라 "최소 연령" 기준이 다름)
-function maxAdultBirthDate(): string {
-  const date = new Date()
-  date.setFullYear(date.getFullYear() - MIN_ADULT_AGE)
-  return date.toISOString().slice(0, 10)
-}
-
-function isAdultBirthdate(value: string): boolean {
-  const birthDate = new Date(value)
-  if (Number.isNaN(birthDate.getTime())) return false
-
-  const today = new Date()
-  let age = today.getFullYear() - birthDate.getFullYear()
-  const hasHadBirthdayThisYear =
-    today.getMonth() > birthDate.getMonth() ||
-    (today.getMonth() === birthDate.getMonth() && today.getDate() >= birthDate.getDate())
-  if (!hasHadBirthdayThisYear) age -= 1
-
-  return age >= MIN_ADULT_AGE
-}
 
 /**
  * 회원가입은 계정(닉네임/이메일/비밀번호) + 생년월일만 받는다. 이름·관심사
@@ -109,6 +85,33 @@ export function SignupForm() {
         <h2>회원가입</h2>
         <p>닉네임, 이메일, 생년월일, 비밀번호만 있으면 바로 시작할 수 있어요.</p>
       </div>
+
+      {isKakaoConfigured() && (
+        <>
+          <button
+            type="button"
+            className="auth-kakao-button"
+            onClick={() => {
+              // scope 없이 요청 — profile_nickname/account_email까지
+              // 요청했더니 그 동의항목들이 카카오 콘솔에서 "설정"되어
+              // 있지 않아 인가 요청 자체가 KOE205로 거부되는 걸 실제로
+              // 확인했다(age_range와 같은 증상). 콘솔에서 그 항목들을
+              // 켜기 전까지는 최소 범위(카카오 식별만)로 요청해야 버튼이
+              // 동작한다 — 닉네임/이메일이 없어도
+              // KakaoLoginCallbackScreen이 수동 입력으로 안전하게
+              // 폴백하므로 기능 자체는 그대로 동작한다. 콘솔에서 두
+              // 항목을 켠 뒤에는 scope: 'profile_nickname,account_email'
+              // 을 다시 넣어주면 prefill이 살아난다.
+              window.location.href = buildKakaoAuthorizeUrl({
+                redirectUri: kakaoLoginRedirectUri(),
+              })
+            }}
+          >
+            카카오로 3초 가입하기
+          </button>
+          <p className="auth-divider">또는</p>
+        </>
+      )}
 
       <form className="auth-form" onSubmit={handleSubmit} noValidate>
         <div className="auth-field">

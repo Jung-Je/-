@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { AlertIcon, SpinnerIcon } from '../../../components/icons'
 import { ApiError } from '../../../lib/apiClient'
-import { kakaoRedirectUri } from '../../../lib/kakaoAuth'
+import { kakaoAgeVerificationRedirectUri } from '../../../lib/kakaoAuth'
 import { verifyKakaoAdult } from '../api/authApi'
 import { AuthScreen } from './AuthScreen'
 
@@ -34,7 +34,7 @@ export function KakaoCallbackScreen() {
       return
     }
 
-    verifyKakaoAdult(code, kakaoRedirectUri())
+    verifyKakaoAdult(code, kakaoAgeVerificationRedirectUri())
       .then(() => {
         navigate('/signup', { replace: true })
       })

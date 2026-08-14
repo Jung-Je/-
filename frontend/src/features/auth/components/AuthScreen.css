@@ -203,6 +203,45 @@
   }
 }
 
+/* 카카오 소셜 로그인/가입 버튼 — 카카오 브랜드 컬러(#FEE500)로 기존
+   auth-submit(코랄)과 시각적으로 구분해서 "다른 방식"임을 바로 알아채게 */
+.auth-kakao-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: 13px 20px;
+  font-size: 16px;
+  font-weight: 700;
+  border: none;
+  border-radius: var(--radius-control);
+  background: #fee500;
+  color: #191919;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+
+.auth-kakao-button:hover:not(:disabled) {
+  filter: brightness(0.96);
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-ink-muted);
+  font-size: 13px;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
 .auth-links {
   display: flex;
   align-items: center;

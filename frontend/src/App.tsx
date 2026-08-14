@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { LoginPage } from './app/login/page'
 import { SignupPage } from './app/signup/page'
 import { KakaoCallbackPage } from './app/auth/kakao/callback/page'
+import { KakaoLoginCallbackPage } from './app/auth/kakao/login/page'
 import { ResetPasswordPage } from './app/reset-password/page'
 import { OnboardingPage } from './app/onboarding/page'
 import { MatchingPage } from './app/matching/page'
@@ -26,6 +27,7 @@ function App() {
       <Route path="/login" element={<Navigate to="/" replace />} />
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/auth/kakao/callback" element={<KakaoCallbackPage />} />
+      <Route path="/auth/kakao/login" element={<KakaoLoginCallbackPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/onboarding" element={<OnboardingPage />} />
       <Route path="/matching" element={<MatchingPage />} />

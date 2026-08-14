@@ -2,6 +2,7 @@ import { useId, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { AlertIcon, EyeIcon, EyeOffIcon, SpinnerIcon } from '../../../components/icons'
 import { ApiError } from '../../../lib/apiClient'
+import { buildKakaoAuthorizeUrl, isKakaoConfigured, kakaoLoginRedirectUri } from '../../../lib/kakaoAuth'
 import { login, primeCsrf } from '../api/authApi'
 import { AuthScreen } from './AuthScreen'
 
@@ -48,6 +49,27 @@ export function LoginForm() {
         <h2>로그인</h2>
         <p>바인더로 돌아가려면 이메일과 비밀번호를 입력하세요.</p>
       </div>
+
+      {isKakaoConfigured() && (
+        <>
+          <button
+            type="button"
+            className="auth-kakao-button"
+            onClick={() => {
+              // scope 없이 요청하는 이유는 SignupForm.tsx의 같은 버튼
+              // 주석 참고 — profile_nickname/account_email이 카카오
+              // 콘솔에서 아직 설정 안 돼 있으면 인가 요청 자체가
+              // KOE205로 거부된다.
+              window.location.href = buildKakaoAuthorizeUrl({
+                redirectUri: kakaoLoginRedirectUri(),
+              })
+            }}
+          >
+            카카오로 계속하기
+          </button>
+          <p className="auth-divider">또는</p>
+        </>
+      )}
 
       <form className="auth-form" onSubmit={handleSubmit} noValidate>
         <div className="auth-field">

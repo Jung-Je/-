@@ -323,3 +323,10 @@ CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
 
 # Frontend URL used to build links sent in emails (e.g. password reset)
 FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:3000")
+
+# 카카오 로그인(회원가입 성인인증용, age_range 동의항목). Kakao Developers
+# 콘솔의 "REST API 키"가 KAKAO_CLIENT_ID다. Client Secret은 콘솔의 보안
+# 탭에서 켰을 때만 값이 있고, 안 켰으면 빈 문자열로 둔다(services/kakao.py가
+# 빈 값이면 요청에서 아예 뺀다).
+KAKAO_CLIENT_ID = env("KAKAO_CLIENT_ID", default="")
+KAKAO_CLIENT_SECRET = env("KAKAO_CLIENT_SECRET", default="")

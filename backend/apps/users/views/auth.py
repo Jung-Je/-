@@ -24,6 +24,7 @@ from drf_spectacular.utils import extend_schema
 
 from ..models import User
 from ..serializers import LoginSerializer, UserSerializer
+from ..services import KakaoVerificationError, verify_kakao_adult
 
 logger = logging.getLogger(__name__)
 
@@ -101,3 +102,54 @@ class LogoutView(APIView):
     def post(self, request):
         django_logout(request._request)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class KakaoAgeVerificationView(APIView):
+    """카카오 로그인 age_range 동의항목으로 성인인증을 하는 회원가입 전
+    단계. 로그인 전 흐름이라 AllowAny — 진짜 방어선은 여기가 아니라
+    UserCreateSerializer.validate()가 세션 플래그를 다시 확인하는 것이고,
+    여기는 그 플래그를 세팅하는 역할만 한다.
+    """
+
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        summary="카카오 성인인증 상태 조회",
+        tags=["Auth"],
+        responses={200: {"type": "object", "properties": {"verified": {"type": "boolean"}}}},
+    )
+    def get(self, request):
+        """회원가입 폼을 열지 말지 프론트가 판단하는 용도(서버 세션이
+        기준이라 새로고침·재방문에도 정확함)."""
+        return Response({"verified": bool(request.session.get("kakao_age_verified"))})
+
+    @extend_schema(
+        summary="카카오 성인인증 수행",
+        tags=["Auth"],
+        responses={200: {"type": "object", "properties": {"verified": {"type": "boolean"}}}},
+    )
+    def post(self, request):
+        code = request.data.get("code")
+        redirect_uri = request.data.get("redirect_uri")
+        if not code or not redirect_uri:
+            return Response(
+                {"detail": "code와 redirect_uri가 필요합니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            result = verify_kakao_adult(code, redirect_uri)
+        except KakaoVerificationError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not result["is_adult"]:
+            return Response(
+                {"detail": "만 19세 이상만 가입할 수 있습니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        request.session["kakao_age_verified"] = True
+        request.session["kakao_verified_id"] = result["kakao_id"]
+        logger.info("카카오 성인인증 완료: kakao_id=%s", result["kakao_id"])
+
+        return Response({"verified": True})

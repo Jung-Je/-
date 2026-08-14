@@ -48,12 +48,20 @@ class UserSerializer(serializers.ModelSerializer):
             "profile_image",
             "is_profile_complete",
             "is_active_for_matching",
+            "is_adult_verified",
             "is_staff",
             "personality",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "age", "is_staff", "created_at", "updated_at"]
+        read_only_fields = [
+            "id",
+            "age",
+            "is_adult_verified",
+            "is_staff",
+            "created_at",
+            "updated_at",
+        ]
         extra_kwargs = {
             "email": {"required": True},
         }
@@ -108,15 +116,37 @@ class UserCreateSerializer(serializers.ModelSerializer):
         }
 
     def validate(self, attrs):
-        """비밀번호 확인 검증"""
+        """카카오 성인인증 세션 확인 + 비밀번호 확인 검증.
+
+        성인인증이 진짜 방어선 — KakaoAgeVerificationView가 세션에 심어둔
+        플래그를 여기서 다시 확인한다. 프론트가 인증 화면을 건너뛰고
+        가입 API를 직접 호출해도 여기서 막힌다.
+        """
+        request = self.context["request"]
+        if not request.session.get("kakao_age_verified"):
+            raise serializers.ValidationError(
+                {"kakao_verification": "카카오 성인인증을 먼저 완료해주세요."}
+            )
         if attrs["password"] != attrs["password_confirm"]:
             raise serializers.ValidationError({"password_confirm": "비밀번호가 일치하지 않습니다."})
         return attrs
 
     def create(self, validated_data):
-        """사용자 생성"""
+        """사용자 생성 + 카카오 인증 정보 저장.
+
+        가입이 끝나면 세션의 인증 플래그를 지워서 1회성으로 소모한다 —
+        같은 세션으로 계정을 여러 개 만들 수 없고, 다음 가입엔 다시
+        카카오 인증을 거쳐야 한다.
+        """
+        request = self.context["request"]
         validated_data.pop("password_confirm")
+        validated_data["kakao_id"] = request.session.get("kakao_verified_id")
+        validated_data["is_adult_verified"] = True
         user = User.objects.create_user(**validated_data)
+
+        for key in ("kakao_age_verified", "kakao_verified_id"):
+            request.session.pop(key, None)
+
         return user
 
 

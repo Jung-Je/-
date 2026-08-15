@@ -213,8 +213,10 @@
   }
 }
 
-/* 계정 영역 */
+/* 계정 영역. <Link>(문의하기)에도 재사용되므로 <a> 기본 밑줄을 지운다
+   — <button>(로그아웃)에는 원래 밑줄이 없어서 영향 없음. */
 .settings-secondary-btn {
+  display: inline-flex;
   align-self: flex-start;
   border: 1.5px solid var(--color-border-strong);
   background: var(--color-surface);
@@ -223,6 +225,7 @@
   padding: 10px 18px;
   font-size: 14px;
   font-weight: 600;
+  text-decoration: none;
   cursor: pointer;
 }
 

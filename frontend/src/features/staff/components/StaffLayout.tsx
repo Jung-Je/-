@@ -7,6 +7,7 @@ const TABS = [
   { to: '/staff/connections', label: '연결·메시지 관리' },
   { to: '/staff/interests', label: '관심사 관리' },
   { to: '/staff/matching-requests', label: '매칭 현황' },
+  { to: '/staff/inquiries', label: '문의/신고' },
 ]
 
 type Props = { children: ReactNode }

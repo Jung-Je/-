@@ -3,6 +3,9 @@ import type { MatchingResult } from '../../matching/types'
 import type {
   AdminConnection,
   AdminConnectionStatus,
+  AdminInquiry,
+  AdminInquiryCategory,
+  AdminInquiryStatus,
   AdminInterest,
   AdminInterestCategory,
   AdminMatchingRequest,
@@ -170,4 +173,38 @@ export async function listAdminMatchingRequestResults(
   return apiFetch<MatchingResult[]>(
     `/api/v1/staff/matching-requests/${requestId}/results/`,
   )
+}
+
+export type AdminInquiryListParams = {
+  search?: string
+  status?: AdminInquiryStatus
+  category?: AdminInquiryCategory
+  page?: number
+}
+
+export async function listAdminInquiries(
+  params: AdminInquiryListParams = {},
+): Promise<PaginatedResponse<AdminInquiry>> {
+  return apiFetch<PaginatedResponse<AdminInquiry>>(
+    `/api/v1/staff/inquiries/${toQueryString(params)}`,
+  )
+}
+
+export async function updateInquiryStatus(
+  inquiryId: number,
+  inquiryStatus: AdminInquiryStatus,
+): Promise<AdminInquiry> {
+  return apiFetch<AdminInquiry>(`/api/v1/staff/inquiries/${inquiryId}/`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status: inquiryStatus }),
+  })
+}
+
+// 빈 문자열을 보내면 답변을 지운다 — 서버가 그 경우 resolved_at을 비우기만
+// 하고 status는 그대로 둔다(AdminInquiryReplySerializer 참고).
+export async function replyToInquiry(inquiryId: number, adminReply: string): Promise<AdminInquiry> {
+  return apiFetch<AdminInquiry>(`/api/v1/staff/inquiries/${inquiryId}/reply/`, {
+    method: 'POST',
+    body: JSON.stringify({ admin_reply: adminReply }),
+  })
 }

@@ -37,6 +37,13 @@ class User(AbstractUser):
     is_profile_complete = models.BooleanField(default=False)
     is_active_for_matching = models.BooleanField(default=True, db_index=True)
 
+    # 성인인증 (카카오 로그인 age_range 연동) — 회원가입 시 관문으로만 쓰고,
+    # 여기 저장은 감사·추후 재사용(배지 노출 등) 목적. 기존 유저는 둘 다
+    # 기본값(null/False)으로 남는다 — 이 기능 이전에 가입한 계정이라 로그인엔
+    # 영향 없음.
+    kakao_id = models.CharField(max_length=64, null=True, blank=True, unique=True, db_index=True)
+    is_adult_verified = models.BooleanField(default=False)
+
     # 타임스탬프
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -18,6 +18,24 @@ export type AuthUser = {
 export type SignupPayload = {
   username: string
   email: string
+  dateOfBirth: string
   password: string
   passwordConfirm: string
+}
+
+export type KakaoVerificationStatus = {
+  verified: boolean
+}
+
+// 카카오 소셜 로그인/가입 1단계(KakaoLoginView) 응답 — 이미 연결된
+// 계정이면 logged_in(바로 로그인 완료), 처음이면 signup_required(부족한
+// 정보를 더 받아야 함, KakaoSignupCompletionScreen에서 처리).
+export type KakaoLoginResult =
+  | { status: 'logged_in'; user: AuthUser }
+  | { status: 'signup_required'; suggested_email: string | null }
+
+export type KakaoSignupCompletionPayload = {
+  username: string
+  email: string
+  dateOfBirth: string
 }

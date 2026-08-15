@@ -1,5 +1,11 @@
 import { apiFetch } from '../../../lib/apiClient'
-import type { AuthUser, SignupPayload } from '../types'
+import type {
+  AuthUser,
+  KakaoLoginResult,
+  KakaoSignupCompletionPayload,
+  KakaoVerificationStatus,
+  SignupPayload,
+} from '../types'
 
 /**
  * shape 브리프에서 확정한 로그인 API 계약:
@@ -38,7 +44,9 @@ export async function getCurrentUser(): Promise<AuthUser> {
  * UserCreateSerializer):
  *   POST /api/v1/users/users/ -> 201 { id, username, email, ... } | 400 { ...필드별 오류 }
  * 계정 생성만 하고 세션은 만들지 않으므로, 성공 후 login()을 이어서 호출해야 한다.
- * 프로필(이름/관심사/성격 등)은 회원가입 범위 밖 — 온보딩 단계에서 따로 수집한다.
+ * date_of_birth는 회원가입이 만 19세 이상만 가능해서 받는 최소연령 검증용
+ * — 이름/관심사/성격 등 나머지 프로필은 회원가입 범위 밖(온보딩 단계에서
+ * 따로 수집).
  */
 export async function signup(payload: SignupPayload): Promise<void> {
   await apiFetch<unknown>('/api/v1/users/users/', {
@@ -46,6 +54,7 @@ export async function signup(payload: SignupPayload): Promise<void> {
     body: JSON.stringify({
       username: payload.username,
       email: payload.email,
+      date_of_birth: payload.dateOfBirth,
       password: payload.password,
       password_confirm: payload.passwordConfirm,
     }),
@@ -86,4 +95,58 @@ export async function confirmPasswordReset(payload: ConfirmPasswordResetPayload)
       new_password_confirm: payload.newPasswordConfirm,
     }),
   })
+}
+
+/**
+ * 회원가입 성인인증 API 계약 (백엔드: apps/users/views/auth.py
+ * KakaoAgeVerificationView):
+ *   GET  /api/v1/auth/kakao/verify/ -> 200 { verified } — 세션에 인증
+ *     플래그가 있는지 조회. 회원가입 폼을 열지 말지 판단하는 용도.
+ *   POST /api/v1/auth/kakao/verify/ { code, redirect_uri } -> 200
+ *     { verified: true } | 400 { detail } — 성공하면 세션에 플래그가
+ *     세팅되고, 회원가입 성공과 동시에 1회성으로 소모된다.
+ */
+export async function getKakaoVerificationStatus(): Promise<KakaoVerificationStatus> {
+  return apiFetch<KakaoVerificationStatus>('/api/v1/auth/kakao/verify/')
+}
+
+export async function verifyKakaoAdult(code: string, redirectUri: string): Promise<void> {
+  await apiFetch<unknown>('/api/v1/auth/kakao/verify/', {
+    method: 'POST',
+    body: JSON.stringify({ code, redirect_uri: redirectUri }),
+  })
+}
+
+/**
+ * 카카오 소셜 로그인/가입 API 계약 (백엔드: apps/users/views/auth.py
+ * KakaoLoginView / KakaoSignupCompletionView) — 성인인증(age_range)과는
+ * 완전히 별개, 이메일만 다룬다(닉네임은 카카오와 무관하게 항상 사이트에서
+ * 직접 입력받음).
+ *   POST /api/v1/auth/kakao/login/ { code, redirect_uri } ->
+ *     200 { status: 'logged_in', user } | 200 { status: 'signup_required',
+ *     suggested_email } | 400 { detail }
+ *   POST /api/v1/auth/kakao/complete-signup/ { username, email,
+ *     date_of_birth } -> 201 { user } | 400 { detail | ...필드별 오류 }
+ *     signup_required 이후에만 의미 있음(서버 세션에 저장된 카카오
+ *     식별자가 관문).
+ */
+export async function kakaoLogin(code: string, redirectUri: string): Promise<KakaoLoginResult> {
+  return apiFetch<KakaoLoginResult>('/api/v1/auth/kakao/login/', {
+    method: 'POST',
+    body: JSON.stringify({ code, redirect_uri: redirectUri }),
+  })
+}
+
+export async function completeKakaoSignup(
+  payload: KakaoSignupCompletionPayload,
+): Promise<AuthUser> {
+  const { user } = await apiFetch<{ user: AuthUser }>('/api/v1/auth/kakao/complete-signup/', {
+    method: 'POST',
+    body: JSON.stringify({
+      username: payload.username,
+      email: payload.email,
+      date_of_birth: payload.dateOfBirth,
+    }),
+  })
+  return user
 }

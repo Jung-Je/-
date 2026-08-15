@@ -6,6 +6,7 @@ from .auth import (
     PasswordResetConfirmSerializer,
     PasswordResetRequestSerializer,
 )
+from .kakao import KakaoSignupCompletionSerializer
 from .user import (
     UserCreateSerializer,
     UserDetailSerializer,
@@ -15,6 +16,7 @@ from .user import (
 )
 
 __all__ = [
+    "KakaoSignupCompletionSerializer",
     "LoginSerializer",
     "PasswordChangeSerializer",
     "PasswordResetConfirmSerializer",

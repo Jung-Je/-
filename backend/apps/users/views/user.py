@@ -215,6 +215,21 @@ class UserPersonalityViewSet(viewsets.ModelViewSet):
         """현재 사용자의 성격 정보만 조회"""
         return UserPersonality.objects.filter(user=self.request.user)
 
+    def create(self, request, *args, **kwargs):
+        """UserPersonality는 유저당 최대 1개(OneToOne) — 온보딩
+        PersonalityStep은 항상 POST만 호출하고 이미 있는지 따로
+        확인하지 않는다(건너뛰었다가 다시 방문하거나, 뒤로가기 후 다시
+        제출해도 자연스럽게 동작해야 하므로). 이미 레코드가 있으면 새로
+        만들려다 유니크 제약 위반(500)으로 죽는 대신, 있는 레코드를
+        그대로 갱신한다 — 이 엔드포인트를 사실상 upsert로 만든다."""
+        existing = self.get_queryset().first()
+        if existing is not None:
+            serializer = self.get_serializer(existing, data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data)
+        return super().create(request, *args, **kwargs)
+
     def perform_create(self, serializer):
         """사용자 성격 정보 생성 시 현재 사용자 자동 설정"""
         serializer.save(user=self.request.user)

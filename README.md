@@ -7,12 +7,12 @@
 ## 주요 기능
 
 - 🔐 사용자 인증 및 프로필 관리 (온보딩 3단계: 프로필·성격·관심사)
-- 💛 카카오 소셜 로그인/가입 — 비밀번호 없는 계정, 카카오 계정으로 로그인/가입. 닉네임은 항상 직접 입력, 이메일은 카카오가 주면 잠근 채로 프리필(실계정으로 종단 검증 완료, [`docs/progress.md`](docs/progress.md) 참고)
-- 🪪 회원가입 성인인증 — 자기신고 생년월일 기반 최소연령(만 19세) 검증. 카카오 로그인 `age_range` 연동을 시도했으나 사업자등록번호를 요구해 막힘(연동 코드는 남겨둠, [`docs/progress.md`](docs/progress.md) 참고)
-- 🎯 세밀한 취향 기반 매칭 알고리즘
-- 💬 사용자 간 연결 요청/수락/거절/차단 및 인앱 메시징
-- 🛡️ 스태프 전용 관리자 패널 — 유저 모더레이션, 연결·메시지 관리, 관심사 큐레이션, 매칭 현황 조회/취소, 문의/신고 처리 (`apps/staff`, 프론트 `/staff/*`)
-- 📮 문의/신고하기 — 유저가 신고·문의·건의를 관리자에게 남기고, 관리자 답변과 처리 상태를 확인 (`apps/support`, 프론트 `/support`)
+- 💛 카카오 소셜 로그인/가입 — 비밀번호 없는 계정으로 카카오 계정 자체를 로그인 수단으로 사용
+- 🪪 회원가입 최소연령(만 19세) 검증
+- 🎯 취향·성격·위치 가중치 기반 매칭 알고리즘
+- 💬 사용자 간 연결 요청/수락/거절/차단 및 실시간 인앱 메시징
+- 🛡️ 스태프 전용 관리자 패널 — 유저 모더레이션, 연결·메시지 관리, 관심사 큐레이션, 매칭 현황, 문의/신고 처리 (`apps/staff`, 프론트 `/staff/*`)
+- 📮 문의/신고하기 — 유저가 신고·문의·건의를 남기고 관리자 답변·처리 상태를 확인 (`apps/support`, 프론트 `/support`)
 - 📚 자동 생성되는 API 문서 (Swagger UI / ReDoc)
 - 🎨 일관된 코드 스타일 (백엔드: black/isort/flake8, 프론트엔드: oxlint)
 
@@ -137,8 +137,8 @@ matching-api/
 ├── docker-compose.prod.yml  # 프로덕션 환경
 ├── frontend/            # React + Vite + TypeScript (소비자 화면 + 스태프 관리자 화면)
 │   └── src/
-│       ├── app/           # 라우팅 진입점 (app/staff/* 포함)
-│       ├── features/      # 도메인별 기능 묶음 (features/staff/ 포함)
+│       ├── app/           # 라우팅 진입점 (app/staff/*, app/support/ 포함)
+│       ├── features/      # 도메인별 기능 묶음 (features/staff/, features/support/ 포함)
 │       ├── components/    # 공용 UI
 │       └── lib/           # apiClient.ts 등 외부 통신 계층
 ├── scripts/             # 자동화 스크립트
@@ -153,7 +153,7 @@ matching-api/
 - `POST /api/v1/users/users/` - 회원가입 (닉네임/이메일/생년월일/비밀번호, 만 19세 미만이면 400)
 - `POST /api/v1/auth/kakao/login/` - 카카오 소셜 로그인/가입 1단계 (연결된 계정이면 로그인, 처음이면 signup_required)
 - `POST /api/v1/auth/kakao/complete-signup/` - 카카오 소셜 가입 완료 (닉네임/이메일/생년월일, 비밀번호 없는 계정 생성)
-- `GET/POST /api/v1/auth/kakao/verify/` - 카카오 성인인증(현재 미사용 — 사업자등록번호 필요해 연동 코드만 남겨둠)
+- `GET/POST /api/v1/auth/kakao/verify/` - 카카오 성인인증(현재 미사용)
 - `GET /api/v1/users/users/me/` - 내 정보 조회
 - `PATCH /api/v1/users/users/{id}/` - 프로필 수정
 - `POST /api/v1/users/users/change_password/` - 비밀번호 변경

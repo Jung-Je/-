@@ -11,7 +11,8 @@
 - 🪪 회원가입 최소연령(만 19세) 검증
 - 🎯 취향·성격·위치 가중치 기반 매칭 알고리즘
 - 💬 사용자 간 연결 요청/수락/거절/차단 및 실시간 인앱 메시징
-- 🛡️ 스태프 전용 관리자 패널 — 유저 모더레이션, 연결·메시지 관리, 관심사 큐레이션, 매칭 현황, 문의/신고 처리 (`apps/staff`, 프론트 `/staff/*`)
+- 📝 유저 자유게시판 — 카테고리별 글/댓글로 유저끼리 자유롭게 소통 (`apps/board`, 프론트 `/board`)
+- 🛡️ 스태프 전용 관리자 패널 — 유저 모더레이션, 연결·메시지 관리, 관심사 큐레이션, 매칭 현황, 문의/신고 처리, 게시판 모더레이션 (`apps/staff`, 프론트 `/staff/*`)
 - 📮 문의/신고하기 — 유저가 신고·문의·건의를 남기고 관리자 답변·처리 상태를 확인 (`apps/support`, 프론트 `/support`)
 - 📚 자동 생성되는 API 문서 (Swagger UI / ReDoc)
 - 🎨 일관된 코드 스타일 (백엔드: black/isort/flake8, 프론트엔드: oxlint)
@@ -130,15 +131,16 @@ matching-api/
 │   │   ├── users/       # 사용자 관리 (인증, 프로필, 성격)
 │   │   ├── matching/    # 매칭 시스템 (관심사, 매칭 요청/결과, 연결, 메시지)
 │   │   ├── support/     # 유저→관리자 문의/신고/건의
-│   │   └── staff/       # 스태프 전용 관리자 REST API (users/matching/support 모델을 다루지만 앱은 분리)
+│   │   ├── board/       # 유저 자유게시판 (글/댓글)
+│   │   └── staff/       # 스태프 전용 관리자 REST API (users/matching/support/board 모델을 다루지만 앱은 분리)
 │   └── config/          # Django 설정
 ├── docker/              # Dockerfile(백엔드), Dockerfile.frontend, entrypoint.sh
 ├── docker-compose.yml       # 개발 환경 (db/redis/web/frontend)
 ├── docker-compose.prod.yml  # 프로덕션 환경
 ├── frontend/            # React + Vite + TypeScript (소비자 화면 + 스태프 관리자 화면)
 │   └── src/
-│       ├── app/           # 라우팅 진입점 (app/staff/*, app/support/ 포함)
-│       ├── features/      # 도메인별 기능 묶음 (features/staff/, features/support/ 포함)
+│       ├── app/           # 라우팅 진입점 (app/staff/*, app/support/, app/board/ 포함)
+│       ├── features/      # 도메인별 기능 묶음 (features/staff/, features/support/, features/board/ 포함)
 │       ├── components/    # 공용 UI
 │       └── lib/           # apiClient.ts 등 외부 통신 계층
 ├── scripts/             # 자동화 스크립트
@@ -172,6 +174,11 @@ matching-api/
 ### 문의/신고 (Support)
 - `GET/POST /api/v1/support/inquiries/` - 내 문의 목록 조회/작성 (신고·문의·건의, 본인 것만)
 
+### 게시판 (Board)
+- `GET /api/v1/board/categories/` - 게시판 카테고리 목록 조회
+- `GET/POST/PATCH/DELETE /api/v1/board/posts/` - 글 조회(전체 공개)/작성/수정·삭제(본인 글만)
+- `GET/POST/PATCH/DELETE /api/v1/board/comments/` - 댓글 조회(`?post=`로 필터)/작성/수정·삭제(본인 댓글만)
+
 ### 관리자 (Staff, 전부 `is_staff` 권한 필요)
 - `GET/PATCH /api/v1/staff/users/` - 사용자 목록/계정 상태 변경(정지·매칭풀 포함 여부)
 - `GET /api/v1/staff/connections/`, `PATCH .../status/`, `GET/DELETE .../messages/` - 연결·메시지 모더레이션
@@ -179,6 +186,8 @@ matching-api/
 - `GET /api/v1/staff/matching-requests/`, `POST .../cancel/`, `GET .../results/` - 전체 매칭 요청 조회·취소·결과 확인
 - `GET/PATCH /api/v1/staff/inquiries/` - 전체 문의 조회/처리 상태 변경(미처리·처리완료)
 - `POST /api/v1/staff/inquiries/{id}/reply/` - 문의 답변 작성/수정(저장 시 자동으로 처리완료 전환)
+- `GET/POST/DELETE /api/v1/staff/board-categories/` - 게시판 카테고리 관리
+- `GET/DELETE /api/v1/staff/board-posts/`, `/api/v1/staff/board-comments/` - 전체 글/댓글 조회·강제삭제
 
 ## 개발 가이드
 

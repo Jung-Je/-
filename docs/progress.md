@@ -1,7 +1,14 @@
 # 매칭 API 프로젝트 진행 상황
 
 ## 🚦 현재 상태 (마지막 업데이트: 2026-08-15)
-"실제 서비스로 내놓기엔 UI가 너무 대충이다"라는 사용자 피드백으로 시작해서 여러 갈래로 이어짐: (1) impeccable 정식 크리틱으로 UI 전반 품질 문제 17개를 찾아 전부 처리, (2) "Django 기본 관리자 페이지는 실제 서비스에 못 쓴다"는 지적으로 스태프 전용 관리자 패널을 새로 구축(Phase 1 → Phase 2로 이어서 완료), (3) 관리자 REST API가 유지보수 관점에서 도메인 앱에 흩어져 있으면 안 된다는 지적으로 전용 `apps/staff` 앱으로 통합, (4) "회원가입이 성인부터인데 실제로 나이를 검증 안 한다"는 지적으로 성인인증 추가 — 카카오 로그인을 먼저 시도했으나 사업자등록 요구에 막혀 자기신고 생년월일 검증으로 전환, (5) "카카오 REST API 키가 아깝다"는 지적으로 같은 앱을 성인인증과 무관한 카카오 소셜 로그인/가입 편의 기능으로 재활용 — 콘솔 설정(Redirect URI·Client Secret·동의항목)까지 실제로 끝내서 실 계정으로 가입 완료까지 라이브 검증됨, (6) "관리자에게 남기는 문의 창이 있으면 좋겠다"는 요청으로 유저→관리자 문의/신고/건의 기능 신규 구축, 이어서 "관리자가 댓글도 달 수 있어야 하는거 아니냐"는 지적으로 답변 기능까지 바로 추가.
+"실제 서비스로 내놓기엔 UI가 너무 대충이다"라는 사용자 피드백으로 시작해서 여러 갈래로 이어짐: (1) impeccable 정식 크리틱으로 UI 전반 품질 문제 17개를 찾아 전부 처리, (2) "Django 기본 관리자 페이지는 실제 서비스에 못 쓴다"는 지적으로 스태프 전용 관리자 패널을 새로 구축(Phase 1 → Phase 2로 이어서 완료), (3) 관리자 REST API가 유지보수 관점에서 도메인 앱에 흩어져 있으면 안 된다는 지적으로 전용 `apps/staff` 앱으로 통합, (4) "회원가입이 성인부터인데 실제로 나이를 검증 안 한다"는 지적으로 성인인증 추가 — 카카오 로그인을 먼저 시도했으나 사업자등록 요구에 막혀 자기신고 생년월일 검증으로 전환, (5) "카카오 REST API 키가 아깝다"는 지적으로 같은 앱을 성인인증과 무관한 카카오 소셜 로그인/가입 편의 기능으로 재활용 — 콘솔 설정(Redirect URI·Client Secret·동의항목)까지 실제로 끝내서 실 계정으로 가입 완료까지 라이브 검증됨, (6) "관리자에게 남기는 문의 창이 있으면 좋겠다"는 요청으로 유저→관리자 문의/신고/건의 기능 신규 구축, 이어서 "관리자가 댓글도 달 수 있어야 하는거 아니냐"는 지적으로 답변 기능까지 바로 추가, (7) "유저들끼리 게시글을 올려 소통할 수 있게 해달라"는 요청으로 카테고리별 자유게시판(글+댓글) 신규 구축.
+
+**유저 자유게시판 (신규) — 카테고리별 글/댓글, 좋아요 없이 간단하게** — 지금까지 유저 간 소통은 매칭으로 연결된 사람과의 1:1 메시징뿐이었다. 사용자 확정 범위: 댓글 포함(대댓글 없는 1단 나열)·카테고리 구분·스태프 모더레이션 포함·좋아요 없음. 새 Django 앱 `apps/board`(모델 3개: `BoardCategory`/`Post`/`Comment`)를 신설:
+- Inquiry(`apps/support`)와의 핵심 차이 — Inquiry는 "본인 것만 보이는 1:1 창구"라 수정·삭제 자체를 막았지만, 게시판은 **전체 공개**(모든 유저가 서로의 글을 봄) + **작성자 본인은 수정·삭제 가능**. 이걸 위해 이 코드베이스에 처음 필요했던 `IsAuthorOrReadOnly` 권한 클래스를 새로 만듦(조회는 항상 허용, 쓰기만 `author_id` 비교로 제한) — `PostViewSet`/`CommentViewSet`은 큐어리셋을 필터링하지 않고 이 권한 클래스로만 쓰기를 막는, 기존 `UserInterestViewSet`(자기 것만 필터링)과는 다른 새 조합
+- 유저: `AppNav`에 "게시판" 탭 → `/board`에서 카테고리 필터 + 인라인 새 글 작성 + 글 목록(제목/작성자/댓글 수/작성일) → `/board/:postId` 상세에서 본문 + 댓글 목록 + 댓글 작성, 본인 글/댓글에만 수정·삭제(2클릭 인라인 확인 — `window.confirm`은 이 코드베이스에 선례가 없어 새로 안 씀)
+- 스태프: 새 탭 "게시판 관리"(`/staff/board`) — 카테고리 생성/삭제(`AdminInterestCategoryViewSet`과 동일 패턴, 소비자용 시리얼라이저 재사용, 삭제 시 CASCADE로 소속 글도 같이 삭제됨을 사전 고지), 전체 글 조회·강제삭제, 행 펼쳐 댓글까지 강제삭제(`AdminInquiryViewSet`과 같은 mixin 조합으로 조회+삭제만 지원)
+- 백엔드 회귀 테스트 36개 신규(소비자 22개: 전체 공개 조회·본인만 수정삭제 가능·타인 403 등, 스태프 14개: 카테고리 CRUD·CASCADE·전체 조회·강제삭제), 총 285개 통과
+- 라이브 브라우저 검증 중 실제 버그 하나 발견/수정: `PostForm`의 카테고리 select가 부모의 비동기 카테고리 조회보다 먼저 마운트돼서, `useState` 초기값이 빈 값으로 고정되고 이후 categories가 도착해도 안 갱신되던 것 — 화면엔 카테고리가 선택된 것처럼 보이지만 실제 상태는 계속 비어 있어 "작성하기" 버튼이 영구적으로 눌러지지 않는 문제였음(카테고리 도착 시 한 번 기본값을 채우는 `useEffect`로 수정). 글 작성 → 상세 조회 → 댓글 작성 → 본인 글 수정 → 스태프 패널 카테고리/글/댓글 관리까지 전부 종단 확인 완료
 
 **문의/신고하기 (신규) — 유저가 관리자에게 남기는 창, 관리자 답변까지 포함** — 지금까지 스태프 관리자 패널은 유저·연결·관심사·매칭만 다뤘지, 유저가 문제(신고·문의·건의)를 관리자에게 직접 전달할 창구가 없었다. 새 Django 앱 `apps/support`(모델 1개, `Inquiry`)를 만들어 이 기능만 전담시킴 — `apps/staff`는 모델을 안 가지는 기존 컨벤션을 지키면서 이 모델은 가져다 쓰기만 함:
 - 유저: 설정 화면(`/settings`)에 "문의하기" 카드 → `/support` 화면에서 유형(신고/문의/건의) + 제목 + 내용 작성 → 제출 즉시 "내 문의 내역"에 반영(카테고리/상태 배지, 작성일). 관리자가 답변을 남기면 같은 목록에 틸 톤 카드로 표시. 수정·삭제는 지원 안 함(정정하고 싶으면 새로 작성 — 관리자 처리 이력이 바뀌는 걸 막기 위함)
@@ -43,11 +50,11 @@
 - **연결·메시지 모더레이션** (`/staff/connections`): 참여자 아닌 연결도 전부 조회(소비자용 API와의 핵심 차이), 메시지 이력 조회(스태프가 봐도 상대방 안읽음 배지 안 줄어듦), 부적절한 메시지 삭제, 연결 상태 강제 변경(차단 등)
 - 새 DRF 뷰셋 2개(`IsAdminUser` 권한), 새 화면 3개(`StaffLayout`+`ConfirmButton` 2클릭 확인 재사용 패턴), `AppNav`에 스태프 전용 "관리자" 탭. DB 스키마 변경 없음(기존 필드만 노출). 회귀 테스트 22개 추가, 라이브 브라우저로 전체 플로우(정지→DB 반영, 참여자 아닌 연결 조회, 메시지 삭제, 상태 강제 변경→DB 반영까지) 검증 완료. 관심사/매칭결과 등 나머지 7개 모델은 Phase 2로 보류.
 
-전체 백엔드 테스트 스위트 249개(문의/신고하기 23개, 카카오 소셜 로그인/가입 11개 포함) 통과.
+전체 백엔드 테스트 스위트 285개(유저 자유게시판 36개, 문의/신고하기 23개, 카카오 소셜 로그인/가입 11개 포함) 통과.
 
 이전엔 보안 점검(SECRET_KEY `#` 문자로 인한 무력화, 죽어있던 `ADMIN_URL` 설정, pillow/gunicorn 취약점 패치), 그 전엔 저장소 정리 + 사용자 제보 매칭 버그 2건, 그 전엔 matching/users 앱 내부 구조를 도메인별 패키지로 분리 — 자세한 내용은 `완료된 기능` 섹션과 `git log` 참고.
 
-- 커밋 상태: 문의/신고하기(`apps/support` 신규, 관리자 답변 기능 포함) + 카카오 소셜 로그인/가입 후속 조치 + README를 프로젝트 소개 위주로 정리(구현 이력 서술은 이 문서에만 남기고 README에서 제거)까지 로컬 `feature` 브랜치에 커밋 완료, `origin/main`에는 아직 미푸시. 이전 작업(스태프 관리자 패널 Phase 1·2, apps/staff 통합)은 PR #6으로 이미 머지 완료
+- 커밋 상태: 유저 자유게시판(`apps/board` 신규) + 문의/신고하기(`apps/support` 신규, 관리자 답변 기능 포함) + 카카오 소셜 로그인/가입 후속 조치 + README를 프로젝트 소개 위주로 정리(구현 이력 서술은 이 문서에만 남기고 README에서 제거)까지 로컬 `feature` 브랜치에 커밋 완료, `origin/main`에는 아직 미푸시. 이전 작업(스태프 관리자 패널 Phase 1·2, apps/staff 통합)은 PR #6으로 이미 머지 완료
 - 각 기능의 상세 구현 배경/발견한 버그/검증 방법은 `git log`의 커밋 메시지 참고 (커밋 메시지에 자세히 적어둠)
 - 프론트엔드 화면 설계 방향은 `PRODUCT.md`/`DESIGN.md` 참고 (impeccable shape 브리프로 확정한 "포토카드 바인더" 세계관)
 
@@ -117,11 +124,12 @@
 - [x] 스태프 관리자 패널 Phase 2 (`features/staff/`) — Phase 1에 이어 관심사 관리(`/staff/interests`: 카테고리·관심사 생성/삭제, CASCADE 영향 범위 사전 고지)와 매칭 현황(`/staff/matching-requests`: 전체 매칭 요청 조회·필터·검색·취소, 상세 화면에서 매칭 결과 표). 소비자용 시리얼라이저 재사용(민감 필드 없음)으로 새 Admin 시리얼라이저 불필요, 뷰·라우팅만 추가. `StaffLayout` 탭 4개로 확장(유저 관리·연결·메시지 관리·관심사 관리·매칭 현황). 새 DRF 뷰셋 3개, DB 스키마 변경 없음. 이걸로 Django admin이 지원하던 9개 모델 전부 자체 관리자 화면 이전 완료 (자세한 내용은 위 `현재 상태` 참고)
 - [x] 관리자 REST API를 전용 `apps/staff` 장고 앱으로 통합 — Phase 1·2에서 `apps/users`·`apps/matching`에 흩어져 있던 `Admin*ViewSet`/`Admin*Serializer`를 한 곳으로 이동, API 경로도 `/api/v1/staff/...`로 통합(장고 내장 `/admin/`은 대상 아님). 클래스 이름 그대로, import·URL 프리픽스만 변경, DB 스키마 변경 없음, 테스트 195개 위치만 옮겨서 그대로 통과 (자세한 내용은 위 `현재 상태` 참고)
 - [x] 문의/신고하기 (`apps/support` 신규, `features/support/`) — 유저가 관리자에게 남기는 신고/문의/건의. 설정 화면에 진입점, 유형·제목·내용 작성 + 본인 문의 내역 조회(수정·삭제는 없음). 스태프는 `/staff/inquiries`에서 전체 조회·필터·검색·처리 상태(미처리/처리완료) 토글에 더해 답변 작성(문의당 1개, 저장 시 자동 처리완료 전환)까지 지원 — 유저는 본인 문의 내역에서 답변을 바로 확인. `apps/staff`가 모델을 안 갖는 기존 컨벤션을 지키기 위해 `Inquiry` 모델은 새 도메인 앱(`apps/support`)에 두고 스태프는 가져다 쓰기만 함 (자세한 내용은 위 `현재 상태` 참고)
+- [x] 유저 자유게시판 (`apps/board` 신규, `features/board/`) — 유저들끼리 카테고리별로 글/댓글을 남기는 공개 게시판(좋아요 없음). `AppNav`에 "게시판" 탭, `/board`(카테고리 필터+새 글 작성+목록)·`/board/:postId`(본문+댓글) 화면. Inquiry와 달리 전체 공개 조회 + 본인 글/댓글만 수정·삭제(새 `IsAuthorOrReadOnly` 권한 클래스). 스태프는 `/staff/board`에서 카테고리 관리(CASCADE 경고)·전체 글/댓글 조회·강제삭제 (자세한 내용은 위 `현재 상태` 참고)
 
 ---
 
 ## 📋 다음 작업
-최초 로드맵(인증 3종 + 온보딩 + 매칭 + 연결 + 설정)에 이어 인앱 메시징 + 실시간화(폴링) + 알림 뱃지, UI 크리틱 후속조치 17건, 스태프 관리자 패널(Phase 1·2 + `apps/staff` 통합), 회원가입 최소연령 검증, 카카오 소셜 로그인/가입(콘솔 등록 + 실계정 종단 검증)까지 완료. 다음 세션 시작 시 사용자와 함께 방향을 다시 정할 것 — 후보:
+최초 로드맵(인증 3종 + 온보딩 + 매칭 + 연결 + 설정)에 이어 인앱 메시징 + 실시간화(폴링) + 알림 뱃지, UI 크리틱 후속조치 17건, 스태프 관리자 패널(Phase 1·2 + `apps/staff` 통합), 회원가입 최소연령 검증, 카카오 소셜 로그인/가입(콘솔 등록 + 실계정 종단 검증), 문의/신고하기(관리자 답변 포함), 유저 자유게시판까지 완료. 다음 세션 시작 시 사용자와 함께 방향을 다시 정할 것 — 후보:
 - [ ] E2E 테스트 자동화 (지금까지는 매 기능마다 수동으로 브라우저 검증)
 - [ ] 배포 준비 (prod 빌드 점검, 환경변수 정리)
 
@@ -222,9 +230,11 @@ matching-api/
 │   │   │   └── management/commands/seed_interests.py
 │   │   ├── support/            # 유저→관리자 문의/신고/건의 (Inquiry 모델 1개, 플랫 구조)
 │   │   │   ├── models.py, serializers.py, views.py, urls.py, admin.py
-│   │   └── staff/              # 스태프 전용 관리자 REST API(모델 없음, users/matching/support 모델·소비자용 시리얼라이저 재사용)
-│   │       ├── views/           # user.py, connection.py, interest.py, matching_request.py, inquiry.py
-│   │       └── serializers/     # user.py, connection.py, inquiry.py
+│   │   ├── board/               # 유저 자유게시판 (BoardCategory/Post/Comment, 플랫 구조)
+│   │   │   ├── models.py, serializers.py, views.py, permissions.py, urls.py, admin.py
+│   │   └── staff/              # 스태프 전용 관리자 REST API(모델 없음, users/matching/support/board 모델·소비자용 시리얼라이저 재사용)
+│   │       ├── views/           # user.py, connection.py, interest.py, matching_request.py, inquiry.py, board.py
+│   │       └── serializers/     # user.py, connection.py, inquiry.py, board.py
 │   ├── config/
 │   │   ├── settings/          # base.py, dev.py, prod.py
 │   │   └── urls.py
@@ -246,7 +256,8 @@ matching-api/
 │       │   ├── connections/page.tsx, settings/page.tsx
 │       │   ├── messages/page.tsx, messages/thread/page.tsx
 │       │   ├── support/page.tsx  # 문의하기
-│       │   └── staff/            # users/page.tsx, connections/{page,detail/page}.tsx, interests/page.tsx, matching-requests/{page,detail/page}.tsx, inquiries/page.tsx
+│       │   ├── board/page.tsx, board/post/page.tsx  # 게시판 목록/상세
+│       │   └── staff/            # users/page.tsx, connections/{page,detail/page}.tsx, interests/page.tsx, matching-requests/{page,detail/page}.tsx, inquiries/page.tsx, board/page.tsx
 │       ├── features/           # 도메인별 기능 묶음 (Django apps에 해당) — 각 api/ · components/ · types.ts
 │       │   ├── auth/             # 로그인/가입(카카오 소셜 로그인 버튼 포함)/재설정, useCurrentUser, RequireAuth·RequireStaff
 │       │   ├── onboarding/       # 내 카드 만들기 3단계 마법사
@@ -255,7 +266,8 @@ matching-api/
 │       │   ├── settings/         # 프로필/비밀번호/계정
 │       │   ├── messaging/        # 대화 목록/1:1 스레드
 │       │   ├── support/          # 문의/신고/건의 작성 + 내 문의 내역
-│       │   └── staff/            # 스태프 관리자 화면 — StaffLayout·ConfirmButton(2클릭 확인) + 유저/연결·메시지/관심사/매칭현황/문의신고 5개 화면
+│       │   ├── board/            # 게시판 목록/글쓰기/상세/댓글
+│       │   └── staff/            # 스태프 관리자 화면 — StaffLayout·ConfirmButton(2클릭 확인) + 유저/연결·메시지/관심사/매칭현황/문의신고/게시판 6개 화면
 │       ├── components/        # 도메인 무관 공용 UI (아이콘, 워드마크, AppNav — 스태프에겐 "관리자" 탭 추가, 플레이스홀더)
 │       ├── lib/                # 외부 통신 계층 (apiClient.ts — fetch 래퍼 + CSRF + 에러 처리, kakaoAuth.ts — 카카오 인가 URL 조립, age.ts — 최소연령 순수 함수)
 │       └── styles/            # 전역 디자인 토큰 (tokens.css)

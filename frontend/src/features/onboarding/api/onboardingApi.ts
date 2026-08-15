@@ -5,6 +5,7 @@ import type {
   PersonalityFormValues,
   ProfileCompletionResult,
   ProfileFormValues,
+  UserInterest,
 } from '../types'
 
 // PaginatedResponse는 lib/apiClient.ts에 공용으로 있다 — 결과가
@@ -65,6 +66,34 @@ export async function addUserInterest(interestId: number, level = 3): Promise<vo
   await apiFetch<unknown>('/api/v1/matching/user-interests/', {
     method: 'POST',
     body: JSON.stringify({ interest: interestId, level }),
+  })
+}
+
+/**
+ * 내 관심사 목록 (백엔드: UserInterestViewSet.list — get_queryset이 이미
+ * 본인 것만 필터링). 설정 화면의 관심사 편집 섹션에서 현재 상태를
+ * 보여주는 데 쓴다.
+ */
+export async function listMyInterests(): Promise<UserInterest[]> {
+  const data = await apiFetch<PaginatedResponse<UserInterest>>(
+    '/api/v1/matching/user-interests/?page_size=100',
+  )
+  return data.results
+}
+
+export async function updateInterestLevel(
+  userInterestId: number,
+  level: number,
+): Promise<UserInterest> {
+  return apiFetch<UserInterest>(`/api/v1/matching/user-interests/${userInterestId}/`, {
+    method: 'PATCH',
+    body: JSON.stringify({ level }),
+  })
+}
+
+export async function removeInterest(userInterestId: number): Promise<void> {
+  await apiFetch<unknown>(`/api/v1/matching/user-interests/${userInterestId}/`, {
+    method: 'DELETE',
   })
 }
 

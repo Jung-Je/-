@@ -55,6 +55,15 @@ export type Interest = {
   name: string
 }
 
+// UserInterestSerializer(백엔드)와 1:1 대응 — 설정 화면의 관심사
+// 편집 섹션에서도 온보딩과 같은 타입을 재사용한다.
+export type UserInterest = {
+  id: number
+  interest: number
+  interest_detail: Interest
+  level: number
+}
+
 export type ProfileCompletionResult = {
   is_complete: boolean
   missing_fields: {

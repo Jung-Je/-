@@ -12,7 +12,7 @@
 - 🎯 세밀한 취향 기반 매칭 알고리즘
 - 💬 사용자 간 연결 요청/수락/거절/차단 및 인앱 메시징
 - 🛡️ 스태프 전용 관리자 패널 — 유저 모더레이션, 연결·메시지 관리, 관심사 큐레이션, 매칭 현황 조회/취소, 문의/신고 처리 (`apps/staff`, 프론트 `/staff/*`)
-- 📮 문의/신고하기 — 유저가 신고·문의·건의를 관리자에게 남기고 처리 상태를 확인 (`apps/support`, 프론트 `/support`)
+- 📮 문의/신고하기 — 유저가 신고·문의·건의를 관리자에게 남기고, 관리자 답변과 처리 상태를 확인 (`apps/support`, 프론트 `/support`)
 - 📚 자동 생성되는 API 문서 (Swagger UI / ReDoc)
 - 🎨 일관된 코드 스타일 (백엔드: black/isort/flake8, 프론트엔드: oxlint)
 
@@ -178,6 +178,7 @@ matching-api/
 - `GET/POST/DELETE /api/v1/staff/interest-categories/`, `/api/v1/staff/interests/` - 관심사 카테고리·관심사 관리
 - `GET /api/v1/staff/matching-requests/`, `POST .../cancel/`, `GET .../results/` - 전체 매칭 요청 조회·취소·결과 확인
 - `GET/PATCH /api/v1/staff/inquiries/` - 전체 문의 조회/처리 상태 변경(미처리·처리완료)
+- `POST /api/v1/staff/inquiries/{id}/reply/` - 문의 답변 작성/수정(저장 시 자동으로 처리완료 전환)
 
 ## 개발 가이드
 

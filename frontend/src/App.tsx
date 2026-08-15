@@ -9,6 +9,8 @@ import { MatchingPage } from './app/matching/page'
 import { ConnectionsPage } from './app/connections/page'
 import { SettingsPage } from './app/settings/page'
 import { SupportPage } from './app/support/page'
+import { BoardPage } from './app/board/page'
+import { PostDetailPage } from './app/board/post/page'
 import { MessagesPage } from './app/messages/page'
 import { MessageThreadPage } from './app/messages/thread/page'
 import { StaffUsersPage } from './app/staff/users/page'
@@ -18,6 +20,7 @@ import { StaffInterestsPage } from './app/staff/interests/page'
 import { StaffMatchingRequestsPage } from './app/staff/matching-requests/page'
 import { StaffMatchingRequestDetailPage } from './app/staff/matching-requests/detail/page'
 import { StaffInquiriesPage } from './app/staff/inquiries/page'
+import { StaffBoardPage } from './app/staff/board/page'
 import { NotFoundPage } from './app/not-found/page'
 
 function App() {
@@ -36,6 +39,8 @@ function App() {
       <Route path="/connections" element={<ConnectionsPage />} />
       <Route path="/settings" element={<SettingsPage />} />
       <Route path="/support" element={<SupportPage />} />
+      <Route path="/board" element={<BoardPage />} />
+      <Route path="/board/:postId" element={<PostDetailPage />} />
       <Route path="/messages" element={<MessagesPage />} />
       <Route path="/messages/:connectionId" element={<MessageThreadPage />} />
       <Route path="/staff/users" element={<StaffUsersPage />} />
@@ -48,6 +53,7 @@ function App() {
         element={<StaffMatchingRequestDetailPage />}
       />
       <Route path="/staff/inquiries" element={<StaffInquiriesPage />} />
+      <Route path="/staff/board" element={<StaffBoardPage />} />
       {/* 그 외 안 맞는 경로는 전부 여기로 — 예전엔 빈 화면으로 떨어졌음. */}
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

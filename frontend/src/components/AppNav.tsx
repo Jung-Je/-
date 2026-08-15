@@ -27,6 +27,7 @@ export function AppNav() {
     { to: '/matching', label: '매칭', badge: unviewed_matching_results },
     { to: '/connections', label: '연결', badge: pending_connection_requests },
     { to: '/messages', label: '메시지', badge: unread_messages },
+    { to: '/board', label: '게시판', badge: 0 },
     { to: '/settings', label: '설정', badge: 0 },
     ...(isStaff ? [{ to: '/staff/users', label: '관리자', badge: 0 }] : []),
   ]

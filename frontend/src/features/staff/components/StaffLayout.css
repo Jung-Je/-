@@ -302,6 +302,13 @@
   flex: 1;
 }
 
+/* 게시글 상세 확장 행 안, 댓글 목록 위 소제목 */
+.staff-board-comments-heading {
+  font-size: 14px;
+  margin-top: var(--space-4);
+  margin-bottom: var(--space-2);
+}
+
 /* 상세/디테일 패널 */
 .staff-detail-card {
   background: var(--color-surface);

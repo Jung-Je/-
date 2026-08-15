@@ -339,6 +339,55 @@
   padding: var(--space-5) 0;
 }
 
+/* 문의 답변 폼 (확장된 행 안, .staff-detail-card__row 아래) */
+.staff-reply-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.staff-reply-form label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-ink-muted);
+}
+
+.staff-reply-form textarea {
+  font: inherit;
+  font-size: 14px;
+  padding: 10px 12px;
+  border-radius: var(--radius-control);
+  border: 1.5px solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  resize: vertical;
+}
+
+.staff-reply-form textarea:focus-visible {
+  outline: none;
+  border-color: var(--color-focus-ring);
+  box-shadow: var(--shadow-focus);
+}
+
+.staff-reply-form textarea:disabled {
+  background: var(--color-bg);
+  color: var(--color-ink-disabled);
+  cursor: not-allowed;
+}
+
+.staff-reply-form__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.staff-reply-form__success {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-teal-text);
+}
+
 .staff-error {
   display: flex;
   align-items: flex-start;

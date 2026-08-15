@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
-import { AlertIcon } from '../../../components/icons'
+import { useEffect, useId, useState, type FormEvent } from 'react'
+import { AlertIcon, SpinnerIcon } from '../../../components/icons'
 import { RequireStaff } from '../../auth/components/RequireStaff'
 import { ApiError } from '../../../lib/apiClient'
 import type { PaginatedResponse } from '../../../lib/apiClient'
-import { listAdminInquiries, updateInquiryStatus } from '../api/staffApi'
+import { listAdminInquiries, replyToInquiry, updateInquiryStatus } from '../api/staffApi'
 import { StaffLayout } from './StaffLayout'
 import { ConfirmButton } from './ConfirmButton'
 import type { AdminInquiry, AdminInquiryCategory, AdminInquiryStatus } from '../types'
@@ -56,9 +56,7 @@ function Screen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, statusFilter, categoryFilter, page])
 
-  async function handleToggleStatus(inquiry: AdminInquiry) {
-    const nextStatus = inquiry.status === 'PENDING' ? 'RESOLVED' : 'PENDING'
-    const updated = await updateInquiryStatus(inquiry.id, nextStatus)
+  function applyUpdate(updated: AdminInquiry) {
     setData((current) =>
       current
         ? {
@@ -67,6 +65,11 @@ function Screen() {
           }
         : current,
     )
+  }
+
+  async function handleToggleStatus(inquiry: AdminInquiry) {
+    const nextStatus = inquiry.status === 'PENDING' ? 'RESOLVED' : 'PENDING'
+    applyUpdate(await updateInquiryStatus(inquiry.id, nextStatus))
   }
 
   return (
@@ -174,6 +177,7 @@ function Screen() {
                             <dt>내용</dt>
                             <dd>{row.content}</dd>
                           </dl>
+                          <InquiryReplyForm inquiry={row} onReplied={applyUpdate} />
                         </td>
                       </tr>
                     )}
@@ -197,5 +201,72 @@ function Screen() {
         </div>
       )}
     </StaffLayout>
+  )
+}
+
+type InquiryReplyFormProps = {
+  inquiry: AdminInquiry
+  onReplied: (updated: AdminInquiry) => void
+}
+
+/**
+ * 문의당 답변 1개(백엔드 AdminInquiryReplySerializer와 짝) — 이미 답변이
+ * 있으면 프리필해서 고쳐 쓸 수 있게 한다. 저장하면 서버가 알아서
+ * 처리완료로 전환하므로, 여기선 상태를 따로 안 건드리고 onReplied로
+ * 받은 최신 row를 그대로 부모 목록에 반영만 한다.
+ */
+function InquiryReplyForm({ inquiry, onReplied }: InquiryReplyFormProps) {
+  const replyId = useId()
+  const [reply, setReply] = useState(inquiry.admin_reply)
+  const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle')
+  const [errorMessage, setErrorMessage] = useState('')
+
+  const isSubmitting = status === 'submitting'
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setStatus('submitting')
+    setErrorMessage('')
+
+    try {
+      const updated = await replyToInquiry(inquiry.id, reply)
+      onReplied(updated)
+      setStatus('success')
+    } catch (error) {
+      const detail = error instanceof ApiError ? error.detail : '답변을 저장하지 못했습니다.'
+      setErrorMessage(detail)
+      setStatus('error')
+    }
+  }
+
+  return (
+    <form className="staff-reply-form" onSubmit={handleSubmit}>
+      <label htmlFor={replyId}>관리자 답변</label>
+      <textarea
+        id={replyId}
+        rows={3}
+        maxLength={2000}
+        placeholder="문의한 유저에게 남길 답변을 적어주세요"
+        value={reply}
+        onChange={(event) => {
+          setReply(event.target.value)
+          setStatus('idle')
+        }}
+        disabled={isSubmitting}
+      />
+      {status === 'error' && (
+        <p className="staff-error" role="alert">
+          <AlertIcon />
+          <span>{errorMessage}</span>
+        </p>
+      )}
+      <div className="staff-reply-form__actions">
+        <button className="staff-confirm-btn" type="submit" disabled={isSubmitting}>
+          {isSubmitting && <SpinnerIcon size={14} />}
+          {isSubmitting ? '저장 중…' : '답변 저장'}
+        </button>
+        {status === 'success' && <span className="staff-reply-form__success">저장됐어요</span>}
+      </div>
+    </form>
   )
 }

@@ -199,3 +199,12 @@ export async function updateInquiryStatus(
     body: JSON.stringify({ status: inquiryStatus }),
   })
 }
+
+// 빈 문자열을 보내면 답변을 지운다 — 서버가 그 경우 resolved_at을 비우기만
+// 하고 status는 그대로 둔다(AdminInquiryReplySerializer 참고).
+export async function replyToInquiry(inquiryId: number, adminReply: string): Promise<AdminInquiry> {
+  return apiFetch<AdminInquiry>(`/api/v1/staff/inquiries/${inquiryId}/reply/`, {
+    method: 'POST',
+    body: JSON.stringify({ admin_reply: adminReply }),
+  })
+}

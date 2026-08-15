@@ -17,23 +17,37 @@ export function MyInquiries({ inquiries }: Props) {
       ) : (
         <ul className="support-inquiry-list">
           {inquiries.map((inquiry) => (
-            <li key={inquiry.id} className="support-inquiry-list__row">
-              <div className="support-inquiry-list__main">
-                <span className="support-badge">{inquiry.category_display}</span>
-                <span className="support-inquiry-list__title">{inquiry.title}</span>
+            <li key={inquiry.id} className="support-inquiry-list__item">
+              <div className="support-inquiry-list__row">
+                <div className="support-inquiry-list__main">
+                  <span className="support-badge">{inquiry.category_display}</span>
+                  <span className="support-inquiry-list__title">{inquiry.title}</span>
+                </div>
+                <div className="support-inquiry-list__meta">
+                  <span
+                    className={`support-badge support-badge--${
+                      inquiry.status === 'RESOLVED' ? 'resolved' : 'pending'
+                    }`}
+                  >
+                    {inquiry.status_display}
+                  </span>
+                  <span className="support-inquiry-list__date">
+                    {new Date(inquiry.created_at).toLocaleDateString('ko-KR')}
+                  </span>
+                </div>
               </div>
-              <div className="support-inquiry-list__meta">
-                <span
-                  className={`support-badge support-badge--${
-                    inquiry.status === 'RESOLVED' ? 'resolved' : 'pending'
-                  }`}
-                >
-                  {inquiry.status_display}
-                </span>
-                <span className="support-inquiry-list__date">
-                  {new Date(inquiry.created_at).toLocaleDateString('ko-KR')}
-                </span>
-              </div>
+
+              {inquiry.admin_reply && (
+                <div className="support-inquiry-list__reply">
+                  <span className="support-inquiry-list__reply-label">관리자 답변</span>
+                  <p>{inquiry.admin_reply}</p>
+                  {inquiry.replied_at && (
+                    <span className="support-inquiry-list__date">
+                      {new Date(inquiry.replied_at).toLocaleDateString('ko-KR')}
+                    </span>
+                  )}
+                </div>
+              )}
             </li>
           ))}
         </ul>

@@ -122,4 +122,6 @@ export type AdminInquiry = {
   status_display: string
   created_at: string
   resolved_at: string | null
+  admin_reply: string
+  replied_at: string | null
 }

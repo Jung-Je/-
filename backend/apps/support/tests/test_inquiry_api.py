@@ -89,3 +89,19 @@ class TestInquiryList:
 
         assert client.patch(f"{INQUIRIES_URL}{inquiry.id}/").status_code == 405
         assert client.delete(f"{INQUIRIES_URL}{inquiry.id}/").status_code == 405
+
+    def test_admin_reply_is_visible_once_answered(self, auth_client):
+        """스태프가 남긴 답변을 유저가 본인 문의 조회로 볼 수 있어야 함."""
+        client, user = auth_client
+        inquiry = Inquiry.objects.create(
+            user=user,
+            **_payload(),
+            admin_reply="확인했습니다, 곧 조치할게요.",
+            status=Inquiry.StatusChoices.RESOLVED,
+        )
+
+        response = client.get(f"{INQUIRIES_URL}{inquiry.id}/")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["admin_reply"] == "확인했습니다, 곧 조치할게요."
+        assert response.data["status"] == Inquiry.StatusChoices.RESOLVED

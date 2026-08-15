@@ -35,6 +35,13 @@ class Inquiry(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     resolved_at = models.DateTimeField(null=True, blank=True)
 
+    # 문의당 답변 1개(사용자 확정) — 여러 번 고쳐 쓸 수 있고, 최신 답변만
+    # 남는다(대화 이력은 안 쌓음). 답변을 남기면(빈 문자열이 아니면)
+    # 자동으로 처리완료 상태로 전환된다 — apps.staff.serializers.inquiry
+    # AdminInquiryReplySerializer 참고.
+    admin_reply = models.TextField(max_length=2000, blank=True, default="")
+    replied_at = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         db_table = "inquiries"
         verbose_name = "문의"

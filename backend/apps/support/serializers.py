@@ -25,6 +25,8 @@ class InquirySerializer(serializers.ModelSerializer):
             "status_display",
             "created_at",
             "resolved_at",
+            "admin_reply",
+            "replied_at",
         ]
         read_only_fields = [
             "id",
@@ -33,4 +35,6 @@ class InquirySerializer(serializers.ModelSerializer):
             "status_display",
             "created_at",
             "resolved_at",
+            "admin_reply",
+            "replied_at",
         ]

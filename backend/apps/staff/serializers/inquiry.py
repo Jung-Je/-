@@ -29,6 +29,8 @@ class AdminInquirySerializer(serializers.ModelSerializer):
             "status_display",
             "created_at",
             "resolved_at",
+            "admin_reply",
+            "replied_at",
         ]
         read_only_fields = fields
 
@@ -48,4 +50,25 @@ class AdminInquiryStatusSerializer(serializers.ModelSerializer):
             kwargs.setdefault("resolved_at", timezone.now())
         else:
             kwargs.setdefault("resolved_at", None)
+        return super().save(**kwargs)
+
+
+class AdminInquiryReplySerializer(serializers.ModelSerializer):
+    """답변 작성/수정 전용(reply 커스텀 액션). 문의당 답변 1개(사용자
+    확정) — 여러 번 고쳐 쓸 수 있고 이력은 안 남긴다. 빈 문자열이 아닌
+    답변을 저장하면 자동으로 처리완료 상태로 전환된다(반대로 답변을
+    지워도 상태는 그대로 둔다 — "처리완료인데 답변만 고치기"가 흔한
+    시나리오라 상태를 억지로 되돌리면 오히려 불편함).
+    """
+
+    class Meta:
+        model = Inquiry
+        fields = ["admin_reply"]
+
+    def save(self, **kwargs):
+        admin_reply = self.validated_data.get("admin_reply", "")
+        kwargs.setdefault("replied_at", timezone.now() if admin_reply else None)
+        if admin_reply:
+            kwargs.setdefault("status", Inquiry.StatusChoices.RESOLVED)
+            kwargs.setdefault("resolved_at", timezone.now())
         return super().save(**kwargs)

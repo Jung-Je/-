@@ -104,3 +104,22 @@ export type AdminMatchingRequest = {
   updated_at: string
   completed_at: string | null
 }
+
+// AdminInquirySerializer(백엔드)와 1:1 대응.
+export type AdminInquiryCategory = 'REPORT' | 'QUESTION' | 'SUGGESTION'
+export type AdminInquiryStatus = 'PENDING' | 'RESOLVED'
+
+export type AdminInquiry = {
+  id: number
+  user: number
+  username: string
+  email: string
+  category: AdminInquiryCategory
+  category_display: string
+  title: string
+  content: string
+  status: AdminInquiryStatus
+  status_display: string
+  created_at: string
+  resolved_at: string | null
+}

@@ -3,6 +3,9 @@ import type { MatchingResult } from '../../matching/types'
 import type {
   AdminConnection,
   AdminConnectionStatus,
+  AdminInquiry,
+  AdminInquiryCategory,
+  AdminInquiryStatus,
   AdminInterest,
   AdminInterestCategory,
   AdminMatchingRequest,
@@ -170,4 +173,29 @@ export async function listAdminMatchingRequestResults(
   return apiFetch<MatchingResult[]>(
     `/api/v1/staff/matching-requests/${requestId}/results/`,
   )
+}
+
+export type AdminInquiryListParams = {
+  search?: string
+  status?: AdminInquiryStatus
+  category?: AdminInquiryCategory
+  page?: number
+}
+
+export async function listAdminInquiries(
+  params: AdminInquiryListParams = {},
+): Promise<PaginatedResponse<AdminInquiry>> {
+  return apiFetch<PaginatedResponse<AdminInquiry>>(
+    `/api/v1/staff/inquiries/${toQueryString(params)}`,
+  )
+}
+
+export async function updateInquiryStatus(
+  inquiryId: number,
+  inquiryStatus: AdminInquiryStatus,
+): Promise<AdminInquiry> {
+  return apiFetch<AdminInquiry>(`/api/v1/staff/inquiries/${inquiryId}/`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status: inquiryStatus }),
+  })
 }

@@ -11,7 +11,8 @@
 - 🪪 회원가입 성인인증 — 자기신고 생년월일 기반 최소연령(만 19세) 검증. 카카오 로그인 `age_range` 연동을 시도했으나 사업자등록번호를 요구해 막힘(연동 코드는 남겨둠, [`docs/progress.md`](docs/progress.md) 참고)
 - 🎯 세밀한 취향 기반 매칭 알고리즘
 - 💬 사용자 간 연결 요청/수락/거절/차단 및 인앱 메시징
-- 🛡️ 스태프 전용 관리자 패널 — 유저 모더레이션, 연결·메시지 관리, 관심사 큐레이션, 매칭 현황 조회/취소 (`apps/staff`, 프론트 `/staff/*`)
+- 🛡️ 스태프 전용 관리자 패널 — 유저 모더레이션, 연결·메시지 관리, 관심사 큐레이션, 매칭 현황 조회/취소, 문의/신고 처리 (`apps/staff`, 프론트 `/staff/*`)
+- 📮 문의/신고하기 — 유저가 신고·문의·건의를 관리자에게 남기고 처리 상태를 확인 (`apps/support`, 프론트 `/support`)
 - 📚 자동 생성되는 API 문서 (Swagger UI / ReDoc)
 - 🎨 일관된 코드 스타일 (백엔드: black/isort/flake8, 프론트엔드: oxlint)
 
@@ -128,7 +129,8 @@ matching-api/
 │   ├── apps/
 │   │   ├── users/       # 사용자 관리 (인증, 프로필, 성격)
 │   │   ├── matching/    # 매칭 시스템 (관심사, 매칭 요청/결과, 연결, 메시지)
-│   │   └── staff/       # 스태프 전용 관리자 REST API (users/matching 모델을 다루지만 앱은 분리)
+│   │   ├── support/     # 유저→관리자 문의/신고/건의
+│   │   └── staff/       # 스태프 전용 관리자 REST API (users/matching/support 모델을 다루지만 앱은 분리)
 │   └── config/          # Django 설정
 ├── docker/              # Dockerfile(백엔드), Dockerfile.frontend, entrypoint.sh
 ├── docker-compose.yml       # 개발 환경 (db/redis/web/frontend)
@@ -167,11 +169,15 @@ matching-api/
 - `GET/POST /api/v1/matching/connections/{id}/messages/` - 연결 내 메시지 조회/전송
 - `GET /api/v1/matching/notifications/summary/` - 안 본 매칭 결과·응답 대기 연결 요청 수 요약
 
+### 문의/신고 (Support)
+- `GET/POST /api/v1/support/inquiries/` - 내 문의 목록 조회/작성 (신고·문의·건의, 본인 것만)
+
 ### 관리자 (Staff, 전부 `is_staff` 권한 필요)
 - `GET/PATCH /api/v1/staff/users/` - 사용자 목록/계정 상태 변경(정지·매칭풀 포함 여부)
 - `GET /api/v1/staff/connections/`, `PATCH .../status/`, `GET/DELETE .../messages/` - 연결·메시지 모더레이션
 - `GET/POST/DELETE /api/v1/staff/interest-categories/`, `/api/v1/staff/interests/` - 관심사 카테고리·관심사 관리
 - `GET /api/v1/staff/matching-requests/`, `POST .../cancel/`, `GET .../results/` - 전체 매칭 요청 조회·취소·결과 확인
+- `GET/PATCH /api/v1/staff/inquiries/` - 전체 문의 조회/처리 상태 변경(미처리·처리완료)
 
 ## 개발 가이드
 

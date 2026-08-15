@@ -24,6 +24,8 @@ urlpatterns = [
     # API v1
     path("api/v1/users/", include("apps.users.urls")),
     path("api/v1/matching/", include("apps.matching.urls")),
+    # 유저가 관리자에게 남기는 문의/신고/건의
+    path("api/v1/support/", include("apps.support.urls")),
     # 스태프 전용 관리자 REST API — 도메인 앱에 흩어지지 않도록 한 곳에 모음
     path("api/v1/staff/", include("apps.staff.urls")),
     # 세션 기반 JSON 로그인/로그아웃 (계약: frontend/src/api/auth.ts)

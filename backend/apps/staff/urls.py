@@ -3,6 +3,7 @@ from rest_framework.routers import DefaultRouter
 
 from .views import (
     AdminConnectionViewSet,
+    AdminInquiryViewSet,
     AdminInterestCategoryViewSet,
     AdminInterestViewSet,
     AdminMatchingRequestViewSet,
@@ -24,6 +25,7 @@ router.register(r"interests", AdminInterestViewSet, basename="admin-interest")
 router.register(
     r"matching-requests", AdminMatchingRequestViewSet, basename="admin-matching-request"
 )
+router.register(r"inquiries", AdminInquiryViewSet, basename="admin-inquiry")
 
 urlpatterns = [
     path("", include(router.urls)),

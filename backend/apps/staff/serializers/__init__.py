@@ -5,12 +5,15 @@ from .connection import (
     AdminConnectionStatusUpdateSerializer,
     AdminMessageSerializer,
 )
+from .inquiry import AdminInquirySerializer, AdminInquiryStatusSerializer
 from .user import AdminUserModerationSerializer, AdminUserSerializer
 
 __all__ = [
     "AdminConnectionSerializer",
     "AdminConnectionStatusUpdateSerializer",
     "AdminMessageSerializer",
+    "AdminInquirySerializer",
+    "AdminInquiryStatusSerializer",
     "AdminUserModerationSerializer",
     "AdminUserSerializer",
 ]

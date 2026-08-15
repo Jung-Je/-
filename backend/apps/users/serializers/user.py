@@ -60,6 +60,7 @@ class UserSerializer(serializers.ModelSerializer):
             "bio",
             "profile_image",
             "is_profile_complete",
+            "has_completed_onboarding",
             "is_active_for_matching",
             "is_adult_verified",
             "is_staff",
@@ -70,6 +71,8 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = [
             "id",
             "age",
+            "is_profile_complete",
+            "has_completed_onboarding",
             "is_adult_verified",
             "is_staff",
             "created_at",

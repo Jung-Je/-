@@ -125,10 +125,21 @@ class UserViewSet(viewsets.ModelViewSet):
 
         is_complete = all(required_fields) and has_personality and has_interests
 
-        # 상태 업데이트
+        # 상태 업데이트. is_profile_complete는 지금 이 순간의 완성 여부라
+        # 양방향으로 바뀌지만, has_completed_onboarding은 "온보딩을 한 번
+        # 이라도 끝냈는지"를 나타내는 한 방향 래치 — 나중에 관심사를 다
+        # 지우는 등으로 is_profile_complete가 다시 False가 돼도 마법사로
+        # 돌려보내지 않기 위해 한 번 True가 되면 그대로 둔다
+        # (OnboardingWizard.tsx가 이 값으로 마법사 진입 여부를 판단).
+        update_fields = []
         if user.is_profile_complete != is_complete:
             user.is_profile_complete = is_complete
-            user.save(update_fields=["is_profile_complete"])
+            update_fields.append("is_profile_complete")
+        if is_complete and not user.has_completed_onboarding:
+            user.has_completed_onboarding = True
+            update_fields.append("has_completed_onboarding")
+        if update_fields:
+            user.save(update_fields=update_fields)
 
         return Response(
             {

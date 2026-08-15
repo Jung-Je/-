@@ -102,6 +102,47 @@ class TestProfileCompletion:
         user.refresh_from_db()
         assert user.is_profile_complete is True
 
+    def test_first_completion_sets_has_completed_onboarding(self, auth_client):
+        client, user = auth_client
+        assert user.has_completed_onboarding is False
+        user.gender = user.GenderChoices.OTHER
+        user.date_of_birth = "1995-01-01"
+        user.location = "Seoul"
+        user.bio = "안녕하세요"
+        user.save()
+        UserPersonalityFactory(user=user)
+        UserInterestFactory(user=user, interest=InterestFactory())
+
+        client.post(CHECK_PROFILE_URL)
+
+        user.refresh_from_db()
+        assert user.has_completed_onboarding is True
+
+    def test_has_completed_onboarding_survives_becoming_incomplete_again(self, auth_client):
+        """온보딩을 한 번 끝낸 뒤 나중에(예: 관심사를 전부 지워서)
+        is_profile_complete가 다시 False가 되더라도,
+        has_completed_onboarding은 되돌아가지 않아야 한다 —
+        OnboardingWizard가 이 값으로 마법사 재노출 여부를 판단한다."""
+        client, user = auth_client
+        user.gender = user.GenderChoices.OTHER
+        user.date_of_birth = "1995-01-01"
+        user.location = "Seoul"
+        user.bio = "안녕하세요"
+        user.save()
+        UserPersonalityFactory(user=user)
+        user_interest = UserInterestFactory(user=user, interest=InterestFactory())
+        client.post(CHECK_PROFILE_URL)
+        user.refresh_from_db()
+        assert user.has_completed_onboarding is True
+
+        user_interest.delete()
+        response = client.post(CHECK_PROFILE_URL)
+
+        assert response.data["is_complete"] is False
+        user.refresh_from_db()
+        assert user.is_profile_complete is False
+        assert user.has_completed_onboarding is True
+
 
 @pytest.mark.django_db
 class TestDateOfBirthValidation:

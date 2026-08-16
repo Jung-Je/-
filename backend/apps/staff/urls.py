@@ -2,11 +2,14 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from .views import (
+    AdminBoardCategoryViewSet,
+    AdminCommentViewSet,
     AdminConnectionViewSet,
     AdminInquiryViewSet,
     AdminInterestCategoryViewSet,
     AdminInterestViewSet,
     AdminMatchingRequestViewSet,
+    AdminPostViewSet,
     AdminUserViewSet,
 )
 
@@ -26,6 +29,9 @@ router.register(
     r"matching-requests", AdminMatchingRequestViewSet, basename="admin-matching-request"
 )
 router.register(r"inquiries", AdminInquiryViewSet, basename="admin-inquiry")
+router.register(r"board-categories", AdminBoardCategoryViewSet, basename="admin-board-category")
+router.register(r"board-posts", AdminPostViewSet, basename="admin-board-post")
+router.register(r"board-comments", AdminCommentViewSet, basename="admin-board-comment")
 
 urlpatterns = [
     path("", include(router.urls)),

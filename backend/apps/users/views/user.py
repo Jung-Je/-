@@ -125,10 +125,21 @@ class UserViewSet(viewsets.ModelViewSet):
 
         is_complete = all(required_fields) and has_personality and has_interests
 
-        # 상태 업데이트
+        # 상태 업데이트. is_profile_complete는 지금 이 순간의 완성 여부라
+        # 양방향으로 바뀌지만, has_completed_onboarding은 "온보딩을 한 번
+        # 이라도 끝냈는지"를 나타내는 한 방향 래치 — 나중에 관심사를 다
+        # 지우는 등으로 is_profile_complete가 다시 False가 돼도 마법사로
+        # 돌려보내지 않기 위해 한 번 True가 되면 그대로 둔다
+        # (OnboardingWizard.tsx가 이 값으로 마법사 진입 여부를 판단).
+        update_fields = []
         if user.is_profile_complete != is_complete:
             user.is_profile_complete = is_complete
-            user.save(update_fields=["is_profile_complete"])
+            update_fields.append("is_profile_complete")
+        if is_complete and not user.has_completed_onboarding:
+            user.has_completed_onboarding = True
+            update_fields.append("has_completed_onboarding")
+        if update_fields:
+            user.save(update_fields=update_fields)
 
         return Response(
             {
@@ -214,6 +225,21 @@ class UserPersonalityViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """현재 사용자의 성격 정보만 조회"""
         return UserPersonality.objects.filter(user=self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        """UserPersonality는 유저당 최대 1개(OneToOne) — 온보딩
+        PersonalityStep은 항상 POST만 호출하고 이미 있는지 따로
+        확인하지 않는다(건너뛰었다가 다시 방문하거나, 뒤로가기 후 다시
+        제출해도 자연스럽게 동작해야 하므로). 이미 레코드가 있으면 새로
+        만들려다 유니크 제약 위반(500)으로 죽는 대신, 있는 레코드를
+        그대로 갱신한다 — 이 엔드포인트를 사실상 upsert로 만든다."""
+        existing = self.get_queryset().first()
+        if existing is not None:
+            serializer = self.get_serializer(existing, data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data)
+        return super().create(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         """사용자 성격 정보 생성 시 현재 사용자 자동 설정"""

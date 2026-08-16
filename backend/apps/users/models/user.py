@@ -35,6 +35,12 @@ class User(AbstractUser):
 
     # 계정 상태
     is_profile_complete = models.BooleanField(default=False)
+    # is_profile_complete와 달리 한 방향으로만 바뀐다(한 번 True면 계속
+    # True) — 온보딩을 이미 끝낸 유저가 나중에 무슨 이유로든(관심사를
+    # 다 지우는 등) is_profile_complete가 다시 False가 돼도, 마법사를
+    # 처음부터 다시 태우지 않고 바로 앱으로 들여보내기 위한 판단 기준.
+    # apps.users.views.user.UserViewSet.check_profile_completion 참고.
+    has_completed_onboarding = models.BooleanField(default=False)
     is_active_for_matching = models.BooleanField(default=True, db_index=True)
 
     # 성인인증 (카카오 로그인 age_range 연동) — 회원가입 시 관문으로만 쓰고,

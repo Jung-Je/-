@@ -125,3 +125,41 @@ export type AdminInquiry = {
   admin_reply: string
   replied_at: string | null
 }
+
+// BoardCategorySerializer(백엔드, 소비자용을 관리자 뷰셋도 그대로
+// 재사용)와 1:1 대응.
+export type AdminBoardCategory = {
+  id: number
+  name: string
+  description: string
+  posts_count: number
+  created_at: string
+  updated_at: string
+}
+
+// AdminPostSerializer(백엔드)와 1:1 대응.
+export type AdminPost = {
+  id: number
+  category: number
+  category_name: string
+  author: number
+  username: string
+  email: string
+  title: string
+  content: string
+  comment_count: number
+  created_at: string
+  updated_at: string
+}
+
+// AdminCommentSerializer(백엔드)와 1:1 대응.
+export type AdminComment = {
+  id: number
+  post: number
+  author: number
+  username: string
+  email: string
+  content: string
+  created_at: string
+  updated_at: string
+}

@@ -22,7 +22,6 @@ export function ProfileSettingsForm({ user }: Props) {
   const [firstName, setFirstName] = useState(user.first_name)
   const [lastName, setLastName] = useState(user.last_name)
   const [gender, setGender] = useState<Gender | ''>(user.gender ?? '')
-  const [dateOfBirth, setDateOfBirth] = useState(user.date_of_birth ?? '')
   const [location, setLocation] = useState(user.location)
   const [bio, setBio] = useState(user.bio)
   const [isActiveForMatching, setIsActiveForMatching] = useState(user.is_active_for_matching)
@@ -41,7 +40,6 @@ export function ProfileSettingsForm({ user }: Props) {
         firstName,
         lastName,
         gender,
-        dateOfBirth,
         location,
         bio,
         isActiveForMatching,
@@ -114,20 +112,19 @@ export function ProfileSettingsForm({ user }: Props) {
             </select>
           </div>
 
-          <div className="settings-field">
-            <label htmlFor={dateOfBirthId}>생년월일</label>
-            <input
-              id={dateOfBirthId}
-              type="date"
-              value={dateOfBirth}
-              onChange={(event) => {
-                setDateOfBirth(event.target.value)
-                setStatus('idle')
-              }}
-              disabled={isSubmitting}
-              max={new Date().toISOString().slice(0, 10)}
-            />
-          </div>
+          {user.date_of_birth && (
+            <div className="settings-field">
+              <label htmlFor={dateOfBirthId}>생년월일</label>
+              {/* 가입 시(회원가입/카카오 가입 완료 폼) 검증받은 값을
+                  보여주기만 한다 — 여기서 다시 바꿀 수 있으면 가입 때
+                  검증과 다른 값으로 덮어써서 최소연령 검증을 무의미하게
+                  만들 수 있다(백엔드도 date_of_birth를 read_only로
+                  잠가뒀지만, 애초에 프론트에서 수정 UI를 안 주는 게
+                  명확함). */}
+              <input id={dateOfBirthId} type="date" value={user.date_of_birth} disabled readOnly />
+              <span className="settings-field__hint">가입할 때 입력한 값이라 수정할 수 없어요.</span>
+            </div>
+          )}
         </div>
 
         <div className="settings-field">

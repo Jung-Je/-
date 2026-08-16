@@ -1,6 +1,8 @@
 import { apiFetch, type PaginatedResponse } from '../../../lib/apiClient'
 import type { MatchingResult } from '../../matching/types'
 import type {
+  AdminBoardCategory,
+  AdminComment,
   AdminConnection,
   AdminConnectionStatus,
   AdminInquiry,
@@ -11,6 +13,7 @@ import type {
   AdminMatchingRequest,
   AdminMatchingRequestStatus,
   AdminMessage,
+  AdminPost,
   AdminUser,
   AdminUserModerationPayload,
 } from '../types'
@@ -207,4 +210,54 @@ export async function replyToInquiry(inquiryId: number, adminReply: string): Pro
     method: 'POST',
     body: JSON.stringify({ admin_reply: adminReply }),
   })
+}
+
+export async function listAdminBoardCategories(): Promise<AdminBoardCategory[]> {
+  const response = await apiFetch<PaginatedResponse<AdminBoardCategory>>(
+    '/api/v1/staff/board-categories/?page_size=100',
+  )
+  return response.results
+}
+
+export async function createAdminBoardCategory(payload: {
+  name: string
+  description?: string
+}): Promise<AdminBoardCategory> {
+  return apiFetch<AdminBoardCategory>('/api/v1/staff/board-categories/', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function deleteAdminBoardCategory(categoryId: number): Promise<void> {
+  await apiFetch<unknown>(`/api/v1/staff/board-categories/${categoryId}/`, {
+    method: 'DELETE',
+  })
+}
+
+export type AdminPostListParams = {
+  search?: string
+  category?: number
+  page?: number
+}
+
+export async function listAdminPosts(
+  params: AdminPostListParams = {},
+): Promise<PaginatedResponse<AdminPost>> {
+  return apiFetch<PaginatedResponse<AdminPost>>(`/api/v1/staff/board-posts/${toQueryString(params)}`)
+}
+
+export async function deleteAdminPost(postId: number): Promise<void> {
+  await apiFetch<unknown>(`/api/v1/staff/board-posts/${postId}/`, { method: 'DELETE' })
+}
+
+export async function listAdminComments(postId: number): Promise<AdminComment[]> {
+  const response = await apiFetch<PaginatedResponse<AdminComment>>(
+    `/api/v1/staff/board-comments/${toQueryString({ post: postId, page_size: 200 })}`,
+  )
+  return response.results
+}
+
+export async function deleteAdminComment(commentId: number): Promise<void> {
+  await apiFetch<unknown>(`/api/v1/staff/board-comments/${commentId}/`, { method: 'DELETE' })
 }

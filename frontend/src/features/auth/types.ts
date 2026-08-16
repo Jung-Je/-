@@ -11,6 +11,9 @@ export type AuthUser = {
   location: string
   bio: string
   is_profile_complete: boolean
+  // is_profile_complete와 달리 한 번 true가 되면 계속 true(한 방향
+  // 래치) — OnboardingWizard가 이 값으로 마법사 재노출 여부를 판단한다.
+  has_completed_onboarding: boolean
   is_active_for_matching: boolean
   is_staff: boolean
 }

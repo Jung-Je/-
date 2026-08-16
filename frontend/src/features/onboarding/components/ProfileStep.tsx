@@ -27,6 +27,16 @@ export function ProfileStep({ userId, onNext }: Props) {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+
+    // <form noValidate>라 required 속성만으로는 실제로 막히지 않는다
+    // (커스텀 에러 UI를 쓰려고 브라우저 기본 검증 팝업은 꺼둔 상태) —
+    // 성별·생년월일은 매칭에 반드시 필요한 값이라 직접 막는다.
+    if (!gender || !dateOfBirth) {
+      setErrorMessage('성별과 생년월일은 필수로 선택해야 해요.')
+      setStatus('error')
+      return
+    }
+
     setStatus('submitting')
     setErrorMessage('')
 

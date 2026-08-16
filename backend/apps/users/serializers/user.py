@@ -175,28 +175,22 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             "profile_image",
             "is_active_for_matching",
         ]
+        # date_of_birth는 가입 시(UserCreateSerializer/KakaoSignupCompletionSerializer)
+        # 딱 한 번만 받고 최소연령을 검증한다. 예전엔 여기서도 수정을
+        # 허용하고 미래 날짜·최소연령만 재검증했는데, 그러면 가입 때
+        # 검증한 값과 다른(그러나 여전히 성인인) 값으로 조용히 덮어써서
+        # "가입 시 자기신고 검증"이라는 전제 자체가 무의미해질 수 있었다
+        # (사용자 리포트로 발견 — 온보딩 프로필 단계가 이 필드를 다시
+        # 입력받고 있었음). 그래서 아예 읽기 전용으로 잠근다 — PATCH 바디에
+        # 뭘 보내든 조용히 무시되고 원래 값이 유지된다(400을 던지진 않음,
+        # 다른 필드와 같이 보내는 정상 요청까지 막을 이유는 없어서).
+        read_only_fields = ["date_of_birth"]
 
     def validate_profile_image(self, value):
         """업로드 자체를 막을 파일 크기 상한 확인 (실제 리사이즈/재인코딩은 User.save()에서 수행)"""
         if value and value.size > MAX_UPLOAD_SIZE:
             raise serializers.ValidationError(
                 f"이미지 파일은 {MAX_UPLOAD_SIZE // (1024 * 1024)}MB를 초과할 수 없습니다."
-            )
-        return value
-
-    def validate_date_of_birth(self, value):
-        """미래 날짜 방지 — 프론트 온보딩 폼에 max 속성이 없어서 그대로
-        보내면 User.age 프로퍼티가 음수를 반환하고("-1세" 등), 화면에
-        가드 없이 그대로 노출된 사례가 있었음. 서버에서 원천 차단.
-
-        최소 연령(만 19세) 미만으로도 못 바꾸게 막는다 — 안 그러면
-        회원가입 때의 최소연령 검증을 가입 후 프로필 수정으로 우회할
-        수 있다."""
-        if value and value > date.today():
-            raise serializers.ValidationError("생년월일은 미래 날짜일 수 없습니다.")
-        if value and not is_adult_birthdate(value):
-            raise serializers.ValidationError(
-                f"만 {MIN_ADULT_AGE}세 미만으로는 변경할 수 없습니다."
             )
         return value
 

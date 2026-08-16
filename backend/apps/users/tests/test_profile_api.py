@@ -145,35 +145,41 @@ class TestProfileCompletion:
 
 
 @pytest.mark.django_db
-class TestDateOfBirthValidation:
-    """생년월일이 미래면 User.age가 음수를 반환해("-1세" 등) 화면에 그대로
-    노출된 사례가 있었음 — 프론트 온보딩 폼에 max 속성이 없어서 서버에서
-    막는다.
-    """
+class TestDateOfBirthLocked:
+    """생년월일은 가입 시(UserCreateSerializer/KakaoSignupCompletionSerializer)
+    딱 한 번만 받고 검증한다 — 온보딩 프로필 단계나 설정 화면에서 다시
+    입력받으면, 가입 때 검증한 값과 다른 값으로 조용히 덮어써서 최소연령
+    검증 자체를 무력화할 수 있었다(사용자 리포트로 발견). UserUpdateSerializer
+    에서 date_of_birth를 read_only로 만들어 PATCH 바디에 뭘 보내든 조용히
+    무시되고 기존 값이 그대로 유지되는지 확인한다 — 굳이 400으로 막지 않는
+    이유는, 프론트가 더는 이 필드를 보내지 않더라도(화면엔 읽기 전용으로만
+    표시) 혹시 남아있는 다른 필드 값과 함께 보내는 정상 요청까지 에러로
+    만들 필요는 없기 때문."""
 
-    def test_rejects_future_date_of_birth(self, auth_client):
+    def test_patch_silently_ignores_date_of_birth_changes(self, auth_client):
         client, user = auth_client
+        user.date_of_birth = "2000-06-15"
+        user.save(update_fields=["date_of_birth"])
         tomorrow = (date.today() + timedelta(days=1)).isoformat()
 
         response = client.patch(f"/api/v1/users/users/{user.id}/", {"date_of_birth": tomorrow})
 
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "date_of_birth" in response.data
+        assert response.status_code == status.HTTP_200_OK
+        user.refresh_from_db()
+        assert user.date_of_birth.isoformat() == "2000-06-15"
 
-    def test_rejects_date_of_birth_under_minimum_age(self, auth_client):
-        """회원가입 때의 최소연령(만 19세) 검증을 가입 후 프로필 수정으로
-        우회 못 하게 여기서도 같이 막는다."""
+    def test_patch_ignores_date_of_birth_even_alongside_other_valid_fields(self, auth_client):
         client, user = auth_client
-        ten_years_ago = date.today().replace(year=date.today().year - 10).isoformat()
+        user.date_of_birth = "2000-06-15"
+        user.save(update_fields=["date_of_birth"])
 
-        response = client.patch(f"/api/v1/users/users/{user.id}/", {"date_of_birth": ten_years_ago})
-
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "date_of_birth" in response.data
-
-    def test_accepts_past_date_of_birth(self, auth_client):
-        client, user = auth_client
-
-        response = client.patch(f"/api/v1/users/users/{user.id}/", {"date_of_birth": "1995-01-01"})
+        response = client.patch(
+            f"/api/v1/users/users/{user.id}/",
+            {"date_of_birth": "1995-01-01", "bio": "새 자기소개"},
+        )
 
         assert response.status_code == status.HTTP_200_OK
+        user.refresh_from_db()
+        assert user.date_of_birth.isoformat() == "2000-06-15"
+        assert user.bio == "새 자기소개"
+        assert user.bio == "새 자기소개"

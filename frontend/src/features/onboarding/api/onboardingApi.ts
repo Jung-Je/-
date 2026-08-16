@@ -13,15 +13,17 @@ import type {
 
 /**
  * 프로필 업데이트 (백엔드: UserViewSet.partial_update, UserUpdateSerializer).
- * check_profile_completion이 요구하는 필드(gender/date_of_birth/location/bio)만
- * 온보딩에서 다루고, 이름/프로필 사진 등은 나중에 설정 화면에서 다룬다.
+ * check_profile_completion이 요구하는 필드 중 date_of_birth는 가입 시(회원가입/
+ * 카카오 가입 완료 폼) 이미 검증받아 저장돼 있어서 여기서 다루지 않는다 — 온보딩이
+ * 다시 물어봐서 가입 때와 다른 값으로 덮어쓸 수 있던 걸 막기 위함(백엔드도
+ * date_of_birth를 read_only로 잠가서 보내도 무시됨). 이름/프로필 사진 등은
+ * 나중에 설정 화면에서 다룬다.
  */
 export async function updateProfile(userId: number, values: ProfileFormValues): Promise<void> {
   await apiFetch<unknown>(`/api/v1/users/users/${userId}/`, {
     method: 'PATCH',
     body: JSON.stringify({
       gender: values.gender || null,
-      date_of_birth: values.dateOfBirth || null,
       location: values.location,
       bio: values.bio,
     }),

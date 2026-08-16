@@ -7,11 +7,12 @@ export const GENDER_OPTIONS: { value: Gender; label: string }[] = [
   { value: 'N', label: '선택 안함' },
 ]
 
+// date_of_birth는 없다 — 가입 시 이미 확정된 값이라 설정에서는 표시만
+// 하고 수정은 못 한다(ProfileSettingsForm.tsx 참고).
 export type ProfileSettingsValues = {
   firstName: string
   lastName: string
   gender: Gender | ''
-  dateOfBirth: string
   location: string
   bio: string
   isActiveForMatching: boolean

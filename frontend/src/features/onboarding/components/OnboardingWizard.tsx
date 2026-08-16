@@ -30,14 +30,14 @@ export function OnboardingWizard() {
         user.has_completed_onboarding ? (
           <Navigate to="/matching" replace />
         ) : (
-          <Wizard userId={user.id} />
+          <Wizard userId={user.id} dateOfBirth={user.date_of_birth} />
         )
       }
     </RequireAuth>
   )
 }
 
-function Wizard({ userId }: { userId: number }) {
+function Wizard({ userId, dateOfBirth }: { userId: number; dateOfBirth: string | null }) {
   // 이 컴포넌트에 도달했다는 것 자체가 "아직 한 번도 온보딩을 끝내지
   // 않았다"는 뜻이라(has_completed_onboarding=false), 'done' 단계는
   // 항상 방금 막 완료한 축하 상태 하나뿐이다 — 예전엔 "이미 완성된
@@ -82,7 +82,11 @@ function Wizard({ userId }: { userId: number }) {
 
       <div className={`onboarding-card${cardModifier}`}>
         {step === 'profile' && (
-          <ProfileStep userId={userId} onNext={() => setStep('personality')} />
+          <ProfileStep
+            userId={userId}
+            dateOfBirth={dateOfBirth}
+            onNext={() => setStep('personality')}
+          />
         )}
         {step === 'personality' && (
           <PersonalityStep onNext={() => setStep('interests')} onBack={() => setStep('profile')} />

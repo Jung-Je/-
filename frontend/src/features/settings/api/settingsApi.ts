@@ -1,6 +1,9 @@
 import { apiFetch } from '../../../lib/apiClient'
 import type { PasswordChangePayload, ProfileSettingsValues } from '../types'
 
+// date_of_birth는 안 보낸다 — 가입 시 검증받은 값이라 여기서 다시 바꿀 수
+// 있게 하면 안 됨(백엔드도 UserUpdateSerializer에서 read_only로 잠가서
+// 보내도 무시되지만, 애초에 프론트에서 편집 UI 자체를 없앴다).
 export async function updateProfile(userId: number, values: ProfileSettingsValues): Promise<void> {
   await apiFetch<unknown>(`/api/v1/users/users/${userId}/`, {
     method: 'PATCH',
@@ -8,7 +11,6 @@ export async function updateProfile(userId: number, values: ProfileSettingsValue
       first_name: values.firstName,
       last_name: values.lastName,
       gender: values.gender || null,
-      date_of_birth: values.dateOfBirth || null,
       location: values.location,
       bio: values.bio,
       is_active_for_matching: values.isActiveForMatching,

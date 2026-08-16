@@ -7,9 +7,10 @@ export const GENDER_OPTIONS: { value: Gender; label: string }[] = [
   { value: 'N', label: '선택 안함' },
 ]
 
+// date_of_birth는 없다 — 가입 시 이미 확정된 값이라 온보딩에서는
+// 다루지 않는다(ProfileStep.tsx 참고).
 export type ProfileFormValues = {
   gender: Gender | ''
-  dateOfBirth: string // YYYY-MM-DD (input type="date" 형식)
   location: string
   bio: string
 }

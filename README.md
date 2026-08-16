@@ -8,7 +8,7 @@
 
 - 🔐 사용자 인증 및 프로필 관리 (온보딩 3단계: 프로필·성격·관심사, 이후 설정 화면에서 관심사 추가/레벨 조정/삭제 가능)
 - 💛 카카오 소셜 로그인/가입 — 비밀번호 없는 계정으로 카카오 계정 자체를 로그인 수단으로 사용
-- 🪪 회원가입 최소연령(만 19세) 검증
+- 🪪 회원가입 최소연령(만 19세) 검증, 생년월일은 가입 시 1회만 받고 이후 온보딩·설정 어디서도 수정 불가
 - 🎯 취향·성격·위치 가중치 기반 매칭 알고리즘
 - 💬 사용자 간 연결 요청/수락/거절/차단 및 실시간 인앱 메시징
 - 📝 유저 자유게시판 — 카테고리별 글/댓글로 유저끼리 자유롭게 소통 (`apps/board`, 프론트 `/board`)
@@ -157,7 +157,7 @@ matching-api/
 - `POST /api/v1/auth/kakao/complete-signup/` - 카카오 소셜 가입 완료 (닉네임/이메일/생년월일, 비밀번호 없는 계정 생성)
 - `GET/POST /api/v1/auth/kakao/verify/` - 카카오 성인인증(현재 미사용)
 - `GET /api/v1/users/users/me/` - 내 정보 조회
-- `PATCH /api/v1/users/users/{id}/` - 프로필 수정
+- `PATCH /api/v1/users/users/{id}/` - 프로필 수정 (`date_of_birth`는 읽기 전용 — 가입 시 값을 그대로 유지, 보내도 무시됨)
 - `POST /api/v1/users/users/change_password/` - 비밀번호 변경
 - `POST /api/v1/users/users/password_reset/` - 비밀번호 재설정 이메일 요청
 - `POST /api/v1/users/users/password_reset_confirm/` - 비밀번호 재설정 확인

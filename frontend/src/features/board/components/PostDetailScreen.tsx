@@ -59,6 +59,9 @@ function Detail({ currentUser }: { currentUser: AuthUser }) {
   }, [id])
 
   async function handleDeletePost() {
+    // 실패 시(스태프가 이미 강제삭제했거나 세션 만료 등) 예외를 그대로
+    // 던져서 PostBody가 잡아 재시도 UI를 보여주게 한다 — 여기서 삼키면
+    // navigate가 조용히 실행 안 될 뿐 아무 피드백도 없이 끝난다.
     await deletePost(id)
     navigate('/board', { replace: true })
   }
@@ -135,7 +138,7 @@ function PostBody({
   categories: BoardCategory[]
   isAuthor: boolean
   onUpdated: (post: Post) => void
-  onDelete: () => void
+  onDelete: () => Promise<void>
 }) {
   const titleId = useId()
   const categoryId = useId()
@@ -143,11 +146,27 @@ function PostBody({
 
   const [editing, setEditing] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
   const [title, setTitle] = useState(post.title)
   const [category, setCategory] = useState(post.category)
   const [content, setContent] = useState(post.content)
   const [status, setStatus] = useState<'idle' | 'submitting' | 'error'>('idle')
   const [errorMessage, setErrorMessage] = useState('')
+
+  async function handleDeleteClick() {
+    setDeleting(true)
+    setDeleteError('')
+    try {
+      await onDelete()
+      // 성공하면 onDelete(handleDeletePost)가 /board로 navigate하므로
+      // 이 컴포넌트는 곧 언마운트된다 — 별도로 idle 상태로 되돌릴 필요 없음.
+    } catch (error) {
+      const detail = error instanceof ApiError ? error.detail : '글을 삭제하지 못했습니다.'
+      setDeleteError(detail)
+      setDeleting(false)
+    }
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -254,13 +273,23 @@ function PostBody({
           </button>
           {confirmingDelete ? (
             <>
-              <button type="button" className="settings-danger-btn" onClick={onDelete}>
-                정말요? 삭제
+              <button
+                type="button"
+                className="settings-danger-btn"
+                onClick={handleDeleteClick}
+                disabled={deleting}
+              >
+                {deleting && <SpinnerIcon />}
+                {deleting ? '삭제 중…' : '정말요? 삭제'}
               </button>
               <button
                 type="button"
                 className="settings-secondary-btn"
-                onClick={() => setConfirmingDelete(false)}
+                onClick={() => {
+                  setConfirmingDelete(false)
+                  setDeleteError('')
+                }}
+                disabled={deleting}
               >
                 취소
               </button>
@@ -275,6 +304,13 @@ function PostBody({
             </button>
           )}
         </div>
+      )}
+
+      {deleteError && (
+        <p className="settings-error" role="alert">
+          <AlertIcon />
+          <span>{deleteError}</span>
+        </p>
       )}
     </div>
   )
@@ -291,13 +327,29 @@ function CommentsSection({
   comments: Comment[]
   currentUserId: number
   onCreated: (comment: Comment) => void
-  onDeleted: (commentId: number) => void
+  onDeleted: (commentId: number) => Promise<void>
 }) {
   const contentId = useId()
   const [draft, setDraft] = useState('')
   const [status, setStatus] = useState<'idle' | 'submitting' | 'error'>('idle')
   const [errorMessage, setErrorMessage] = useState('')
   const [confirmingId, setConfirmingId] = useState<number | null>(null)
+  const [deletingId, setDeletingId] = useState<number | null>(null)
+  const [deleteError, setDeleteError] = useState('')
+
+  async function handleDeleteClick(commentId: number) {
+    setDeletingId(commentId)
+    setDeleteError('')
+    try {
+      await onDeleted(commentId)
+      setConfirmingId(null)
+    } catch (error) {
+      const detail = error instanceof ApiError ? error.detail : '댓글을 삭제하지 못했습니다.'
+      setDeleteError(detail)
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -341,17 +393,19 @@ function CommentsSection({
                       <button
                         type="button"
                         className="board-comment-list__delete"
-                        onClick={() => {
-                          onDeleted(comment.id)
-                          setConfirmingId(null)
-                        }}
+                        onClick={() => handleDeleteClick(comment.id)}
+                        disabled={deletingId === comment.id}
                       >
-                        정말요? 삭제
+                        {deletingId === comment.id ? '삭제 중…' : '정말요? 삭제'}
                       </button>
                       <button
                         type="button"
                         className="board-comment-list__cancel"
-                        onClick={() => setConfirmingId(null)}
+                        onClick={() => {
+                          setConfirmingId(null)
+                          setDeleteError('')
+                        }}
+                        disabled={deletingId === comment.id}
                       >
                         취소
                       </button>
@@ -367,6 +421,12 @@ function CommentsSection({
                   ))}
               </div>
               <p className="board-comment-list__content">{comment.content}</p>
+              {deleteError && confirmingId === comment.id && (
+                <p className="settings-error" role="alert">
+                  <AlertIcon />
+                  <span>{deleteError}</span>
+                </p>
+              )}
             </li>
           ))}
         </ul>

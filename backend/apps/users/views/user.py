@@ -25,7 +25,7 @@ from ..serializers import (
     UserSerializer,
     UserUpdateSerializer,
 )
-from ..services import CooldownError, confirm_code, generate_and_send_code
+from ..services import CooldownError, EmailSendError, confirm_code, generate_and_send_code
 
 logger = logging.getLogger(__name__)
 
@@ -232,6 +232,8 @@ class UserViewSet(viewsets.ModelViewSet):
             generate_and_send_code(email)
         except CooldownError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_429_TOO_MANY_REQUESTS)
+        except EmailSendError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
         return Response({"detail": "인증 코드를 이메일로 보냈습니다."})
 

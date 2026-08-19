@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.core import mail
 from django.utils import timezone
@@ -48,6 +49,26 @@ class TestRequestEmailVerification:
 
     def test_does_not_require_authentication(self):
         client = APIClient()
+        response = client.post(REQUEST_URL, {"email": EMAIL}, format="json")
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_returns_503_when_smtp_send_fails(self):
+        """개발 환경이 콘솔 백엔드 대신 실제 SMTP로 발송하도록 바뀐 뒤로
+        (dev.py) send_mail이 예외를 던질 수 있게 됐는데, 예전엔 여기서
+        안 잡혀 500으로 죽었다(코드 리뷰로 발견). 실패한 시도는 쿨다운을
+        막고 있으면 안 되므로 레코드도 안 남아야 한다."""
+        client = APIClient()
+
+        with patch(
+            "apps.users.services.email_verification.send_mail",
+            side_effect=OSError("SMTP 연결 실패"),
+        ):
+            response = client.post(REQUEST_URL, {"email": EMAIL}, format="json")
+
+        assert response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
+        assert not EmailVerification.objects.filter(email=EMAIL).exists()
+
+        # 실패한 시도가 쿨다운을 막지 않으므로 바로 재요청이 가능해야 함
         response = client.post(REQUEST_URL, {"email": EMAIL}, format="json")
         assert response.status_code == status.HTTP_200_OK
 

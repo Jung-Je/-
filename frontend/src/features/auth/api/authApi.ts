@@ -40,13 +40,40 @@ export async function getCurrentUser(): Promise<AuthUser> {
 }
 
 /**
+ * 회원가입 이메일 인증 API 계약 (백엔드: apps/users/views/user.py
+ * UserViewSet.request_email_verification / confirm_email_verification):
+ *   POST /api/v1/users/users/request_email_verification/ { email } ->
+ *     200 { detail } | 400 { email: [...] }(이미 가입된 이메일) |
+ *     429 { detail }(60초 재전송 쿨다운)
+ *   POST /api/v1/users/users/confirm_email_verification/ { email, code } ->
+ *     200 { verified: true } | 400 { detail }(코드 불일치·만료·시도 초과)
+ * 인증에 성공하면 서버가 그 사실을 이메일 기준으로 1시간 동안 기억해서,
+ * signup()이 같은 이메일로 계정을 만들 수 있게 해준다(카카오 가입은
+ * 대상 아님 — 카카오 OAuth 자체가 이미 이메일 소유를 보증).
+ */
+export async function requestEmailVerification(email: string): Promise<void> {
+  await apiFetch<unknown>('/api/v1/users/users/request_email_verification/', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  })
+}
+
+export async function confirmEmailVerification(email: string, code: string): Promise<void> {
+  await apiFetch<unknown>('/api/v1/users/users/confirm_email_verification/', {
+    method: 'POST',
+    body: JSON.stringify({ email, code }),
+  })
+}
+
+/**
  * 회원가입 API 계약 (백엔드: apps/users/views.py UserViewSet.create,
  * UserCreateSerializer):
  *   POST /api/v1/users/users/ -> 201 { id, username, email, ... } | 400 { ...필드별 오류 }
  * 계정 생성만 하고 세션은 만들지 않으므로, 성공 후 login()을 이어서 호출해야 한다.
  * date_of_birth는 회원가입이 만 19세 이상만 가능해서 받는 최소연령 검증용
  * — 이름/관심사/성격 등 나머지 프로필은 회원가입 범위 밖(온보딩 단계에서
- * 따로 수집).
+ * 따로 수집). email은 request_email_verification/confirm_email_verification으로
+ * 미리 인증돼 있어야 한다 — 안 그러면 서버가 400으로 거부.
  */
 export async function signup(payload: SignupPayload): Promise<void> {
   await apiFetch<unknown>('/api/v1/users/users/', {

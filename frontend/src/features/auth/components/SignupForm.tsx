@@ -1,13 +1,22 @@
-import { useId, useState, type FormEvent } from 'react'
+import { useEffect, useId, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { AlertIcon, EyeIcon, EyeOffIcon, SpinnerIcon } from '../../../components/icons'
 import { isAdultBirthdate, maxAdultBirthDate, MIN_ADULT_AGE } from '../../../lib/age'
 import { ApiError } from '../../../lib/apiClient'
 import { buildKakaoAuthorizeUrl, isKakaoConfigured, kakaoLoginRedirectUri } from '../../../lib/kakaoAuth'
-import { login, primeCsrf, signup } from '../api/authApi'
+import { confirmEmailVerification, login, primeCsrf, requestEmailVerification, signup } from '../api/authApi'
 import { AuthScreen } from './AuthScreen'
 
 type Status = 'idle' | 'submitting' | 'error'
+type EmailPhase = 'unverified' | 'sending' | 'code-sent' | 'confirming' | 'verified'
+
+const RESEND_COOLDOWN_SECONDS = 60
+
+function errorDetail(error: unknown): string {
+  return error instanceof ApiError
+    ? error.detail
+    : '알 수 없는 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'
+}
 
 /**
  * 회원가입은 계정(닉네임/이메일/비밀번호) + 생년월일만 받는다. 이름·관심사
@@ -24,19 +33,33 @@ type Status = 'idle' | 'submitting' | 'error'
  * 검증이 전혀 없던 것보다는 실질적 방어. 진짜 방어선은 서버
  * (UserCreateSerializer.validate_date_of_birth) — 여기 클라이언트 체크는
  * 빠른 피드백일 뿐.
+ *
+ * 나이 인증과 별개로, 이메일이 실제 사용 중인 주소인지는 무료로 확인할
+ * 수 있어서(사용자 확정) 회원가입 자체를 이메일 인증 완료 후로 막는다 —
+ * 이메일 입력 → "인증코드 받기" → 받은 6자리 코드 확인이 끝나야 나머지
+ * 필드(닉네임/생년월일/비밀번호)가 나타난다. 서버(UserCreateSerializer.
+ * validate)도 인증 안 된 이메일이면 어차피 거부하지만, 여기서 순서를
+ * 미리 강제해 헛수고 제출을 막는다. 카카오 가입은 이 인증 절차와
+ * 무관 — 카카오 OAuth 자체가 이메일 소유를 이미 보증한다.
  */
 export function SignupForm() {
   const navigate = useNavigate()
   const usernameId = useId()
   const emailId = useId()
+  const codeId = useId()
   const dateOfBirthId = useId()
   const passwordId = useId()
   const passwordHintId = useId()
   const passwordConfirmId = useId()
   const errorId = useId()
 
-  const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
+  const [emailPhase, setEmailPhase] = useState<EmailPhase>('unverified')
+  const [emailError, setEmailError] = useState('')
+  const [code, setCode] = useState('')
+  const [cooldown, setCooldown] = useState(0)
+
+  const [username, setUsername] = useState('')
   const [dateOfBirth, setDateOfBirth] = useState('')
   const [password, setPassword] = useState('')
   const [passwordConfirm, setPasswordConfirm] = useState('')
@@ -45,6 +68,59 @@ export function SignupForm() {
   const [errorMessage, setErrorMessage] = useState('')
 
   const isSubmitting = status === 'submitting'
+  const emailLocked = emailPhase !== 'unverified' && emailPhase !== 'sending'
+
+  // 재전송 쿨다운 카운트다운 — 매초 1씩 줄이다 0이 되면 "재전송" 버튼이
+  // 다시 눌리게 둔다. 서버도 60초 안에 재요청하면 429로 막지만, 눌러보고야
+  // 아는 것보다 버튼 자체를 잠깐 비활성화해두는 게 자연스럽다.
+  useEffect(() => {
+    if (cooldown <= 0) return
+    const timer = setTimeout(() => setCooldown((value) => value - 1), 1000)
+    return () => clearTimeout(timer)
+  }, [cooldown])
+
+  async function handleRequestCode() {
+    setEmailError('')
+    setEmailPhase('sending')
+    try {
+      await requestEmailVerification(email)
+      setEmailPhase('code-sent')
+      setCooldown(RESEND_COOLDOWN_SECONDS)
+    } catch (error) {
+      setEmailError(errorDetail(error))
+      setEmailPhase('unverified')
+    }
+  }
+
+  async function handleResendCode() {
+    setEmailError('')
+    setCode('')
+    try {
+      await requestEmailVerification(email)
+      setCooldown(RESEND_COOLDOWN_SECONDS)
+    } catch (error) {
+      setEmailError(errorDetail(error))
+    }
+  }
+
+  async function handleConfirmCode() {
+    setEmailError('')
+    setEmailPhase('confirming')
+    try {
+      await confirmEmailVerification(email, code)
+      setEmailPhase('verified')
+    } catch (error) {
+      setEmailError(errorDetail(error))
+      setEmailPhase('code-sent')
+    }
+  }
+
+  function handleChangeEmail() {
+    setEmailPhase('unverified')
+    setCode('')
+    setEmailError('')
+    setCooldown(0)
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -70,11 +146,7 @@ export function SignupForm() {
       await login(email, password)
       navigate('/onboarding', { replace: true })
     } catch (error) {
-      const detail =
-        error instanceof ApiError
-          ? error.detail
-          : '알 수 없는 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'
-      setErrorMessage(detail)
+      setErrorMessage(errorDetail(error))
       setStatus('error')
     }
   }
@@ -109,26 +181,10 @@ export function SignupForm() {
         </>
       )}
 
-      <form className="auth-form" onSubmit={handleSubmit} noValidate>
-        <div className="auth-field">
-          <label htmlFor={usernameId}>닉네임</label>
-          <div className="auth-field__control">
-            <input
-              id={usernameId}
-              name="username"
-              type="text"
-              autoComplete="username"
-              placeholder="바인더에서 쓸 이름"
-              value={username}
-              onChange={(event) => setUsername(event.target.value)}
-              aria-invalid={status === 'error'}
-              aria-describedby={status === 'error' ? errorId : undefined}
-              disabled={isSubmitting}
-              required
-            />
-          </div>
-        </div>
-
+      {/* 이메일 인증은 별도 폼으로 분리 — 아직 계정 생성에 쓸 나머지
+          필드(닉네임 등)가 안 나온 상태에서 Enter 키가 아래 회원가입
+          폼의 submit으로 잘못 이어지는 걸 막기 위함. */}
+      <div className="auth-form">
         <div className="auth-field">
           <label htmlFor={emailId}>이메일</label>
           <div className="auth-field__control">
@@ -140,102 +196,186 @@ export function SignupForm() {
               placeholder="you@example.com"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              aria-invalid={status === 'error'}
-              aria-describedby={status === 'error' ? errorId : undefined}
-              disabled={isSubmitting}
+              aria-invalid={!!emailError}
+              aria-describedby={emailError ? errorId : undefined}
+              disabled={emailLocked}
               required
             />
           </div>
-        </div>
 
-        <div className="auth-field">
-          <label htmlFor={dateOfBirthId}>생년월일</label>
-          <div className="auth-field__control">
-            <input
-              id={dateOfBirthId}
-              name="date_of_birth"
-              type="date"
-              autoComplete="bday"
-              value={dateOfBirth}
-              onChange={(event) => setDateOfBirth(event.target.value)}
-              aria-invalid={status === 'error'}
-              aria-describedby={status === 'error' ? errorId : undefined}
-              disabled={isSubmitting}
-              max={maxAdultBirthDate()}
-              required
-            />
-          </div>
-          <p className="auth-field__hint">회원가입은 만 {MIN_ADULT_AGE}세 이상만 가능해요.</p>
-        </div>
-
-        <div className="auth-field auth-field--password">
-          <label htmlFor={passwordId}>비밀번호</label>
-          <div className="auth-field__control">
-            <input
-              id={passwordId}
-              name="password"
-              type={showPassword ? 'text' : 'password'}
-              autoComplete="new-password"
-              placeholder="영문·숫자·특수문자 포함 8자 이상"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              aria-invalid={status === 'error'}
-              aria-describedby={status === 'error' ? errorId : passwordHintId}
-              disabled={isSubmitting}
-              required
-              minLength={8}
-            />
+          {emailPhase === 'verified' ? (
+            <div className="auth-email-verify__row">
+              <span className="auth-success__badge">인증 완료</span>
+              <button type="button" className="auth-field__link-btn" onClick={handleChangeEmail}>
+                다른 이메일 쓰기
+              </button>
+            </div>
+          ) : emailPhase === 'code-sent' || emailPhase === 'confirming' ? (
+            <div className="auth-email-verify__row">
+              <input
+                id={codeId}
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                placeholder="6자리 코드"
+                value={code}
+                onChange={(event) => setCode(event.target.value.replace(/\D/g, ''))}
+                disabled={emailPhase === 'confirming'}
+                className="auth-email-verify__code-input"
+              />
+              <button
+                type="button"
+                className="auth-secondary-btn"
+                onClick={handleConfirmCode}
+                disabled={emailPhase === 'confirming' || code.length !== 6}
+              >
+                {emailPhase === 'confirming' ? '확인 중…' : '확인'}
+              </button>
+              <button
+                type="button"
+                className="auth-field__link-btn"
+                onClick={handleResendCode}
+                disabled={cooldown > 0}
+              >
+                {cooldown > 0 ? `재전송 (${cooldown}초)` : '재전송'}
+              </button>
+              <button type="button" className="auth-field__link-btn" onClick={handleChangeEmail}>
+                다른 이메일 쓰기
+              </button>
+            </div>
+          ) : (
             <button
               type="button"
-              className="password-toggle"
-              onClick={() => setShowPassword((value) => !value)}
-              aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 표시'}
-              aria-pressed={showPassword}
+              className="auth-secondary-btn"
+              onClick={handleRequestCode}
+              disabled={emailPhase === 'sending' || !email.trim()}
             >
-              {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+              {emailPhase === 'sending' ? '전송 중…' : '인증코드 받기'}
             </button>
+          )}
+
+          {emailError && (
+            <p className="auth-field__hint auth-field__hint--error" id={errorId} role="alert">
+              {emailError}
+            </p>
+          )}
+          {emailPhase === 'code-sent' && !emailError && (
+            <p className="auth-field__hint">이메일로 받은 6자리 코드를 입력해주세요.</p>
+          )}
+        </div>
+      </div>
+
+      {emailPhase === 'verified' && (
+        <form className="auth-form" onSubmit={handleSubmit} noValidate>
+          <div className="auth-field">
+            <label htmlFor={usernameId}>닉네임</label>
+            <div className="auth-field__control">
+              <input
+                id={usernameId}
+                name="username"
+                type="text"
+                autoComplete="username"
+                placeholder="바인더에서 쓸 이름"
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+                aria-invalid={status === 'error'}
+                aria-describedby={status === 'error' ? errorId : undefined}
+                disabled={isSubmitting}
+                required
+              />
+            </div>
           </div>
-          <p className="auth-field__hint" id={passwordHintId}>
-            영문, 숫자, 특수문자를 모두 포함해 8자 이상으로 만들어주세요.
-          </p>
-        </div>
 
-        <div className="auth-field">
-          <label htmlFor={passwordConfirmId}>비밀번호 확인</label>
-          <div className="auth-field__control">
-            <input
-              id={passwordConfirmId}
-              name="password_confirm"
-              type={showPassword ? 'text' : 'password'}
-              autoComplete="new-password"
-              placeholder="비밀번호를 한 번 더 입력하세요"
-              value={passwordConfirm}
-              onChange={(event) => setPasswordConfirm(event.target.value)}
-              aria-invalid={status === 'error'}
-              aria-describedby={status === 'error' ? errorId : undefined}
-              disabled={isSubmitting}
-              required
-              minLength={8}
-            />
+          <div className="auth-field">
+            <label htmlFor={dateOfBirthId}>생년월일</label>
+            <div className="auth-field__control">
+              <input
+                id={dateOfBirthId}
+                name="date_of_birth"
+                type="date"
+                autoComplete="bday"
+                value={dateOfBirth}
+                onChange={(event) => setDateOfBirth(event.target.value)}
+                aria-invalid={status === 'error'}
+                aria-describedby={status === 'error' ? errorId : undefined}
+                disabled={isSubmitting}
+                max={maxAdultBirthDate()}
+                required
+              />
+            </div>
+            <p className="auth-field__hint">회원가입은 만 {MIN_ADULT_AGE}세 이상만 가능해요.</p>
           </div>
-        </div>
 
-        {status === 'error' && (
-          <p className="auth-error" role="alert" id={errorId}>
-            <AlertIcon />
-            <span>{errorMessage}</span>
-          </p>
-        )}
+          <div className="auth-field auth-field--password">
+            <label htmlFor={passwordId}>비밀번호</label>
+            <div className="auth-field__control">
+              <input
+                id={passwordId}
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="new-password"
+                placeholder="영문·숫자·특수문자 포함 8자 이상"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                aria-invalid={status === 'error'}
+                aria-describedby={status === 'error' ? errorId : passwordHintId}
+                disabled={isSubmitting}
+                required
+                minLength={8}
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword((value) => !value)}
+                aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 표시'}
+                aria-pressed={showPassword}
+              >
+                {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+              </button>
+            </div>
+            <p className="auth-field__hint" id={passwordHintId}>
+              영문, 숫자, 특수문자를 모두 포함해 8자 이상으로 만들어주세요.
+            </p>
+          </div>
 
-        <button className="auth-submit" type="submit" disabled={isSubmitting}>
-          {isSubmitting && <SpinnerIcon />}
-          {isSubmitting ? '가입 중…' : '회원가입'}
-        </button>
+          <div className="auth-field">
+            <label htmlFor={passwordConfirmId}>비밀번호 확인</label>
+            <div className="auth-field__control">
+              <input
+                id={passwordConfirmId}
+                name="password_confirm"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="new-password"
+                placeholder="비밀번호를 한 번 더 입력하세요"
+                value={passwordConfirm}
+                onChange={(event) => setPasswordConfirm(event.target.value)}
+                aria-invalid={status === 'error'}
+                aria-describedby={status === 'error' ? errorId : undefined}
+                disabled={isSubmitting}
+                required
+                minLength={8}
+              />
+            </div>
+          </div>
 
-        <div className="auth-links">
-          <Link to="/">이미 계정이 있으신가요? 로그인</Link>
-        </div>
-      </form>
+          {status === 'error' && (
+            <p className="auth-error" role="alert">
+              <AlertIcon />
+              <span>{errorMessage}</span>
+            </p>
+          )}
+
+          <button className="auth-submit" type="submit" disabled={isSubmitting}>
+            {isSubmitting && <SpinnerIcon />}
+            {isSubmitting ? '가입 중…' : '회원가입'}
+          </button>
+        </form>
+      )}
+
+      <div className="auth-links">
+        <Link to="/">이미 계정이 있으신가요? 로그인</Link>
+      </div>
     </AuthScreen>
   )
 }

@@ -238,7 +238,9 @@ class KakaoSignupCompletionView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        serializer = KakaoSignupCompletionSerializer(data=request.data)
+        serializer = KakaoSignupCompletionSerializer(
+            data=request.data, context={"request": request}
+        )
         serializer.is_valid(raise_exception=True)
 
         user = User.objects.create_user(

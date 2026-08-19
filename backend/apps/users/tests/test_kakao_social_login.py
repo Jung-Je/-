@@ -8,7 +8,7 @@ import pytest
 
 from apps.users.models import User
 from apps.users.services import KakaoVerificationError
-from apps.users.tests.factories import UserFactory
+from apps.users.tests.factories import UserFactory, verify_email_for_test
 
 KAKAO_LOGIN_URL = "/api/v1/auth/kakao/login/"
 KAKAO_SIGNUP_COMPLETE_URL = "/api/v1/auth/kakao/complete-signup/"
@@ -117,7 +117,10 @@ class TestKakaoSignupCompletionView:
     def _payload(self, **overrides):
         payload = {
             "username": "newkakaouser",
-            "email": "newkakaouser@example.com",
+            # _authenticated_pending_client의 기본 kakao_pending_email과
+            # 반드시 일치해야 함(카카오가 이메일을 준 케이스를 흉내내는
+            # 대부분의 테스트가 이 기본값을 그대로 씀).
+            "email": "new@example.com",
             "date_of_birth": ADULT_BIRTH_DATE,
         }
         payload.update(overrides)
@@ -147,6 +150,49 @@ class TestKakaoSignupCompletionView:
         assert me_response.status_code == status.HTTP_200_OK
         assert me_response.data["id"] == user.id
 
+    def test_rejects_email_that_does_not_match_kakao_provided_email(self):
+        """카카오가 이메일을 줬는데 그것과 다른 이메일을 제출하면 거부돼야
+        한다 — 프론트의 disabled 입력창을 API 직접 호출로 우회해 임의의
+        미검증 이메일로 가입하는 구멍 방지(코드 리뷰로 발견)."""
+        client = _authenticated_pending_client(email="kakao-real@example.com")
+
+        response = client.post(
+            KAKAO_SIGNUP_COMPLETE_URL,
+            self._payload(email="attacker-controlled@example.com"),
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert not User.objects.filter(username="newkakaouser").exists()
+
+    def test_rejects_unverified_email_when_kakao_did_not_provide_one(self):
+        """카카오가 이메일 동의를 안 줘서 직접 입력받는 경우엔 OAuth가
+        보증해주는 이메일이 아니므로, 일반 회원가입과 동일하게 이메일
+        인증을 먼저 마쳐야 한다."""
+        client = _authenticated_pending_client(email=None)
+
+        response = client.post(
+            KAKAO_SIGNUP_COMPLETE_URL,
+            self._payload(email="unverified@example.com"),
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert not User.objects.filter(username="newkakaouser").exists()
+
+    def test_allows_verified_email_when_kakao_did_not_provide_one(self):
+        client = _authenticated_pending_client(email=None)
+        verify_email_for_test("verified@example.com")
+
+        response = client.post(
+            KAKAO_SIGNUP_COMPLETE_URL,
+            self._payload(email="verified@example.com"),
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert User.objects.filter(username="newkakaouser").exists()
+
     def test_rejects_minor_birth_date(self):
         client = _authenticated_pending_client()
 
@@ -166,7 +212,7 @@ class TestKakaoSignupCompletionView:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     def test_rejects_duplicate_email(self):
-        UserFactory(email="newkakaouser@example.com")
+        UserFactory(email="new@example.com")
         client = _authenticated_pending_client()
 
         response = client.post(KAKAO_SIGNUP_COMPLETE_URL, self._payload(), format="json")

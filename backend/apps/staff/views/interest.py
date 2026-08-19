@@ -1,10 +1,11 @@
 from rest_framework import viewsets
-from rest_framework.permissions import IsAdminUser
 
 from drf_spectacular.utils import extend_schema, extend_schema_view
 
 from apps.matching.models import Interest, InterestCategory
 from apps.matching.serializers import InterestCategorySerializer, InterestSerializer
+
+from .base import StaffPermissionMixin
 
 
 @extend_schema_view(
@@ -15,7 +16,7 @@ from apps.matching.serializers import InterestCategorySerializer, InterestSerial
     partial_update=extend_schema(summary="[관리자] 관심사 카테고리 부분 수정", tags=["Admin"]),
     destroy=extend_schema(summary="[관리자] 관심사 카테고리 삭제", tags=["Admin"]),
 )
-class AdminInterestCategoryViewSet(viewsets.ModelViewSet):
+class AdminInterestCategoryViewSet(StaffPermissionMixin, viewsets.ModelViewSet):
     """스태프 전용 관심사 카테고리 관리. 민감 데이터가 없는 콘텐츠
     큐레이션이라 Phase 1(유저/연결)과 다르게 생성·삭제까지 전부 허용한다.
     소비자용 InterestCategorySerializer를 그대로 재사용 — 쓰기 제한이
@@ -25,7 +26,6 @@ class AdminInterestCategoryViewSet(viewsets.ModelViewSet):
     apps.matching.signals의 모델 시그널이 저장/삭제마다 자동으로 처리한다.
     """
 
-    permission_classes = [IsAdminUser]
     queryset = InterestCategory.objects.all()
     serializer_class = InterestCategorySerializer
     search_fields = ["name", "description"]
@@ -41,12 +41,11 @@ class AdminInterestCategoryViewSet(viewsets.ModelViewSet):
     partial_update=extend_schema(summary="[관리자] 관심사 부분 수정", tags=["Admin"]),
     destroy=extend_schema(summary="[관리자] 관심사 삭제", tags=["Admin"]),
 )
-class AdminInterestViewSet(viewsets.ModelViewSet):
+class AdminInterestViewSet(StaffPermissionMixin, viewsets.ModelViewSet):
     """스태프 전용 관심사 관리. (category, name) unique_together가
     모델에 이미 있어서 중복 생성은 DRF가 자동으로 400 처리한다.
     """
 
-    permission_classes = [IsAdminUser]
     queryset = Interest.objects.select_related("category").all()
     serializer_class = InterestSerializer
     filterset_fields = ["category"]

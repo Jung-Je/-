@@ -2,7 +2,6 @@ import logging
 
 from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
 from drf_spectacular.utils import extend_schema, extend_schema_view
@@ -14,6 +13,7 @@ from ..serializers import (
     AdminInquirySerializer,
     AdminInquiryStatusSerializer,
 )
+from .base import StaffPermissionMixin
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
     partial_update=extend_schema(summary="[관리자] 문의 처리 상태 변경", tags=["Admin"]),
 )
 class AdminInquiryViewSet(
+    StaffPermissionMixin,
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
     mixins.UpdateModelMixin,
@@ -35,7 +36,6 @@ class AdminInquiryViewSet(
     자체가 라우팅되지 않게 했다(AdminMatchingRequestViewSet과 같은
     이유로, http_method_names만으로 막는 것보다 더 명확함)."""
 
-    permission_classes = [IsAdminUser]
     queryset = Inquiry.objects.select_related("user").all()
     http_method_names = ["get", "post", "patch", "head", "options"]
 

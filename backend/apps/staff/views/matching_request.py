@@ -2,13 +2,14 @@ import logging
 
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
 from drf_spectacular.utils import extend_schema, extend_schema_view
 
 from apps.matching.models import MatchingRequest
 from apps.matching.serializers import MatchingRequestSerializer, MatchingResultSerializer
+
+from .base import StaffPermissionMixin
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +18,7 @@ logger = logging.getLogger(__name__)
     list=extend_schema(summary="[관리자] 전체 매칭 요청 목록 조회", tags=["Admin"]),
     retrieve=extend_schema(summary="[관리자] 매칭 요청 상세 조회", tags=["Admin"]),
 )
-class AdminMatchingRequestViewSet(viewsets.ReadOnlyModelViewSet):
+class AdminMatchingRequestViewSet(StaffPermissionMixin, viewsets.ReadOnlyModelViewSet):
     """스태프 전용 매칭 요청 조회. 소비자용 MatchingRequestViewSet은
     requester=request.user로 좁혀져 있어서 자기 요청만 보이는데, 여기는
     참여자 제한 없이 전체를 본다. 소비자용 MatchingRequestSerializer를
@@ -25,7 +26,6 @@ class AdminMatchingRequestViewSet(viewsets.ReadOnlyModelViewSet):
     read_only_fields가 requester/status를 막고 있는 건 문제되지 않는다.
     """
 
-    permission_classes = [IsAdminUser]
     queryset = MatchingRequest.objects.select_related("requester").all()
     serializer_class = MatchingRequestSerializer
     filterset_fields = ["status"]

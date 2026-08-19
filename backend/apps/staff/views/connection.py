@@ -4,7 +4,6 @@ from django.db.models import Count
 from django.shortcuts import get_object_or_404
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
 from drf_spectacular.utils import extend_schema, extend_schema_view
@@ -16,6 +15,7 @@ from ..serializers import (
     AdminConnectionStatusUpdateSerializer,
     AdminMessageSerializer,
 )
+from .base import StaffPermissionMixin
 
 logger = logging.getLogger(__name__)
 
@@ -24,13 +24,12 @@ logger = logging.getLogger(__name__)
     list=extend_schema(summary="[관리자] 전체 연결 목록 조회", tags=["Admin"]),
     retrieve=extend_schema(summary="[관리자] 연결 상세 조회", tags=["Admin"]),
 )
-class AdminConnectionViewSet(viewsets.ReadOnlyModelViewSet):
+class AdminConnectionViewSet(StaffPermissionMixin, viewsets.ReadOnlyModelViewSet):
     """스태프 전용 연결·메시지 모더레이션. 참여자 상관없이 모든 연결을
     본다 — 소비자용 ConnectionViewSet.get_queryset()은 request.user가
     참여자인 것만 보여주므로 별도로 둔다.
     """
 
-    permission_classes = [IsAdminUser]
     queryset = (
         Connection.objects.select_related("from_user", "to_user")
         .annotate(message_count=Count("messages"))

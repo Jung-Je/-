@@ -1,5 +1,6 @@
 import logging
 
+from django.db.models import Count
 from rest_framework import mixins, viewsets
 from rest_framework.permissions import IsAdminUser
 
@@ -30,7 +31,8 @@ class AdminBoardCategoryViewSet(viewsets.ModelViewSet):
     미리 보임)."""
 
     permission_classes = [IsAdminUser]
-    queryset = BoardCategory.objects.all()
+    # apps.board.views.BoardCategoryViewSet과 같은 이유(N+1 방지)로 annotate.
+    queryset = BoardCategory.objects.annotate(posts_count=Count("posts")).all()
     serializer_class = BoardCategorySerializer
     search_fields = ["name", "description"]
     ordering_fields = ["name", "created_at"]
@@ -53,7 +55,12 @@ class AdminPostViewSet(
     mixin만 조합)."""
 
     permission_classes = [IsAdminUser]
-    queryset = Post.objects.select_related("author", "category").all()
+    # apps.board.views.PostViewSet과 같은 이유(N+1 방지)로 annotate.
+    queryset = (
+        Post.objects.select_related("author", "category")
+        .annotate(comment_count=Count("comments"))
+        .all()
+    )
     serializer_class = AdminPostSerializer
     filterset_fields = ["category"]
     search_fields = ["title", "content", "author__username", "author__email"]

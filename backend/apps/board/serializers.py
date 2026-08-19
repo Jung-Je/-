@@ -16,6 +16,13 @@ class BoardCategorySerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "posts_count", "created_at", "updated_at"]
 
     def get_posts_count(self, obj):
+        # 목록 조회는 뷰의 queryset이 .annotate(posts_count=Count("posts"))로
+        # 미리 세어와서 obj에 그 값이 이미 붙어있다(코드 리뷰로 N+1 발견 —
+        # 원래는 카테고리 행마다 별도 COUNT 쿼리가 나갔음). 카테고리 생성
+        # 직후(perform_create) 응답처럼 annotate를 안 거친 인스턴스는
+        # 속성 자체가 없으니 그때만 직접 센다.
+        if hasattr(obj, "posts_count"):
+            return obj.posts_count
         return obj.posts.count()
 
 
@@ -53,6 +60,12 @@ class PostSerializer(serializers.ModelSerializer):
         ]
 
     def get_comment_count(self, obj):
+        # posts_count와 같은 이유 — PostViewSet.queryset이
+        # .annotate(comment_count=Count("comments"))로 미리 세어오는데,
+        # 글 작성 직후 응답(perform_create)의 인스턴스는 annotate를 안
+        # 거쳐서 속성이 없다.
+        if hasattr(obj, "comment_count"):
+            return obj.comment_count
         return obj.comments.count()
 
 

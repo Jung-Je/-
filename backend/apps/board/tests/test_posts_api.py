@@ -1,8 +1,10 @@
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from rest_framework import status
 
 import pytest
 
-from apps.board.models import BoardCategory, Post
+from apps.board.models import BoardCategory, Comment, Post
 from apps.users.tests.factories import UserFactory
 
 POSTS_URL = "/api/v1/board/posts/"
@@ -97,6 +99,30 @@ class TestPostVisibility:
 
         ids = [row["id"] for row in response.data["results"]]
         assert ids == [post_a.id]
+
+    def test_list_query_count_does_not_grow_with_post_count(
+        self, auth_client, django_assert_num_queries
+    ):
+        """comment_count가 예전엔 글마다 별도 COUNT 쿼리를 날렸다(코드
+        리뷰로 N+1 발견) — PostViewSet.queryset의 annotate로 한 번에
+        세어오므로, 글이 몇 개든 쿼리 수가 늘어나면 안 된다."""
+        client, user = auth_client
+        category = _category()
+
+        def _post_with_comments(n):
+            post = Post.objects.create(category=category, author=user, title="글", content="내용")
+            for _ in range(n):
+                Comment.objects.create(post=post, author=user, content="댓글")
+
+        _post_with_comments(2)
+        with CaptureQueriesContext(connection) as baseline:
+            client.get(POSTS_URL)
+
+        for _ in range(5):
+            _post_with_comments(3)
+
+        with django_assert_num_queries(len(baseline.captured_queries)):
+            client.get(POSTS_URL)
 
     def test_search_by_title(self, auth_client):
         client, user = auth_client

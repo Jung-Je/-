@@ -5,7 +5,7 @@ from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
 from ..models import User, UserPersonality
-from ..services import MAX_UPLOAD_SIZE, MIN_ADULT_AGE, is_adult_birthdate
+from ..services import MAX_UPLOAD_SIZE, MIN_ADULT_AGE, is_adult_birthdate, is_recently_verified
 
 
 def _validate_signup_date_of_birth(value):
@@ -83,6 +83,29 @@ class UserSerializer(serializers.ModelSerializer):
         }
 
 
+class EmailVerificationRequestSerializer(serializers.Serializer):
+    """이메일 인증 코드 요청. 회원가입 마지막 단계에서야 "이미 사용 중인
+    이메일"이라는 걸 알게 되는 걸 막기 위해, 이 시점에도 같은 메시지로
+    미리 거부한다 — UserCreateSerializer의 email UniqueValidator와
+    문구를 맞춤."""
+
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        if User.objects.filter(email__iexact=value).exists():
+            raise serializers.ValidationError("이미 사용 중인 이메일입니다.")
+        return value
+
+
+class EmailVerificationConfirmSerializer(serializers.Serializer):
+    """이메일 인증 코드 확인. 실제 대조 로직은
+    apps.users.services.email_verification.confirm_code가 담당 —
+    여기는 입력 형식만 검증한다."""
+
+    email = serializers.EmailField()
+    code = serializers.CharField(min_length=6, max_length=6)
+
+
 class UserCreateSerializer(serializers.ModelSerializer):
     """사용자 생성 시리얼라이저.
 
@@ -93,6 +116,12 @@ class UserCreateSerializer(serializers.ModelSerializer):
     그 동의항목이 "비즈니스 앱" 전환 + 사업자등록번호를 요구해서 이
     프로젝트 규모에서는 막혀 자기신고 생년월일 + 최소연령 검증으로
     전환했다.
+
+    나이 인증과 별개로, 이메일이 실제로 존재/접근 가능한 주소인지는
+    무료로 확인할 수 있어서(사용자 확정) 회원가입 자체를 이메일 인증
+    완료 후로 막는다 — validate()에서 is_recently_verified()로 게이트.
+    카카오 소셜 가입(KakaoSignupCompletionSerializer)은 카카오 OAuth가
+    이미 이메일 소유를 보증하는 별도 신뢰 경로라 이 게이트 대상이 아님.
     """
 
     password = serializers.CharField(
@@ -146,9 +175,11 @@ class UserCreateSerializer(serializers.ModelSerializer):
         return _validate_signup_date_of_birth(value)
 
     def validate(self, attrs):
-        """비밀번호 확인 검증"""
+        """비밀번호 확인 + 이메일 인증 완료 여부 검증"""
         if attrs["password"] != attrs["password_confirm"]:
             raise serializers.ValidationError({"password_confirm": "비밀번호가 일치하지 않습니다."})
+        if not is_recently_verified(attrs["email"]):
+            raise serializers.ValidationError({"email": "이메일 인증을 먼저 완료해주세요."})
         return attrs
 
     def create(self, validated_data):

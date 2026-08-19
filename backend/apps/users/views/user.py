@@ -15,6 +15,8 @@ from drf_spectacular.utils import extend_schema, extend_schema_view
 
 from ..models import User, UserPersonality
 from ..serializers import (
+    EmailVerificationConfirmSerializer,
+    EmailVerificationRequestSerializer,
     PasswordChangeSerializer,
     PasswordResetConfirmSerializer,
     PasswordResetRequestSerializer,
@@ -23,6 +25,7 @@ from ..serializers import (
     UserSerializer,
     UserUpdateSerializer,
 )
+from ..services import CooldownError, confirm_code, generate_and_send_code
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +46,13 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         """액션별 권한 설정"""
-        if self.action in ["create", "password_reset", "password_reset_confirm"]:
+        if self.action in [
+            "create",
+            "password_reset",
+            "password_reset_confirm",
+            "request_email_verification",
+            "confirm_email_verification",
+        ]:
             return [AllowAny()]
         return [IsAuthenticated()]
 
@@ -205,6 +214,47 @@ class UserViewSet(viewsets.ModelViewSet):
         logger.info("비밀번호 재설정 완료: user_id=%s", user.id)
 
         return Response({"detail": "비밀번호가 성공적으로 재설정되었습니다."})
+
+    @extend_schema(
+        summary="회원가입 이메일 인증 코드 요청",
+        tags=["Users"],
+        request=EmailVerificationRequestSerializer,
+    )
+    @action(detail=False, methods=["post"])
+    def request_email_verification(self, request):
+        """회원가입에 쓸 이메일로 인증 코드 발송. 이미 가입된 이메일이면
+        여기서 미리 거부해 가입 마지막 단계에서야 알게 되는 걸 막는다."""
+        serializer = EmailVerificationRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data["email"]
+
+        try:
+            generate_and_send_code(email)
+        except CooldownError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_429_TOO_MANY_REQUESTS)
+
+        return Response({"detail": "인증 코드를 이메일로 보냈습니다."})
+
+    @extend_schema(
+        summary="회원가입 이메일 인증 코드 확인",
+        tags=["Users"],
+        request=EmailVerificationConfirmSerializer,
+    )
+    @action(detail=False, methods=["post"])
+    def confirm_email_verification(self, request):
+        """이메일로 받은 코드를 확인한다. 성공하면 이후 일정 시간
+        (services.email_verification.VERIFIED_VALIDITY_HOURS) 안에
+        같은 이메일로 회원가입을 완료할 수 있다(UserCreateSerializer.validate)."""
+        serializer = EmailVerificationConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        verified, error = confirm_code(
+            serializer.validated_data["email"], serializer.validated_data["code"]
+        )
+        if not verified:
+            return Response({"detail": error}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({"verified": True})
 
 
 @extend_schema_view(

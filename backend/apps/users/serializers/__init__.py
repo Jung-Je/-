@@ -8,6 +8,8 @@ from .auth import (
 )
 from .kakao import KakaoSignupCompletionSerializer
 from .user import (
+    EmailVerificationConfirmSerializer,
+    EmailVerificationRequestSerializer,
     UserCreateSerializer,
     UserDetailSerializer,
     UserPersonalitySerializer,
@@ -16,6 +18,8 @@ from .user import (
 )
 
 __all__ = [
+    "EmailVerificationConfirmSerializer",
+    "EmailVerificationRequestSerializer",
     "KakaoSignupCompletionSerializer",
     "LoginSerializer",
     "PasswordChangeSerializer",

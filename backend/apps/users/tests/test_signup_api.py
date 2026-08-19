@@ -6,7 +6,7 @@ from rest_framework.test import APIClient
 import pytest
 
 from apps.users.models import User
-from apps.users.tests.factories import UserFactory
+from apps.users.tests.factories import UserFactory, verify_email_for_test
 
 SIGNUP_URL = "/api/v1/users/users/"
 
@@ -29,9 +29,16 @@ class TestSignup:
         payload.update(overrides)
         return payload
 
+    def _signup(self, client, **overrides):
+        """이메일 인증 게이트를 미리 통과시켜두고 회원가입을 시도한다 —
+        인증 자체를 검증하는 테스트는 test_email_verification.py 참고."""
+        payload = self._payload(**overrides)
+        verify_email_for_test(payload["email"])
+        return client.post(SIGNUP_URL, payload, format="json")
+
     def test_signup_succeeds_and_hashes_password(self):
         client = APIClient()
-        response = client.post(SIGNUP_URL, self._payload(), format="json")
+        response = self._signup(client)
 
         assert response.status_code == status.HTTP_201_CREATED
         assert "password" not in response.data
@@ -40,7 +47,7 @@ class TestSignup:
 
     def test_signup_marks_user_as_adult_verified(self):
         client = APIClient()
-        response = client.post(SIGNUP_URL, self._payload(), format="json")
+        response = self._signup(client)
 
         assert response.status_code == status.HTTP_201_CREATED
         user = User.objects.get(username="newuser")
@@ -48,9 +55,7 @@ class TestSignup:
 
     def test_signup_rejects_mismatched_password_confirm(self):
         client = APIClient()
-        response = client.post(
-            SIGNUP_URL, self._payload(password_confirm="different-password"), format="json"
-        )
+        response = self._signup(client, password_confirm="different-password")
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert not User.objects.filter(username="newuser").exists()
@@ -58,10 +63,8 @@ class TestSignup:
     def test_signup_rejects_password_without_special_character(self):
         """영문+숫자만으로는 통과되면 안 됨(PasswordComplexityValidator)."""
         client = APIClient()
-        response = client.post(
-            SIGNUP_URL,
-            self._payload(password="LettersAndDigits123", password_confirm="LettersAndDigits123"),
-            format="json",
+        response = self._signup(
+            client, password="LettersAndDigits123", password_confirm="LettersAndDigits123"
         )
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -70,7 +73,7 @@ class TestSignup:
     def test_signup_rejects_duplicate_email(self):
         UserFactory(email="taken@example.com")
         client = APIClient()
-        response = client.post(SIGNUP_URL, self._payload(email="taken@example.com"), format="json")
+        response = self._signup(client, email="taken@example.com")
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         # DRF의 UniqueValidator 기본 메시지는 한/영이 뒤섞여("사용자 with this
@@ -80,19 +83,31 @@ class TestSignup:
     def test_signup_rejects_duplicate_username(self):
         UserFactory(username="taken")
         client = APIClient()
-        response = client.post(SIGNUP_URL, self._payload(username="taken"), format="json")
+        response = self._signup(client, username="taken")
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.data["username"] == ["이미 사용 중인 닉네임입니다."]
 
+    def test_signup_rejects_unverified_email(self):
+        """이메일 인증을 먼저 거치지 않으면 계정 자체가 안 만들어져야 한다
+        (사용자 요청: '이메일 인증으로 실제 사용하는 이메일인지 확인하자')."""
+        client = APIClient()
+        payload = self._payload()  # verify_email_for_test 호출 없이 그대로 제출
+
+        response = client.post(SIGNUP_URL, payload, format="json")
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data["email"] == ["이메일 인증을 먼저 완료해주세요."]
+        assert not User.objects.filter(username="newuser").exists()
+
     def test_signup_does_not_require_authentication(self):
         client = APIClient()
-        response = client.post(SIGNUP_URL, self._payload(), format="json")
+        response = self._signup(client)
         assert response.status_code == status.HTTP_201_CREATED
 
     def test_signup_logs_completion(self, apps_caplog):
         client = APIClient()
-        response = client.post(SIGNUP_URL, self._payload(), format="json")
+        response = self._signup(client)
 
         assert f"user_id={response.data['id']}" in apps_caplog.text
 
@@ -115,6 +130,11 @@ class TestSignupMinimumAgeGate:
         }
         payload.update(overrides)
         return payload
+
+    def _signup(self, client, **overrides):
+        payload = self._payload(**overrides)
+        verify_email_for_test(payload["email"])
+        return client.post(SIGNUP_URL, payload, format="json")
 
     def test_rejects_signup_under_minimum_age(self):
         client = APIClient()
@@ -151,8 +171,6 @@ class TestSignupMinimumAgeGate:
         exactly_19_today = today.replace(year=today.year - 19).isoformat()
 
         client = APIClient()
-        response = client.post(
-            SIGNUP_URL, self._payload(date_of_birth=exactly_19_today), format="json"
-        )
+        response = self._signup(client, date_of_birth=exactly_19_today)
 
         assert response.status_code == status.HTTP_201_CREATED

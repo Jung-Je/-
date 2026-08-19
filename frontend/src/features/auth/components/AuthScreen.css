@@ -124,6 +124,86 @@
   color: var(--color-ink-placeholder);
 }
 
+.auth-field__hint--error {
+  color: var(--color-danger);
+}
+
+/* 이메일 인증(SignupForm) — "인증코드 받기"/"확인"/"재전송" 등 보조
+   액션 버튼. auth-submit(주 CTA)과 달리 폭 100%가 아니고 아웃라인만
+   있는 2차 버튼 — settings-secondary-btn과 같은 결. */
+.auth-secondary-btn {
+  align-self: flex-start;
+  border: 1.5px solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  border-radius: var(--radius-control);
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.auth-secondary-btn:hover:not(:disabled) {
+  border-color: rgba(27, 29, 41, 0.32);
+}
+
+.auth-secondary-btn:disabled {
+  color: var(--color-ink-disabled);
+  cursor: not-allowed;
+}
+
+/* "재전송"/"다른 이메일 쓰기" — 텍스트 링크처럼 보이는 버튼.
+   .auth-links a와 같은 색(전역 a { color: var(--color-violet-text) }). */
+.auth-field__link-btn {
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-violet-text);
+  cursor: pointer;
+}
+
+.auth-field__link-btn:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.auth-field__link-btn:disabled {
+  color: var(--color-ink-disabled);
+  cursor: not-allowed;
+}
+
+.auth-email-verify__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.auth-email-verify__code-input {
+  width: 120px;
+  font: inherit;
+  font-size: 16px;
+  letter-spacing: 0.1em;
+  padding: 12px 14px;
+  border-radius: var(--radius-control);
+  border: 1.5px solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+
+.auth-email-verify__code-input:focus-visible {
+  outline: none;
+  border-color: var(--color-focus-ring);
+  box-shadow: var(--shadow-focus);
+}
+
+.auth-email-verify__code-input:disabled {
+  background: var(--color-bg);
+  color: var(--color-ink-disabled);
+  cursor: not-allowed;
+}
+
 .password-toggle {
   position: absolute;
   right: 6px;

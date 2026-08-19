@@ -64,8 +64,21 @@ REST_FRAMEWORK = {
     ],
 }
 
-# Email backend for development (console)
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+# Email backend for development — 기본은 console(터미널에 그대로 출력)이라
+# 회원가입 이메일 인증 코드 같은 걸 실제 메일함으로 받아볼 수 없다.
+# .envs/.env.dev에 EMAIL_HOST_USER/EMAIL_HOST_PASSWORD를 채워두면(prod.py와
+# 같은 방식) 실제 SMTP로 발송하도록 자동 전환된다 — 채워져 있지 않으면
+# 그대로 console로 남는다(로컬 개발 기본값).
+if env("EMAIL_HOST_USER", default=""):
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_HOST = env("EMAIL_HOST", default="smtp.gmail.com")  # noqa: F405
+    EMAIL_PORT = env.int("EMAIL_PORT", default=587)  # noqa: F405
+    EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)  # noqa: F405
+    EMAIL_HOST_USER = env("EMAIL_HOST_USER")  # noqa: F405
+    EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")  # noqa: F405
+    DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default=EMAIL_HOST_USER)  # noqa: F405
+else:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 # Logging configuration for development
 LOGGING = {

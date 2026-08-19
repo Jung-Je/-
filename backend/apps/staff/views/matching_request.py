@@ -37,10 +37,11 @@ class AdminMatchingRequestViewSet(StaffPermissionMixin, viewsets.ReadOnlyModelVi
     @action(detail=True, methods=["post"])
     def cancel(self, request, pk=None):
         """admin.py의 mark_as_cancelled 액션과 같은 규칙(완료된 요청은
-        취소 불가) — 다만 대량 액션이 아니라 상세 화면의 행 단위 액션."""
+        취소 불가, MatchingRequest.can_be_cancelled로 공유) — 다만 대량
+        액션이 아니라 상세 화면의 행 단위 액션."""
         matching_request = self.get_object()
 
-        if matching_request.status == MatchingRequest.StatusChoices.COMPLETED:
+        if not matching_request.can_be_cancelled:
             return Response(
                 {"detail": "완료된 요청은 취소할 수 없습니다."},
                 status=status.HTTP_400_BAD_REQUEST,

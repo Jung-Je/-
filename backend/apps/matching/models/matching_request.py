@@ -14,6 +14,15 @@ class MatchingRequest(models.Model):
         COMPLETED = "COMPLETED", "완료"
         CANCELLED = "CANCELLED", "취소됨"
 
+    # 완료된 요청은 취소할 수 없다는 규칙 — Django admin의 일괄 취소
+    # 액션(admin.py)과 스태프 API의 단건 취소(apps.staff.views.
+    # matching_request.cancel)가 각자 다른 코드로 같은 규칙을 구현하고
+    # 있었다(코드 리뷰로 발견). 나중에 규칙이 바뀌면(예: 이미 매칭
+    # 결과가 있으면도 막기) 한쪽만 고치고 놓칠 위험이 있어서 여기 한
+    # 곳으로 모은다 — 대량 업데이트(admin)는 cancellable_queryset(),
+    # 단건 판단(API)은 can_be_cancelled 프로퍼티를 쓴다.
+    NON_CANCELLABLE_STATUSES = [StatusChoices.COMPLETED]
+
     requester = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -61,6 +70,16 @@ class MatchingRequest(models.Model):
 
     def __str__(self):
         return f"{self.requester.username} - {self.status} ({self.created_at})"
+
+    @property
+    def can_be_cancelled(self) -> bool:
+        return self.status not in self.NON_CANCELLABLE_STATUSES
+
+    @classmethod
+    def cancellable_queryset(cls, queryset):
+        """대량 취소(admin.py의 mark_as_cancelled)용 — can_be_cancelled와
+        같은 규칙을 쿼리셋 필터로 표현한 것."""
+        return queryset.exclude(status__in=cls.NON_CANCELLABLE_STATUSES)
 
 
 class MatchingResult(models.Model):

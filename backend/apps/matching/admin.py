@@ -85,7 +85,7 @@ class MatchingRequestAdmin(admin.ModelAdmin):
 
     @admin.action(description="선택한 매칭 요청을 취소 처리")
     def mark_as_cancelled(self, request, queryset):
-        updated = queryset.exclude(status=MatchingRequest.StatusChoices.COMPLETED).update(
+        updated = MatchingRequest.cancellable_queryset(queryset).update(
             status=MatchingRequest.StatusChoices.CANCELLED
         )
         self.message_user(request, f"{updated}건의 매칭 요청이 취소되었습니다.")

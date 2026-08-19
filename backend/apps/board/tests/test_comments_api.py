@@ -73,6 +73,21 @@ class TestCommentVisibility:
         ids = [row["id"] for row in response.data["results"]]
         assert ids == [comment_a.id]
 
+    def test_page_size_query_param_is_honored(self, auth_client):
+        """프론트(boardApi.ts)가 ?page_size=200으로 댓글을 사실상 전체
+        요청하는데, 기본 PageNumberPagination은 이 파라미터를 무시하고
+        PAGE_SIZE(20)로 자르던 버그(코드 리뷰로 발견) — 21개 이상인 글은
+        일부 댓글이 조용히 안 보였음."""
+        client, user = auth_client
+        post = _post()
+        for i in range(25):
+            Comment.objects.create(post=post, author=user, content=f"댓글 {i}")
+
+        response = client.get(COMMENTS_URL, {"post": post.id, "page_size": 200})
+
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data["results"]) == 25
+
 
 @pytest.mark.django_db
 class TestCommentOwnership:

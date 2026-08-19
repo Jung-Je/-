@@ -52,6 +52,14 @@ export function SignupForm() {
   const passwordHintId = useId()
   const passwordConfirmId = useId()
   const errorId = useId()
+  // 2단계 폼 재구성 중 발견(코드 리뷰) — errorId는 원래 이메일 인증
+  // 에러 <p>(emailError가 있을 때만 렌더링)에만 쓰였는데, 아래 필드들도
+  // 같은 id를 aria-describedby로 참조하고 있었다. emailPhase가
+  // 'verified'가 되면 emailError는 항상 ''라 그 <p>가 안 그려지므로,
+  // 회원가입 제출 실패 시(status==='error') 이 필드들의 aria-describedby가
+  // DOM에 없는 id를 가리켜 스크린리더가 에러를 못 찾는 회귀였음 — 폼
+  // 에러 전용 id를 따로 둬서 분리한다.
+  const formErrorId = useId()
 
   const [email, setEmail] = useState('')
   const [emailPhase, setEmailPhase] = useState<EmailPhase>('unverified')
@@ -280,7 +288,7 @@ export function SignupForm() {
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
                 aria-invalid={status === 'error'}
-                aria-describedby={status === 'error' ? errorId : undefined}
+                aria-describedby={status === 'error' ? formErrorId : undefined}
                 disabled={isSubmitting}
                 required
               />
@@ -298,7 +306,7 @@ export function SignupForm() {
                 value={dateOfBirth}
                 onChange={(event) => setDateOfBirth(event.target.value)}
                 aria-invalid={status === 'error'}
-                aria-describedby={status === 'error' ? errorId : undefined}
+                aria-describedby={status === 'error' ? formErrorId : undefined}
                 disabled={isSubmitting}
                 max={maxAdultBirthDate()}
                 required
@@ -319,7 +327,7 @@ export function SignupForm() {
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 aria-invalid={status === 'error'}
-                aria-describedby={status === 'error' ? errorId : passwordHintId}
+                aria-describedby={status === 'error' ? formErrorId : passwordHintId}
                 disabled={isSubmitting}
                 required
                 minLength={8}
@@ -351,7 +359,7 @@ export function SignupForm() {
                 value={passwordConfirm}
                 onChange={(event) => setPasswordConfirm(event.target.value)}
                 aria-invalid={status === 'error'}
-                aria-describedby={status === 'error' ? errorId : undefined}
+                aria-describedby={status === 'error' ? formErrorId : undefined}
                 disabled={isSubmitting}
                 required
                 minLength={8}
@@ -360,7 +368,7 @@ export function SignupForm() {
           </div>
 
           {status === 'error' && (
-            <p className="auth-error" role="alert">
+            <p className="auth-error" id={formErrorId} role="alert">
               <AlertIcon />
               <span>{errorMessage}</span>
             </p>

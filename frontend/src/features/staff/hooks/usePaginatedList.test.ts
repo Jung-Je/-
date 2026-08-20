@@ -69,4 +69,45 @@ describe('usePaginatedList', () => {
 
     expect(result.current.data?.results).toEqual(['b'])
   })
+
+  it('refresh() 응답이 그 뒤에 나간 deps 변경 요청보다 늦게 도착해도 최신 데이터를 덮어쓰지 않는다', async () => {
+    // 코드 리뷰로 발견한 회귀 재현 — 삭제 후 refresh()를 부른 직후
+    // 페이지를 옮기면(deps 변경) 두 요청이 동시에 떠있는데, 늦게 도착한
+    // 쪽이 refresh()라면 이미 최신인 다음 페이지 데이터를 옛 응답으로
+    // 덮어써선 안 된다.
+    const deferred: Array<(value: PaginatedResponse<string>) => void> = []
+    const fetcher = vi.fn(
+      () =>
+        new Promise<PaginatedResponse<string>>((resolve) => {
+          deferred.push(resolve)
+        }),
+    )
+
+    const { result, rerender } = renderHook(({ dep }) => usePaginatedList(fetcher, [dep], '실패'), {
+      initialProps: { dep: 1 },
+    })
+    await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(1)) // 마운트 요청
+
+    let refreshPromise: Promise<void> = Promise.resolve()
+    act(() => {
+      refreshPromise = result.current.refresh() // refresh 요청 (더 먼저 나감)
+    })
+    await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2))
+
+    rerender({ dep: 2 }) // deps 변경 요청 (더 나중에 나감 = 진짜 최신)
+    await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(3))
+
+    // 더 나중에 나간 deps 요청이 먼저 도착
+    await act(async () => {
+      deferred[2](page(['page2']))
+    })
+    expect(result.current.data?.results).toEqual(['page2'])
+
+    // 더 먼저 나간 refresh 요청이 뒤늦게 도착 — 무시돼야 함
+    await act(async () => {
+      deferred[1](page(['stale-refresh']))
+      await refreshPromise
+    })
+    expect(result.current.data?.results).toEqual(['page2'])
+  })
 })

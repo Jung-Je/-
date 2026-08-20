@@ -39,6 +39,7 @@ function Screen() {
   const [page, setPage] = useState(1)
   const [expandedId, setExpandedId] = useState<number | null>(null)
   const [commentsByPost, setCommentsByPost] = useState<Record<number, AdminComment[]>>({})
+  const [commentsError, setCommentsError] = useState('')
 
   const {
     data,
@@ -86,13 +87,24 @@ function Screen() {
   }
 
   async function loadComments(postId: number) {
-    const comments = await listAdminComments(postId)
-    setCommentsByPost((current) => ({ ...current, [postId]: comments }))
+    // refreshCategories/refreshPosts(usePaginatedList)처럼 자체적으로
+    // 에러를 삼켜서 담아둔다(코드 리뷰로 발견) — 예전엔 안 그래서,
+    // handleDeleteComment에서 댓글 삭제 자체는 성공했는데 그 뒤
+    // loadComments만 실패하면 ConfirmButton엔 삭제 자체가 실패한 것처럼
+    // 보고됐다.
+    try {
+      const comments = await listAdminComments(postId)
+      setCommentsByPost((current) => ({ ...current, [postId]: comments }))
+      setCommentsError('')
+    } catch (error) {
+      setCommentsError(error instanceof ApiError ? error.detail : '댓글을 불러오지 못했습니다.')
+    }
   }
 
   function toggleExpand(postId: number) {
     const next = expandedId === postId ? null : postId
     setExpandedId(next)
+    setCommentsError('')
     if (next !== null && !commentsByPost[next]) {
       loadComments(next)
     }
@@ -106,8 +118,12 @@ function Screen() {
 
   async function handleDeleteComment(postId: number, commentId: number) {
     await deleteAdminComment(commentId)
-    await loadComments(postId)
-    await refreshPosts()
+    // 삭제 자체는 여기서 이미 끝났다 — 그 뒤 재조회 둘 다(loadComments
+    // 자체 에러 처리, refreshPosts도 마찬가지) 실패해도 예외를 안 던지니
+    // ConfirmButton엔 삭제 실패로 안 보인다. 서로 무관한 요청이라 병렬로
+    // 처리(코드 리뷰로 발견 — 예전엔 순차 대기라 handleDeleteCategory의
+    // Promise.all 패턴과도 어긋났음).
+    await Promise.all([loadComments(postId), refreshPosts()])
   }
 
   return (
@@ -248,7 +264,15 @@ function Screen() {
                           </dl>
 
                           <h3 className="staff-board-comments-heading">댓글</h3>
-                          {!comments && <p className="staff-loading">댓글 불러오는 중…</p>}
+                          {commentsError && (
+                            <p className="staff-error" role="alert">
+                              <AlertIcon />
+                              <span>{commentsError}</span>
+                            </p>
+                          )}
+                          {!comments && !commentsError && (
+                            <p className="staff-loading">댓글 불러오는 중…</p>
+                          )}
                           {comments && comments.length === 0 && (
                             <p className="staff-empty">댓글이 없어요.</p>
                           )}

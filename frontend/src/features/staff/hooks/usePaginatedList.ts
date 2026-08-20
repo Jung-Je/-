@@ -14,7 +14,13 @@ import type { PaginatedResponse } from '../../../lib/apiClient'
  * 기존 코드는 화면마다 두 가지 방식이 섞여 있었다 — 일부는 cancelled
  * 플래그로 응답이 뒤바뀌는 경쟁 상태를 막고, 일부는 eslint-disable로
  * 그냥 넘겨서 빠른 타이핑 중 오래된 응답이 최신 응답을 덮어쓸 위험이
- * 있었음. 여기서는 항상 cancelled 플래그를 쓰도록 통일.
+ * 있었음. deps 변경(effect)과 수동 refresh() 둘 다 같은 요청 번호
+ * 카운터를 공유해서, 둘 중 어느 경로로 나간 요청이든 가장 나중에 발급된
+ * 요청의 응답만 반영하도록 통일했다 — 처음엔 effect만 cancelled
+ * 플래그를 쓰고 refresh()는 그 방어가 빠져 있어서, 페이지를 옮기자마자
+ * (effect가 새 요청을 냄) 직전 refresh() 호출(예: 삭제 후 재조회)이 더
+ * 늦게 도착하면 최신 페이지 데이터를 옛 응답으로 덮어쓰는 경쟁 상태가
+ * 있었다(코드 리뷰로 발견).
  *
  * setData(낙관적 로컬 갱신 — 정지/상태변경처럼 서버가 갱신된 행만
  * 돌려줄 때)와 refresh(전체 재조회 — 삭제처럼 목록 자체가 바뀔 때)를
@@ -33,14 +39,24 @@ export function usePaginatedList<T>(
   const fetcherRef = useRef(fetcher)
   fetcherRef.current = fetcher
 
-  const refresh = useCallback(async () => {
-    try {
-      const result = await fetcherRef.current()
-      setData(result)
-      setLoadError('')
-    } catch (error) {
-      setLoadError(error instanceof ApiError ? error.detail : fallbackErrorMessage)
-    }
+  // 지금까지 발급된 요청 중 가장 최신 것의 번호. effect와 refresh() 둘
+  // 다 이 카운터를 공유해서, 응답이 도착한 순서가 아니라 "요청을 낸
+  // 순서" 기준으로 가장 나중 것만 반영한다.
+  const requestIdRef = useRef(0)
+
+  const runFetch = useCallback(() => {
+    const requestId = ++requestIdRef.current
+    return fetcherRef
+      .current()
+      .then((result) => {
+        if (requestIdRef.current !== requestId) return
+        setData(result)
+        setLoadError('')
+      })
+      .catch((error: unknown) => {
+        if (requestIdRef.current !== requestId) return
+        setLoadError(error instanceof ApiError ? error.detail : fallbackErrorMessage)
+      })
     // fallbackErrorMessage는 화면마다 리터럴 문자열로 고정 전달되므로
     // deps에서 빼도 안전 — 굳이 넣으면 화면 쪽에서 매 렌더 새 함수를
     // 안 만들려고 useMemo까지 둘러야 해서 번거로움만 늘어난다.
@@ -48,27 +64,11 @@ export function usePaginatedList<T>(
   }, [])
 
   useEffect(() => {
-    let cancelled = false
-
-    fetcherRef.current()
-      .then((result) => {
-        if (!cancelled) {
-          setData(result)
-          setLoadError('')
-        }
-      })
-      .catch((error: unknown) => {
-        if (cancelled) return
-        setLoadError(error instanceof ApiError ? error.detail : fallbackErrorMessage)
-      })
-
-    return () => {
-      cancelled = true
-    }
+    runFetch()
     // deps는 호출부가 넘기는 필터/페이지 배열 그대로 — 훅 내부에서
     // 만들어내는 값이 아니라 정적으로 검사할 수 없어 여기서만 규칙을 끈다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps)
 
-  return { data, setData, loadError, refresh }
+  return { data, setData, loadError, refresh: runFetch }
 }

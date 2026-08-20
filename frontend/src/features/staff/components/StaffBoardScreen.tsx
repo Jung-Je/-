@@ -3,7 +3,6 @@ import type { FormEvent } from 'react'
 import { AlertIcon } from '../../../components/icons'
 import { RequireStaff } from '../../auth/components/RequireStaff'
 import { ApiError } from '../../../lib/apiClient'
-import type { PaginatedResponse } from '../../../lib/apiClient'
 import {
   createAdminBoardCategory,
   deleteAdminBoardCategory,
@@ -13,8 +12,11 @@ import {
   listAdminComments,
   listAdminPosts,
 } from '../api/staffApi'
+import { usePaginatedList } from '../hooks/usePaginatedList'
 import { StaffLayout } from './StaffLayout'
 import { ConfirmButton } from './ConfirmButton'
+import { StaffListStatus } from './StaffListStatus'
+import { StaffPagination } from './StaffPagination'
 import type { AdminBoardCategory, AdminComment, AdminPost } from '../types'
 
 export function StaffBoardScreen() {
@@ -32,13 +34,21 @@ function Screen() {
   const [newCategoryDescription, setNewCategoryDescription] = useState('')
   const [categoryFormError, setCategoryFormError] = useState('')
 
-  const [data, setData] = useState<PaginatedResponse<AdminPost> | null>(null)
-  const [loadError, setLoadError] = useState('')
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<number | ''>('')
   const [page, setPage] = useState(1)
   const [expandedId, setExpandedId] = useState<number | null>(null)
   const [commentsByPost, setCommentsByPost] = useState<Record<number, AdminComment[]>>({})
+
+  const {
+    data,
+    loadError,
+    refresh: refreshPosts,
+  } = usePaginatedList<AdminPost>(
+    () => listAdminPosts({ search: search || undefined, category: categoryFilter || undefined, page }),
+    [search, categoryFilter, page],
+    '게시글 목록을 불러오지 못했습니다.',
+  )
 
   async function refreshCategories() {
     try {
@@ -49,28 +59,10 @@ function Screen() {
     }
   }
 
-  async function refreshPosts() {
-    try {
-      const result = await listAdminPosts({
-        search: search || undefined,
-        category: categoryFilter || undefined,
-        page,
-      })
-      setData(result)
-    } catch (error) {
-      setLoadError(error instanceof ApiError ? error.detail : '게시글 목록을 불러오지 못했습니다.')
-    }
-  }
-
   useEffect(() => {
     refreshCategories()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-
-  useEffect(() => {
-    refreshPosts()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, categoryFilter, page])
 
   async function handleCreateCategory(event: FormEvent) {
     event.preventDefault()
@@ -204,16 +196,11 @@ function Screen() {
         </select>
       </div>
 
-      {loadError && (
-        <p className="staff-error" role="alert">
-          <AlertIcon />
-          <span>{loadError}</span>
-        </p>
-      )}
-
-      {!data && !loadError && <p className="staff-loading">불러오는 중…</p>}
-
-      {data && data.results.length === 0 && <p className="staff-empty">조건에 맞는 글이 없어요.</p>}
+      <StaffListStatus
+        loadError={loadError}
+        loading={!data}
+        emptyMessage={data && data.results.length === 0 ? '조건에 맞는 글이 없어요.' : undefined}
+      />
 
       {data && data.results.length > 0 && (
         <div className="staff-table-wrap">
@@ -291,17 +278,7 @@ function Screen() {
         </div>
       )}
 
-      {data && (
-        <div className="staff-pagination">
-          <button type="button" disabled={!data.previous} onClick={() => setPage((p) => p - 1)}>
-            이전
-          </button>
-          <span>총 {data.count}건</span>
-          <button type="button" disabled={!data.next} onClick={() => setPage((p) => p + 1)}>
-            다음
-          </button>
-        </div>
-      )}
+      <StaffPagination data={data} onPageChange={setPage} unit="건" />
     </StaffLayout>
   )
 }

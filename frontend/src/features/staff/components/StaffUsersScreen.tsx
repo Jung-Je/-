@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react'
-import { AlertIcon } from '../../../components/icons'
+import { useState } from 'react'
 import { RequireStaff } from '../../auth/components/RequireStaff'
-import { ApiError } from '../../../lib/apiClient'
-import type { PaginatedResponse } from '../../../lib/apiClient'
 import { listAdminUsers, moderateUser } from '../api/staffApi'
+import { usePaginatedList } from '../hooks/usePaginatedList'
 import { StaffLayout } from './StaffLayout'
 import { ConfirmButton } from './ConfirmButton'
+import { StaffListStatus } from './StaffListStatus'
+import { StaffPagination } from './StaffPagination'
 import type { AdminUser } from '../types'
 
 const GENDER_LABELS: Record<string, string> = {
@@ -32,34 +32,23 @@ export function StaffUsersScreen() {
 }
 
 function Screen({ currentUserId }: { currentUserId: number }) {
-  const [data, setData] = useState<PaginatedResponse<AdminUser> | null>(null)
-  const [loadError, setLoadError] = useState('')
   const [search, setSearch] = useState('')
   const [isActiveFilter, setIsActiveFilter] = useState<'' | 'true' | 'false'>('')
   const [matchingFilter, setMatchingFilter] = useState<'' | 'true' | 'false'>('')
   const [page, setPage] = useState(1)
   const [expandedId, setExpandedId] = useState<number | null>(null)
 
-  async function refresh() {
-    try {
-      const result = await listAdminUsers({
+  const { data, setData, loadError } = usePaginatedList<AdminUser>(
+    () =>
+      listAdminUsers({
         search: search || undefined,
         is_active: isActiveFilter === '' ? undefined : isActiveFilter === 'true',
         is_active_for_matching: matchingFilter === '' ? undefined : matchingFilter === 'true',
         page,
-      })
-      setData(result)
-    } catch (error) {
-      const detail =
-        error instanceof ApiError ? error.detail : '사용자 목록을 불러오지 못했습니다.'
-      setLoadError(detail)
-    }
-  }
-
-  useEffect(() => {
-    refresh()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, isActiveFilter, matchingFilter, page])
+      }),
+    [search, isActiveFilter, matchingFilter, page],
+    '사용자 목록을 불러오지 못했습니다.',
+  )
 
   async function handleModerate(user: AdminUser, payload: Parameters<typeof moderateUser>[1]) {
     const updated = await moderateUser(user.id, payload)
@@ -106,16 +95,11 @@ function Screen({ currentUserId }: { currentUserId: number }) {
         </select>
       </div>
 
-      {loadError && (
-        <p className="staff-error" role="alert">
-          <AlertIcon />
-          <span>{loadError}</span>
-        </p>
-      )}
-
-      {!data && !loadError && <p className="staff-loading">불러오는 중…</p>}
-
-      {data && data.results.length === 0 && <p className="staff-empty">조건에 맞는 사용자가 없어요.</p>}
+      <StaffListStatus
+        loadError={loadError}
+        loading={!data}
+        emptyMessage={data && data.results.length === 0 ? '조건에 맞는 사용자가 없어요.' : undefined}
+      />
 
       {data && data.results.length > 0 && (
         <div className="staff-table-wrap">
@@ -225,17 +209,7 @@ function Screen({ currentUserId }: { currentUserId: number }) {
         </div>
       )}
 
-      {data && (
-        <div className="staff-pagination">
-          <button type="button" disabled={!data.previous} onClick={() => setPage((p) => p - 1)}>
-            이전
-          </button>
-          <span>총 {data.count}명</span>
-          <button type="button" disabled={!data.next} onClick={() => setPage((p) => p + 1)}>
-            다음
-          </button>
-        </div>
-      )}
+      <StaffPagination data={data} onPageChange={setPage} unit="명" />
     </StaffLayout>
   )
 }

@@ -1,9 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { AlertIcon } from '../../../components/icons'
 import { RequireStaff } from '../../auth/components/RequireStaff'
 import { ApiError } from '../../../lib/apiClient'
-import type { PaginatedResponse } from '../../../lib/apiClient'
 import {
   createAdminInterest,
   createAdminInterestCategory,
@@ -12,8 +11,11 @@ import {
   listAdminInterestCategories,
   listAdminInterests,
 } from '../api/staffApi'
+import { usePaginatedList } from '../hooks/usePaginatedList'
 import { StaffLayout } from './StaffLayout'
 import { ConfirmButton } from './ConfirmButton'
+import { StaffListStatus } from './StaffListStatus'
+import { StaffPagination } from './StaffPagination'
 import type { AdminInterest, AdminInterestCategory } from '../types'
 
 export function StaffInterestsScreen() {
@@ -25,8 +27,6 @@ export function StaffInterestsScreen() {
 }
 
 function Screen() {
-  const [data, setData] = useState<PaginatedResponse<AdminInterestCategory> | null>(null)
-  const [loadError, setLoadError] = useState('')
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [expandedId, setExpandedId] = useState<number | null>(null)
@@ -43,21 +43,11 @@ function Screen() {
   const [newInterestDescription, setNewInterestDescription] = useState('')
   const [interestFormError, setInterestFormError] = useState('')
 
-  async function refresh() {
-    try {
-      const result = await listAdminInterestCategories({ search: search || undefined, page })
-      setData(result)
-    } catch (error) {
-      const detail =
-        error instanceof ApiError ? error.detail : '관심사 카테고리를 불러오지 못했습니다.'
-      setLoadError(detail)
-    }
-  }
-
-  useEffect(() => {
-    refresh()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, page])
+  const { data, loadError, refresh } = usePaginatedList<AdminInterestCategory>(
+    () => listAdminInterestCategories({ search: search || undefined, page }),
+    [search, page],
+    '관심사 카테고리를 불러오지 못했습니다.',
+  )
 
   async function loadInterests(categoryId: number) {
     const interests = await listAdminInterests(categoryId)
@@ -175,18 +165,11 @@ function Screen() {
         />
       </div>
 
-      {loadError && (
-        <p className="staff-error" role="alert">
-          <AlertIcon />
-          <span>{loadError}</span>
-        </p>
-      )}
-
-      {!data && !loadError && <p className="staff-loading">불러오는 중…</p>}
-
-      {data && data.results.length === 0 && (
-        <p className="staff-empty">조건에 맞는 카테고리가 없어요.</p>
-      )}
+      <StaffListStatus
+        loadError={loadError}
+        loading={!data}
+        emptyMessage={data && data.results.length === 0 ? '조건에 맞는 카테고리가 없어요.' : undefined}
+      />
 
       {data && data.results.length > 0 && (
         <div className="staff-table-wrap">
@@ -293,17 +276,7 @@ function Screen() {
         </div>
       )}
 
-      {data && (
-        <div className="staff-pagination">
-          <button type="button" disabled={!data.previous} onClick={() => setPage((p) => p - 1)}>
-            이전
-          </button>
-          <span>총 {data.count}건</span>
-          <button type="button" disabled={!data.next} onClick={() => setPage((p) => p + 1)}>
-            다음
-          </button>
-        </div>
-      )}
+      <StaffPagination data={data} onPageChange={setPage} unit="건" />
     </StaffLayout>
   )
 }

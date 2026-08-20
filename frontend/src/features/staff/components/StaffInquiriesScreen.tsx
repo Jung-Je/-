@@ -1,11 +1,13 @@
-import { useEffect, useId, useState, type FormEvent } from 'react'
+import { useId, useState, type FormEvent } from 'react'
 import { AlertIcon, SpinnerIcon } from '../../../components/icons'
 import { RequireStaff } from '../../auth/components/RequireStaff'
 import { ApiError } from '../../../lib/apiClient'
-import type { PaginatedResponse } from '../../../lib/apiClient'
 import { listAdminInquiries, replyToInquiry, updateInquiryStatus } from '../api/staffApi'
+import { usePaginatedList } from '../hooks/usePaginatedList'
 import { StaffLayout } from './StaffLayout'
 import { ConfirmButton } from './ConfirmButton'
+import { StaffListStatus } from './StaffListStatus'
+import { StaffPagination } from './StaffPagination'
 import type { AdminInquiry, AdminInquiryCategory, AdminInquiryStatus } from '../types'
 
 const CATEGORY_LABELS: Record<AdminInquiryCategory, string> = {
@@ -28,33 +30,23 @@ export function StaffInquiriesScreen() {
 }
 
 function Screen() {
-  const [data, setData] = useState<PaginatedResponse<AdminInquiry> | null>(null)
-  const [loadError, setLoadError] = useState('')
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<AdminInquiryStatus | ''>('')
   const [categoryFilter, setCategoryFilter] = useState<AdminInquiryCategory | ''>('')
   const [page, setPage] = useState(1)
   const [expandedId, setExpandedId] = useState<number | null>(null)
 
-  async function refresh() {
-    try {
-      const result = await listAdminInquiries({
+  const { data, setData, loadError } = usePaginatedList<AdminInquiry>(
+    () =>
+      listAdminInquiries({
         search: search || undefined,
         status: statusFilter || undefined,
         category: categoryFilter || undefined,
         page,
-      })
-      setData(result)
-    } catch (error) {
-      const detail = error instanceof ApiError ? error.detail : '문의 목록을 불러오지 못했습니다.'
-      setLoadError(detail)
-    }
-  }
-
-  useEffect(() => {
-    refresh()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, statusFilter, categoryFilter, page])
+      }),
+    [search, statusFilter, categoryFilter, page],
+    '문의 목록을 불러오지 못했습니다.',
+  )
 
   function applyUpdate(updated: AdminInquiry) {
     setData((current) =>
@@ -114,18 +106,11 @@ function Screen() {
         </select>
       </div>
 
-      {loadError && (
-        <p className="staff-error" role="alert">
-          <AlertIcon />
-          <span>{loadError}</span>
-        </p>
-      )}
-
-      {!data && !loadError && <p className="staff-loading">불러오는 중…</p>}
-
-      {data && data.results.length === 0 && (
-        <p className="staff-empty">조건에 맞는 문의가 없어요.</p>
-      )}
+      <StaffListStatus
+        loadError={loadError}
+        loading={!data}
+        emptyMessage={data && data.results.length === 0 ? '조건에 맞는 문의가 없어요.' : undefined}
+      />
 
       {data && data.results.length > 0 && (
         <div className="staff-table-wrap">
@@ -189,17 +174,7 @@ function Screen() {
         </div>
       )}
 
-      {data && (
-        <div className="staff-pagination">
-          <button type="button" disabled={!data.previous} onClick={() => setPage((p) => p - 1)}>
-            이전
-          </button>
-          <span>총 {data.count}건</span>
-          <button type="button" disabled={!data.next} onClick={() => setPage((p) => p + 1)}>
-            다음
-          </button>
-        </div>
-      )}
+      <StaffPagination data={data} onPageChange={setPage} unit="건" />
     </StaffLayout>
   )
 }

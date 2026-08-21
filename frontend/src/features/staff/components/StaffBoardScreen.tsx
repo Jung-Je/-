@@ -3,7 +3,6 @@ import type { FormEvent } from 'react'
 import { AlertIcon } from '../../../components/icons'
 import { RequireStaff } from '../../auth/components/RequireStaff'
 import { ApiError } from '../../../lib/apiClient'
-import type { PaginatedResponse } from '../../../lib/apiClient'
 import {
   createAdminBoardCategory,
   deleteAdminBoardCategory,
@@ -13,8 +12,11 @@ import {
   listAdminComments,
   listAdminPosts,
 } from '../api/staffApi'
+import { usePaginatedList } from '../hooks/usePaginatedList'
 import { StaffLayout } from './StaffLayout'
 import { ConfirmButton } from './ConfirmButton'
+import { StaffListStatus } from './StaffListStatus'
+import { StaffPagination } from './StaffPagination'
 import type { AdminBoardCategory, AdminComment, AdminPost } from '../types'
 
 export function StaffBoardScreen() {
@@ -32,13 +34,22 @@ function Screen() {
   const [newCategoryDescription, setNewCategoryDescription] = useState('')
   const [categoryFormError, setCategoryFormError] = useState('')
 
-  const [data, setData] = useState<PaginatedResponse<AdminPost> | null>(null)
-  const [loadError, setLoadError] = useState('')
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<number | ''>('')
   const [page, setPage] = useState(1)
   const [expandedId, setExpandedId] = useState<number | null>(null)
   const [commentsByPost, setCommentsByPost] = useState<Record<number, AdminComment[]>>({})
+  const [commentsError, setCommentsError] = useState('')
+
+  const {
+    data,
+    loadError,
+    refresh: refreshPosts,
+  } = usePaginatedList<AdminPost>(
+    () => listAdminPosts({ search: search || undefined, category: categoryFilter || undefined, page }),
+    [search, categoryFilter, page],
+    '게시글 목록을 불러오지 못했습니다.',
+  )
 
   async function refreshCategories() {
     try {
@@ -49,28 +60,10 @@ function Screen() {
     }
   }
 
-  async function refreshPosts() {
-    try {
-      const result = await listAdminPosts({
-        search: search || undefined,
-        category: categoryFilter || undefined,
-        page,
-      })
-      setData(result)
-    } catch (error) {
-      setLoadError(error instanceof ApiError ? error.detail : '게시글 목록을 불러오지 못했습니다.')
-    }
-  }
-
   useEffect(() => {
     refreshCategories()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-
-  useEffect(() => {
-    refreshPosts()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, categoryFilter, page])
 
   async function handleCreateCategory(event: FormEvent) {
     event.preventDefault()
@@ -94,13 +87,24 @@ function Screen() {
   }
 
   async function loadComments(postId: number) {
-    const comments = await listAdminComments(postId)
-    setCommentsByPost((current) => ({ ...current, [postId]: comments }))
+    // refreshCategories/refreshPosts(usePaginatedList)처럼 자체적으로
+    // 에러를 삼켜서 담아둔다(코드 리뷰로 발견) — 예전엔 안 그래서,
+    // handleDeleteComment에서 댓글 삭제 자체는 성공했는데 그 뒤
+    // loadComments만 실패하면 ConfirmButton엔 삭제 자체가 실패한 것처럼
+    // 보고됐다.
+    try {
+      const comments = await listAdminComments(postId)
+      setCommentsByPost((current) => ({ ...current, [postId]: comments }))
+      setCommentsError('')
+    } catch (error) {
+      setCommentsError(error instanceof ApiError ? error.detail : '댓글을 불러오지 못했습니다.')
+    }
   }
 
   function toggleExpand(postId: number) {
     const next = expandedId === postId ? null : postId
     setExpandedId(next)
+    setCommentsError('')
     if (next !== null && !commentsByPost[next]) {
       loadComments(next)
     }
@@ -114,8 +118,12 @@ function Screen() {
 
   async function handleDeleteComment(postId: number, commentId: number) {
     await deleteAdminComment(commentId)
-    await loadComments(postId)
-    await refreshPosts()
+    // 삭제 자체는 여기서 이미 끝났다 — 그 뒤 재조회 둘 다(loadComments
+    // 자체 에러 처리, refreshPosts도 마찬가지) 실패해도 예외를 안 던지니
+    // ConfirmButton엔 삭제 실패로 안 보인다. 서로 무관한 요청이라 병렬로
+    // 처리(코드 리뷰로 발견 — 예전엔 순차 대기라 handleDeleteCategory의
+    // Promise.all 패턴과도 어긋났음).
+    await Promise.all([loadComments(postId), refreshPosts()])
   }
 
   return (
@@ -204,16 +212,11 @@ function Screen() {
         </select>
       </div>
 
-      {loadError && (
-        <p className="staff-error" role="alert">
-          <AlertIcon />
-          <span>{loadError}</span>
-        </p>
-      )}
-
-      {!data && !loadError && <p className="staff-loading">불러오는 중…</p>}
-
-      {data && data.results.length === 0 && <p className="staff-empty">조건에 맞는 글이 없어요.</p>}
+      <StaffListStatus
+        loadError={loadError}
+        loading={!data}
+        emptyMessage={data && data.results.length === 0 ? '조건에 맞는 글이 없어요.' : undefined}
+      />
 
       {data && data.results.length > 0 && (
         <div className="staff-table-wrap">
@@ -234,7 +237,21 @@ function Screen() {
                 const comments = commentsByPost[row.id]
                 return (
                   <>
-                    <tr key={row.id} onClick={() => toggleExpand(row.id)}>
+                    <tr
+                      key={row.id}
+                      className="staff-row-clickable"
+                      tabIndex={0}
+                      role="button"
+                      aria-expanded={isExpanded}
+                      onClick={() => toggleExpand(row.id)}
+                      onKeyDown={(event) => {
+                        if (event.target !== event.currentTarget) return
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault()
+                          toggleExpand(row.id)
+                        }
+                      }}
+                    >
                       <td>{row.category_name}</td>
                       <td>{row.title}</td>
                       <td>
@@ -261,7 +278,15 @@ function Screen() {
                           </dl>
 
                           <h3 className="staff-board-comments-heading">댓글</h3>
-                          {!comments && <p className="staff-loading">댓글 불러오는 중…</p>}
+                          {commentsError && (
+                            <p className="staff-error" role="alert">
+                              <AlertIcon />
+                              <span>{commentsError}</span>
+                            </p>
+                          )}
+                          {!comments && !commentsError && (
+                            <p className="staff-loading">댓글 불러오는 중…</p>
+                          )}
                           {comments && comments.length === 0 && (
                             <p className="staff-empty">댓글이 없어요.</p>
                           )}
@@ -291,17 +316,7 @@ function Screen() {
         </div>
       )}
 
-      {data && (
-        <div className="staff-pagination">
-          <button type="button" disabled={!data.previous} onClick={() => setPage((p) => p - 1)}>
-            이전
-          </button>
-          <span>총 {data.count}건</span>
-          <button type="button" disabled={!data.next} onClick={() => setPage((p) => p + 1)}>
-            다음
-          </button>
-        </div>
-      )}
+      <StaffPagination data={data} page={page} onPageChange={setPage} unit="건" />
     </StaffLayout>
   )
 }

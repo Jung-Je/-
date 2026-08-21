@@ -1,0 +1,41 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "design-system-font-size",
+        "value": "15px",
+        "createdAt": "2026-08-20T07:55:11.747Z",
+        "reason": "DESIGN.md 본문(Overview)이 이미 15px/muted를 'Small' 타이포 단계로 문서화하고 있음(frontmatter에만 누락) — 앱 전역 16곳에서 보조 설명 텍스트로 이미 일관되게 쓰이던 기존 패턴, 이번 세션에서 새로 도입한 값 아님"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "13px",
+        "createdAt": "2026-08-20T07:55:11.777Z",
+        "reason": "auth/onboarding/matching 전역 38곳에서 힌트·메타 텍스트로 이미 일관되게 쓰이던 기존 de facto 스케일 단계 — DESIGN.md frontmatter에 아직 승격 안 됐을 뿐, 이번 세션 도입 아님"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "12px",
+        "createdAt": "2026-08-20T07:55:11.815Z",
+        "reason": "앱 전역 11곳에서 보조 버튼/라벨 텍스트로 이미 쓰이던 기존 패턴 — 13px과 같은 이유"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "18px",
+        "createdAt": "2026-08-20T07:55:42.640Z",
+        "reason": "matching/connections 두 화면에서 동일하게 콘텐츠 내 섹션 제목(라벨보다 크고 타이틀보다 작은) 역할로 이미 쓰이던 기존 패턴 — 이번 세션 도입 아님"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "9px",
+        "files": [
+          "frontend/src/features/matching/components/MatchingScreen.css"
+        ],
+        "createdAt": "2026-08-20T07:55:42.666Z",
+        "reason": "56px 원형 점수 배지 안 '점' 단위 라벨 전용 — 16px 굵은 숫자와 같은 원 안에 들어가야 해서 문서화된 스케일 최소값(14px)조차 배지 크기를 넘어섬. 단일 용도 예외"
+      }
+    ]
+  }
+}

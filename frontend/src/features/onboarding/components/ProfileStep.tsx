@@ -1,7 +1,7 @@
 import { useId, useState, type FormEvent } from 'react'
 import { AlertIcon, SpinnerIcon } from '../../../components/icons'
 import { ApiError } from '../../../lib/apiClient'
-import { updateProfile } from '../api/onboardingApi'
+import { checkProfileCompletion, updateProfile } from '../api/onboardingApi'
 import { GENDER_OPTIONS, type Gender } from '../types'
 
 type Props = {
@@ -11,9 +11,10 @@ type Props = {
   // (이론상 있으면 안 되지만) 아예 숨긴다.
   dateOfBirth: string | null
   onNext: () => void
+  onBack: () => void
 }
 
-export function ProfileStep({ userId, dateOfBirth, onNext }: Props) {
+export function ProfileStep({ userId, dateOfBirth, onNext, onBack }: Props) {
   const genderId = useId()
   const dateOfBirthId = useId()
   const locationId = useId()
@@ -51,6 +52,9 @@ export function ProfileStep({ userId, dateOfBirth, onNext }: Props) {
       // UserUpdateSerializer에서 이 필드를 read_only로 잠가뒀지만,
       // 애초에 프론트에서 입력받지 않는 게 더 명확하다).
       await updateProfile(userId, { gender, location, bio })
+      // 온보딩 마지막 단계라, 서버의 is_profile_complete를 여기서
+      // 갱신해줘야 이후 "카드가 이미 완성됐다" 판단이 맞는다.
+      await checkProfileCompletion()
       onNext()
     } catch (error) {
       const detail =
@@ -138,9 +142,12 @@ export function ProfileStep({ userId, dateOfBirth, onNext }: Props) {
         )}
 
         <div className="onboarding-actions">
+          <button type="button" className="onboarding-back" onClick={onBack} disabled={isSubmitting}>
+            이전
+          </button>
           <button className="onboarding-submit" type="submit" disabled={isSubmitting}>
             {isSubmitting && <SpinnerIcon />}
-            {isSubmitting ? '저장 중…' : '다음'}
+            {isSubmitting ? '저장 중…' : '완료'}
           </button>
         </div>
       </form>

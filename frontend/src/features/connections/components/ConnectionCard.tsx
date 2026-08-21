@@ -15,12 +15,16 @@ const STATUS_LABELS: Record<ConnectionStatus, string> = {
 type Props = {
   connection: Connection
   direction: 'received' | 'sent'
-  onResponded?: (connectionId: number) => void
+  onResponded?: (connectionId: number, action: ConnectionAction, counterpartName: string) => void
 }
 
 export function ConnectionCard({ connection, direction, onResponded }: Props) {
   const [status, setStatus] = useState<'idle' | 'submitting' | 'error'>('idle')
   const [errorMessage, setErrorMessage] = useState('')
+  // 차단은 상대와의 연결을 사실상 되돌리기 어렵게 끊는 동작이라, 수락/거절과
+  // 달리 한 번 더 확인시킨다 — 게시글 삭제(PostDetailScreen)와 같은
+  // "다시 누르면 확정" 인라인 패턴.
+  const [confirmingBlock, setConfirmingBlock] = useState(false)
 
   const counterpart = direction === 'received' ? connection.from_user_detail : connection.to_user_detail
   const isSubmitting = status === 'submitting'
@@ -32,7 +36,7 @@ export function ConnectionCard({ connection, direction, onResponded }: Props) {
 
     try {
       await respondToConnection(connection.id, action)
-      onResponded?.(connection.id)
+      onResponded?.(connection.id, action, counterpart.username)
     } catch (error) {
       const detail =
         error instanceof ApiError
@@ -40,6 +44,7 @@ export function ConnectionCard({ connection, direction, onResponded }: Props) {
           : '알 수 없는 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'
       setErrorMessage(detail)
       setStatus('error')
+      setConfirmingBlock(false)
     }
   }
 
@@ -83,20 +88,46 @@ export function ConnectionCard({ connection, direction, onResponded }: Props) {
           >
             거절
           </button>
-          <button
-            type="button"
-            className="connection-action connection-action--danger"
-            onClick={() => respond('block')}
-            disabled={isSubmitting}
-          >
-            차단
-          </button>
+          {confirmingBlock ? (
+            <>
+              <button
+                type="button"
+                className="connection-action connection-action--danger"
+                onClick={() => respond('block')}
+                disabled={isSubmitting}
+              >
+                정말요? 차단
+              </button>
+              <button
+                type="button"
+                className="connection-action"
+                onClick={() => setConfirmingBlock(false)}
+                disabled={isSubmitting}
+              >
+                취소
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="connection-action connection-action--danger"
+              onClick={() => setConfirmingBlock(true)}
+              disabled={isSubmitting}
+            >
+              차단
+            </button>
+          )}
         </div>
       ) : connection.status === 'ACCEPTED' ? (
         <Link to={`/messages/${connection.id}`} className="connection-message-link">
           메시지
           {connection.unread_message_count > 0 && (
-            <span className="connection-message-link__badge">{connection.unread_message_count}</span>
+            <span
+              className="connection-message-link__badge"
+              aria-label={`읽지 않은 메시지 ${connection.unread_message_count}개`}
+            >
+              {connection.unread_message_count}
+            </span>
           )}
         </Link>
       ) : (

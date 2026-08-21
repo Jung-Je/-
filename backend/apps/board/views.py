@@ -1,5 +1,6 @@
 import logging
 
+from django.db.models import Count
 from rest_framework import status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -26,7 +27,13 @@ class BoardCategoryViewSet(viewsets.ReadOnlyModelViewSet):
     """게시판 카테고리 조회 전용 — 생성/삭제는 스태프만
     (apps.staff.views.AdminBoardCategoryViewSet)."""
 
-    queryset = BoardCategory.objects.all()
+    # posts_count(BoardCategorySerializer)를 카테고리마다 별도 COUNT
+    # 쿼리 없이 한 번에 세어오기 위한 annotate (코드 리뷰로 N+1 발견).
+    # Count() annotate는 Model.Meta.ordering(name)을 무시시키므로(Django의
+    # group_by 쿼리는 기본 정렬을 안 따름) 명시적으로 다시 order_by를
+    # 걸어준다 — 안 그러면 페이지네이션이 UnorderedObjectListWarning을
+    # 내고 페이지 간 순서가 흔들릴 수 있다.
+    queryset = BoardCategory.objects.annotate(posts_count=Count("posts")).order_by("name")
     serializer_class = BoardCategorySerializer
     permission_classes = [IsAuthenticated]
 
@@ -43,7 +50,14 @@ class PostViewSet(viewsets.ModelViewSet):
     """게시글 — 조회는 전체 공개(Inquiry와 반대로 본인 것만 필터링하지
     않음), 수정·삭제만 작성자 본인으로 제한(IsAuthorOrReadOnly)."""
 
-    queryset = Post.objects.select_related("author", "category").all()
+    # comment_count(PostSerializer)를 글마다 별도 COUNT 쿼리 없이 한
+    # 번에 세어오기 위한 annotate (코드 리뷰로 N+1 발견 — 글 50개 목록에
+    # 51개 쿼리가 나가던 것).
+    queryset = (
+        Post.objects.select_related("author", "category")
+        .annotate(comment_count=Count("comments"))
+        .all()
+    )
     serializer_class = PostSerializer
     permission_classes = [IsAuthenticated, IsAuthorOrReadOnly]
 

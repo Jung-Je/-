@@ -27,6 +27,14 @@ class CooldownError(Exception):
         super().__init__(f"{wait_seconds}초 후 다시 시도해주세요.")
 
 
+class EmailSendError(Exception):
+    """이메일 발송 자체가 실패했을 때(SMTP 인증 실패·타임아웃 등). 개발
+    환경이 dev.py에서 콘솔 백엔드 대신 실제 SMTP로 발송하도록 바뀐 뒤로
+    (코드 리뷰로 발견) 이 경로에서 예외가 잡히지 않으면 회원가입 첫
+    단계가 그대로 500으로 죽었다 — 뷰가 이걸 잡아 사용자에게 보여줄 수
+    있는 메시지로 변환한다."""
+
+
 def _generate_code() -> str:
     return f"{random.randint(0, 10**CODE_LENGTH - 1):0{CODE_LENGTH}d}"
 
@@ -43,21 +51,30 @@ def generate_and_send_code(email: str) -> None:
             raise CooldownError(wait_seconds=int(RESEND_COOLDOWN_SECONDS - elapsed))
 
     code = _generate_code()
-    EmailVerification.objects.create(
+    record = EmailVerification.objects.create(
         email=email,
         code_hash=make_password(code),
         expires_at=timezone.now() + timedelta(minutes=CODE_EXPIRY_MINUTES),
     )
-    send_mail(
-        subject="[매칭 API] 이메일 인증 코드",
-        message=(
-            f"인증 코드: {code}\n\n"
-            f"{CODE_EXPIRY_MINUTES}분 이내에 회원가입 화면에 입력해주세요.\n"
-            "본인이 요청하지 않았다면 이 이메일을 무시하셔도 됩니다."
-        ),
-        from_email=None,
-        recipient_list=[email],
-    )
+    try:
+        send_mail(
+            subject="[매칭 API] 이메일 인증 코드",
+            message=(
+                f"인증 코드: {code}\n\n"
+                f"{CODE_EXPIRY_MINUTES}분 이내에 회원가입 화면에 입력해주세요.\n"
+                "본인이 요청하지 않았다면 이 이메일을 무시하셔도 됩니다."
+            ),
+            from_email=None,
+            recipient_list=[email],
+        )
+    except Exception:
+        # 발송이 실패하면 이 레코드는 무의미하다 — 그대로 두면 재전송
+        # 쿨다운(RESEND_COOLDOWN_SECONDS) 때문에 정작 코드를 한 번도 못
+        # 받은 사용자가 60초를 더 기다려야 하니, 지워서 바로 재시도할 수
+        # 있게 한다.
+        record.delete()
+        logger.error("이메일 인증 코드 발송 실패: email=%s", email, exc_info=True)
+        raise EmailSendError("이메일 발송에 실패했습니다. 잠시 후 다시 시도해주세요.")
     logger.info("이메일 인증 코드 발송: email=%s", email)
 
 

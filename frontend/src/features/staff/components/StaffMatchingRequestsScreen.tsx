@@ -1,12 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { AlertIcon } from '../../../components/icons'
 import { RequireStaff } from '../../auth/components/RequireStaff'
-import { ApiError } from '../../../lib/apiClient'
-import type { PaginatedResponse } from '../../../lib/apiClient'
 import { cancelAdminMatchingRequest, listAdminMatchingRequests } from '../api/staffApi'
+import { usePaginatedList } from '../hooks/usePaginatedList'
 import { StaffLayout } from './StaffLayout'
 import { ConfirmButton } from './ConfirmButton'
+import { StaffListStatus } from './StaffListStatus'
+import { StaffPagination } from './StaffPagination'
 import type { AdminMatchingRequest, AdminMatchingRequestStatus } from '../types'
 
 const STATUS_LABELS: Record<AdminMatchingRequestStatus, string> = {
@@ -37,31 +37,20 @@ export function StaffMatchingRequestsScreen() {
 }
 
 function Screen() {
-  const [data, setData] = useState<PaginatedResponse<AdminMatchingRequest> | null>(null)
-  const [loadError, setLoadError] = useState('')
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<AdminMatchingRequestStatus | ''>('')
   const [page, setPage] = useState(1)
 
-  async function refresh() {
-    try {
-      const result = await listAdminMatchingRequests({
+  const { data, setData, loadError } = usePaginatedList<AdminMatchingRequest>(
+    () =>
+      listAdminMatchingRequests({
         search: search || undefined,
         status: statusFilter || undefined,
         page,
-      })
-      setData(result)
-    } catch (error) {
-      const detail =
-        error instanceof ApiError ? error.detail : '매칭 요청 목록을 불러오지 못했습니다.'
-      setLoadError(detail)
-    }
-  }
-
-  useEffect(() => {
-    refresh()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, statusFilter, page])
+      }),
+    [search, statusFilter, page],
+    '매칭 요청 목록을 불러오지 못했습니다.',
+  )
 
   async function handleCancel(requestId: number) {
     const updated = await cancelAdminMatchingRequest(requestId)
@@ -103,18 +92,11 @@ function Screen() {
         </select>
       </div>
 
-      {loadError && (
-        <p className="staff-error" role="alert">
-          <AlertIcon />
-          <span>{loadError}</span>
-        </p>
-      )}
-
-      {!data && !loadError && <p className="staff-loading">불러오는 중…</p>}
-
-      {data && data.results.length === 0 && (
-        <p className="staff-empty">조건에 맞는 매칭 요청이 없어요.</p>
-      )}
+      <StaffListStatus
+        loadError={loadError}
+        loading={!data}
+        emptyMessage={data && data.results.length === 0 ? '조건에 맞는 매칭 요청이 없어요.' : undefined}
+      />
 
       {data && data.results.length > 0 && (
         <div className="staff-table-wrap">
@@ -175,17 +157,7 @@ function Screen() {
         </div>
       )}
 
-      {data && (
-        <div className="staff-pagination">
-          <button type="button" disabled={!data.previous} onClick={() => setPage((p) => p - 1)}>
-            이전
-          </button>
-          <span>총 {data.count}건</span>
-          <button type="button" disabled={!data.next} onClick={() => setPage((p) => p + 1)}>
-            다음
-          </button>
-        </div>
-      )}
+      <StaffPagination data={data} page={page} onPageChange={setPage} unit="건" />
     </StaffLayout>
   )
 }

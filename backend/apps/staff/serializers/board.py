@@ -31,6 +31,10 @@ class AdminPostSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def get_comment_count(self, obj):
+        # apps.board.serializers.PostSerializer.get_comment_count와 같은
+        # 이유 — AdminPostViewSet.queryset이 annotate로 미리 세어온다.
+        if hasattr(obj, "comment_count"):
+            return obj.comment_count
         return obj.comments.count()
 
 

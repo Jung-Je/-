@@ -23,7 +23,9 @@
 }
 
 .onboarding-brand h1 {
-  font-size: 22px;
+  /* auth-brand와 동일한 이유로 title 스케일(26px)을 재사용 — 임의값(22px)
+     은 DESIGN.md 타이포 스케일에 없다. */
+  font-size: 26px;
 }
 
 .onboarding-progress {
@@ -60,10 +62,30 @@
   color: var(--color-ink-muted);
 }
 
+/* 각 단계가 대변하는 가중치 역할색(Weighted Color Rule) — 카드 상단
+   엣지(.onboarding-card--*)와 동일한 매핑을 스테퍼 점에도 그대로
+   적용한다. 완료 여부와 무관하게 "이 단계는 무슨 색인가"는 고정. */
+.onboarding-progress__step--interests {
+  --onboarding-step-color: var(--color-coral);
+  --onboarding-step-text: var(--color-coral-text);
+}
+
+.onboarding-progress__step--personality {
+  --onboarding-step-color: var(--color-violet);
+  --onboarding-step-text: var(--color-violet-text);
+}
+
+.onboarding-progress__step--profile {
+  --onboarding-step-color: var(--color-teal);
+  --onboarding-step-text: var(--color-teal-text);
+}
+
 .onboarding-progress__step--done .onboarding-progress__dot {
-  background: var(--color-teal);
-  border-color: var(--color-teal);
-  color: white;
+  background: var(--onboarding-step-color);
+  border-color: var(--onboarding-step-color);
+  /* 세 역할색 모두 채도가 높아 흰 텍스트로는 AA 대비를 못 맞춘다 —
+     코랄 CTA와 같은 원칙으로 잉크 텍스트를 쓴다. */
+  color: var(--color-ink);
 }
 
 .onboarding-progress__step--active {
@@ -71,8 +93,8 @@
 }
 
 .onboarding-progress__step--active .onboarding-progress__dot {
-  border-color: var(--color-coral);
-  color: var(--color-coral-text);
+  border-color: var(--onboarding-step-color);
+  color: var(--onboarding-step-text);
 }
 
 .onboarding-progress__rule {
@@ -88,7 +110,7 @@
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
   border-top: 2px solid var(--onboarding-accent, rgba(27, 29, 41, 0.2));
-  padding: var(--space-7) var(--space-6) var(--space-6);
+  padding: var(--space-7) var(--space-6) var(--space-5);
 }
 
 .onboarding-card--profile {

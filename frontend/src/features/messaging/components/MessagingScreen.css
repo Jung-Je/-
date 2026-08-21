@@ -23,7 +23,8 @@
 }
 
 .conversations-brand h1 {
-  font-size: 22px;
+  /* 다른 화면들과 동일하게 title 스케일(26px). */
+  font-size: 26px;
 }
 
 .conversations-content {
@@ -96,7 +97,9 @@
   padding: 0 6px;
   border-radius: var(--radius-pill);
   background: var(--color-coral);
-  color: white;
+  /* 흰 텍스트는 코랄 위에서 3.1:1 — connection-message-link__badge와 같은
+     이유로 on-coral(잉크, 5.4:1)로. */
+  color: var(--color-on-coral);
   font-size: 12px;
   font-weight: 800;
 }

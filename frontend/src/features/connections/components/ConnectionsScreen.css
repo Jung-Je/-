@@ -22,7 +22,8 @@
 }
 
 .connections-brand h1 {
-  font-size: 22px;
+  /* auth/onboarding/matching 브랜드 행과 동일하게 title 스케일(26px). */
+  font-size: 26px;
 }
 
 .connections-content {
@@ -43,6 +44,17 @@
 .connections-loading {
   color: var(--color-ink-muted);
   font-size: 14px;
+}
+
+/* 수락/거절/차단 직후 잠깐 떴다 사라지는 결과 안내 — 카드가 조용히
+   사라지기만 하던 걸 보완(4초 후 자동 소멸, ConnectionsScreen.tsx). */
+.connections-notice {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-control);
+  background: var(--color-teal-soft);
+  color: var(--color-teal-text);
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .connection-list {
@@ -194,7 +206,9 @@
   padding: 8px 14px;
   border-radius: var(--radius-control);
   background: var(--color-teal);
-  color: white;
+  /* 흰 텍스트는 틸 위에서 2.5:1 — DESIGN.md가 요구하는 4.5:1 미달(디텍터
+     실측 확인). 코랄 버튼과 같은 원칙으로 잉크 텍스트를 쓰면 6.8:1. */
+  color: var(--color-ink);
   font-size: 13px;
   font-weight: 700;
   text-decoration: none;
@@ -213,7 +227,8 @@
   padding: 0 5px;
   border-radius: var(--radius-pill);
   background: var(--color-coral);
-  color: white;
+  /* 흰 텍스트는 코랄 위에서 3.1:1로 미달 — on-coral(잉크, 5.4:1)로. */
+  color: var(--color-on-coral);
   font-size: 11px;
   font-weight: 800;
 }

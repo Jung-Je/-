@@ -31,7 +31,9 @@
 }
 
 .staff-header__top h1 {
-  font-size: 22px;
+  /* 다른 화면들과 동일하게 title 스케일(26px) — 22px는 DESIGN.md
+     타이포 스케일에 없는 임의값. */
+  font-size: 26px;
 }
 
 .staff-header__back {
@@ -91,7 +93,8 @@
 .staff-filters select {
   font: inherit;
   font-size: 14px;
-  padding: 8px 12px;
+  /* input-field 스펙(12px 14px)과 맞춘다 — 8px 12px는 임의값. */
+  padding: 12px 14px;
   border-radius: var(--radius-control);
   border: 1.5px solid var(--color-border-strong);
   background: var(--color-surface);
@@ -112,6 +115,9 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-control);
+  /* 표 셀이 테두리에 바로 붙어 있던 것(디텍터 cramped-padding 실측)을
+     막는 안쪽 여백. */
+  padding: var(--space-2);
 }
 
 .staff-table {
@@ -126,6 +132,13 @@
   text-align: left;
   white-space: nowrap;
   border-bottom: 1px solid var(--color-border);
+}
+
+/* 액션 열(주로 ConfirmButton 1~2개)만 줄바꿈을 허용한다 — 좁은 화면에서
+   버튼이 옆으로 계속 밀려나가 가로 스크롤 없인 안 닿는 문제(스태프 유저
+   목록에서 실측)를 줄인다. 다른 텍스트 열은 여전히 한 줄을 유지한다. */
+.staff-table td:last-child {
+  white-space: normal;
 }
 
 .staff-table th {
@@ -143,6 +156,13 @@
 .staff-table tbody tr:hover {
   background: var(--color-bg);
   cursor: pointer;
+}
+
+/* 행 자체를 펼침 버튼처럼 포커스 가능하게 만든 곳(StaffUsersScreen 등) —
+   마우스 hover와 동일한 신호를 키보드 포커스에도 준다. */
+.staff-row-clickable:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--color-focus-ring);
 }
 
 .staff-row-detail {
@@ -189,10 +209,27 @@
 }
 
 /* 2클릭 확인 버튼 (ConfirmButton) */
+.staff-confirm-wrap {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+}
+
 .staff-confirm-group {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
+}
+
+.staff-confirm-error {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-danger);
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .staff-confirm-btn {
@@ -363,7 +400,8 @@
 .staff-reply-form textarea {
   font: inherit;
   font-size: 14px;
-  padding: 10px 12px;
+  /* input-field 스펙(12px 14px)과 맞춘다. */
+  padding: 12px 14px;
   border-radius: var(--radius-control);
   border: 1.5px solid var(--color-border-strong);
   background: var(--color-surface);

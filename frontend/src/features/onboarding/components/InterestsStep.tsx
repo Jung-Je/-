@@ -1,17 +1,18 @@
 import { useState } from 'react'
 import { AlertIcon, SpinnerIcon } from '../../../components/icons'
 import { ApiError } from '../../../lib/apiClient'
-import { addUserInterest, checkProfileCompletion } from '../api/onboardingApi'
+import { addUserInterest } from '../api/onboardingApi'
 import { InterestPicker } from './InterestPicker'
 
 type Props = {
   onNext: () => void
-  onBack: () => void
 }
 
 const DEFAULT_LEVEL = 3
 
-export function InterestsStep({ onNext, onBack }: Props) {
+// 마법사의 첫 단계(관심사=코랄, 매칭 가중치 50%)라 이전 단계로 돌아갈
+// 곳이 없다 — 뒤로가기 버튼은 여기 없다.
+export function InterestsStep({ onNext }: Props) {
   // interestId -> 관심도(1~5). 선택 즉시 DEFAULT_LEVEL로 들어가고, 칩 아래
   // 점 5개로 직접 조절할 수 있다 — 예전엔 이 값을 조절할 UI가 아예 없어서
   // 항상 3으로만 저장됐음(매칭 알고리즘이 실제로 쓰는 값인데도).
@@ -54,7 +55,6 @@ export function InterestsStep({ onNext, onBack }: Props) {
       await Promise.all(
         [...levels].map(([interestId, level]) => addUserInterest(interestId, level)),
       )
-      await checkProfileCompletion()
       onNext()
     } catch (error) {
       const detail =
@@ -90,9 +90,6 @@ export function InterestsStep({ onNext, onBack }: Props) {
       )}
 
       <div className="onboarding-actions">
-        <button type="button" className="onboarding-back" onClick={onBack} disabled={isSubmitting}>
-          이전
-        </button>
         <button
           type="button"
           className="onboarding-submit"
@@ -100,7 +97,7 @@ export function InterestsStep({ onNext, onBack }: Props) {
           disabled={isSubmitting}
         >
           {isSubmitting && <SpinnerIcon />}
-          {isSubmitting ? '저장 중…' : '완료'}
+          {isSubmitting ? '저장 중…' : '다음'}
         </button>
       </div>
     </>

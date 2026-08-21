@@ -111,7 +111,12 @@ function Screen({ currentUserId }: { currentUserId: number }) {
                     </span>
                   </div>
                   {connection.unread_message_count > 0 && (
-                    <span className="conversation-item__unread">{connection.unread_message_count}</span>
+                    <span
+                      className="conversation-item__unread"
+                      aria-label={`읽지 않은 메시지 ${connection.unread_message_count}개`}
+                    >
+                      {connection.unread_message_count}
+                    </span>
                   )}
                 </Link>
               )

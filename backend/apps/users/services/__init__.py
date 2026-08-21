@@ -3,6 +3,7 @@
 # 자리에 파일만 추가하면 되도록 패키지로 만들어뒀다.
 from .email_verification import (
     CooldownError,
+    EmailSendError,
     confirm_code,
     generate_and_send_code,
     is_recently_verified,
@@ -13,6 +14,7 @@ from .validators import MIN_ADULT_AGE, PasswordComplexityValidator, is_adult_bir
 
 __all__ = [
     "CooldownError",
+    "EmailSendError",
     "confirm_code",
     "generate_and_send_code",
     "is_recently_verified",

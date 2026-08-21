@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AppNav } from '../../../components/AppNav'
 import { CardStackMark } from '../../../components/CardStackMark'
 import { ApiError } from '../../../lib/apiClient'
@@ -20,6 +20,7 @@ export function MatchingScreen() {
 }
 
 function Screen() {
+  const requestCardRef = useRef<HTMLDivElement>(null)
   const [results, setResults] = useState<MatchingResult[] | null>(null)
   const [loadError, setLoadError] = useState('')
   const [banner, setBanner] = useState<{ text: string; empty: boolean } | null>(null)
@@ -84,7 +85,9 @@ function Screen() {
       </div>
 
       <div className="matching-content">
-        <MatchingRequestForm onCreated={handleCreated} />
+        <div ref={requestCardRef}>
+          <MatchingRequestForm onCreated={handleCreated} />
+        </div>
 
         {banner && (
           <p className={`matching-banner matching-banner--${banner.empty ? 'empty' : 'success'}`}>
@@ -106,16 +109,30 @@ function Screen() {
           )}
 
           {results && results.length > 0 && (
-            <div className="matching-result-list">
-              {results.map((result) => (
-                <MatchingResultCard
-                  key={result.id}
-                  result={result}
-                  onViewed={handleViewed}
-                  existingConnection={connectionsByUserId.get(result.matched_user_detail.id)}
-                />
-              ))}
-            </div>
+            <>
+              <div className="matching-result-list">
+                {results.map((result) => (
+                  <MatchingResultCard
+                    key={result.id}
+                    result={result}
+                    onViewed={handleViewed}
+                    existingConnection={connectionsByUserId.get(result.matched_user_detail.id)}
+                  />
+                ))}
+              </div>
+
+              {/* 목록이 가장 낮은 점수 카드로 끝나 인상이 밋밋해지지 않게,
+                  조건을 조정해 다시 찾아볼 수 있는 마무리 동작을 붙인다. */}
+              <button
+                type="button"
+                className="matching-results__more"
+                onClick={() =>
+                  requestCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                }
+              >
+                조건을 조정해서 더 찾아보기
+              </button>
+            </>
           )}
         </div>
       </div>

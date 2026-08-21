@@ -29,7 +29,9 @@
 }
 
 .matching-brand h1 {
-  font-size: 22px;
+  /* auth/onboarding 브랜드 행과 동일한 이유로 title 스케일(26px) 재사용 —
+     임의값(22px)은 DESIGN.md 타이포 스케일에 없다. */
+  font-size: 26px;
 }
 
 .matching-content {
@@ -53,7 +55,8 @@
 }
 
 .matching-request-card__heading h2 {
-  font-size: 22px;
+  /* auth-card__heading h2와 동일하게 title 스케일(26px) 재사용. */
+  font-size: 26px;
 }
 
 .matching-request-card__heading p {
@@ -213,6 +216,22 @@
   gap: var(--space-3);
 }
 
+.matching-results__more {
+  align-self: center;
+  margin-top: var(--space-3);
+  border: none;
+  background: transparent;
+  color: var(--color-violet-text);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px 4px;
+}
+
+.matching-results__more:hover {
+  text-decoration: underline;
+}
+
 .matching-result-card {
   background: var(--color-surface);
   border-radius: var(--radius-card);
@@ -307,15 +326,30 @@
    맞고, 세 색과 절대 헷갈릴 일이 없다. 세 그라디언트 전부 흰 텍스트
    (16px/800)가 어느 지점에 걸치든 WCAG AA 4.5:1을 넘도록 잡았다. */
 .matching-score-badge--high {
-  background: linear-gradient(135deg, #866313 0%, #674c0f 55%, #47350a 100%); /* 골드 */
+  background: linear-gradient(
+    135deg,
+    var(--matching-tier-high-1) 0%,
+    var(--matching-tier-high-2) 55%,
+    var(--matching-tier-high-3) 100%
+  ); /* 골드 */
 }
 
 .matching-score-badge--mid {
-  background: linear-gradient(135deg, #5c6984 0%, #495469 55%, #363e4e 100%); /* 실버 */
+  background: linear-gradient(
+    135deg,
+    var(--matching-tier-mid-1) 0%,
+    var(--matching-tier-mid-2) 55%,
+    var(--matching-tier-mid-3) 100%
+  ); /* 실버 */
 }
 
 .matching-score-badge--low {
-  background: linear-gradient(135deg, #864a27 0%, #67391e 55%, #472715 100%); /* 브론즈 */
+  background: linear-gradient(
+    135deg,
+    var(--matching-tier-low-1) 0%,
+    var(--matching-tier-low-2) 55%,
+    var(--matching-tier-low-3) 100%
+  ); /* 브론즈 */
 }
 
 .matching-result-card__bio {
@@ -416,6 +450,106 @@
 
 .matching-result-card__details dd {
   margin: 0;
+}
+
+/* 점수 분해 — 관심사(코랄 50%)·성격(바이올렛 30%)·위치(틸 20%)를
+   DESIGN.md의 Weighted Color Rule대로 실제 색으로 나눠 보여준다. 이
+   화면이 "왜 매칭됐는지"를 투명하게 설명해야 하는 자리라, 등급 배지와는
+   달리 그 세 역할색을 그대로 쓴다. */
+.matching-score-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.matching-score-breakdown__bar {
+  display: flex;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  background: var(--color-bg);
+}
+
+.matching-score-breakdown__segment {
+  min-width: 2px;
+}
+
+.matching-score-breakdown__segment--interest {
+  background: var(--color-coral);
+}
+
+.matching-score-breakdown__segment--personality {
+  background: var(--color-violet);
+}
+
+.matching-score-breakdown__segment--location {
+  background: var(--color-teal);
+}
+
+.matching-score-breakdown__list {
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  gap: var(--space-1) var(--space-4);
+}
+
+.matching-score-breakdown__item {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.matching-score-breakdown__item::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  flex-shrink: 0;
+}
+
+.matching-score-breakdown__item--interest::before {
+  background: var(--color-coral);
+}
+
+.matching-score-breakdown__item--personality::before {
+  background: var(--color-violet);
+}
+
+.matching-score-breakdown__item--location::before {
+  background: var(--color-teal);
+}
+
+.matching-score-breakdown__item dt {
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.matching-score-breakdown__item dd {
+  margin: 0;
+  color: var(--color-ink-muted);
+}
+
+.matching-result-card__meta-list {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  padding-top: var(--space-2);
+}
+
+.matching-result-card__meta-list dt {
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.matching-result-card__meta-list dd {
+  margin: 0;
+}
+
+@media (max-width: 480px) {
+  .matching-score-breakdown__list {
+    grid-template-columns: 1fr;
+  }
 }
 
 .matching-result-card__contacted {

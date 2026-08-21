@@ -30,8 +30,18 @@ export function MatchingRequestForm({ onCreated }: Props) {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setStatus('submitting')
     setErrorMessage('')
+
+    // noValidate로 브라우저 기본 검증 팝업은 꺼뒀지만(커스텀 에러 UI를
+    // 쓰려고), 최소/최대 나이가 뒤바뀐 것 같은 명백한 오류까지 서버
+    // 왕복으로 확인시키지 않고 여기서 바로 잡는다.
+    if (minAge && maxAge && Number(minAge) > Number(maxAge)) {
+      setErrorMessage('최소 나이가 최대 나이보다 클 수 없어요.')
+      setStatus('error')
+      return
+    }
+
+    setStatus('submitting')
 
     try {
       const request = await createMatchingRequest({

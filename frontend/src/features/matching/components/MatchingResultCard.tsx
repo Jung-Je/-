@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AlertIcon, SpinnerIcon } from '../../../components/icons'
 import { ApiError } from '../../../lib/apiClient'
@@ -29,6 +29,16 @@ function scoreTier(totalScore: number): 'high' | 'mid' | 'low' {
   return 'low'
 }
 
+// 배지 색만으로 등급을 구분하기 어려운 사람(저시력·색약, 화면을 얼른 훑는
+// 사람 모두)을 위해 스크린리더/타이틀에 등급명을 텍스트로도 남겨둔다 —
+// No-Gray-Punish Rule과 같은 이유로, 낮은 등급도 "매칭"이라는 결과 자체는
+// 부정하지 않는 톤으로 이름 붙였다.
+const TIER_LABELS: Record<'high' | 'mid' | 'low', string> = {
+  high: '베스트 매칭',
+  mid: '좋은 매칭',
+  low: '매칭',
+}
+
 type Props = {
   result: MatchingResult
   onViewed: (resultId: number) => void
@@ -40,12 +50,17 @@ type Props = {
 }
 
 export function MatchingResultCard({ result, onViewed, existingConnection }: Props) {
+  const detailsId = useId()
   const [expanded, setExpanded] = useState(false)
   const [detail, setDetail] = useState<MatchingResult>(result)
   const [connectStatus, setConnectStatus] = useState<'idle' | 'submitting' | 'error'>('idle')
   const [connectError, setConnectError] = useState('')
 
   const totalScore = Math.round(Number(detail.total_score))
+  const interestScore = Math.round(Number(detail.interest_score))
+  const personalityScore = Math.round(Number(detail.personality_score))
+  const locationScore = Math.round(Number(detail.location_score))
+  const tier = scoreTier(totalScore)
   const { matched_user_detail: user } = detail
 
   async function handleToggle() {
@@ -91,7 +106,7 @@ export function MatchingResultCard({ result, onViewed, existingConnection }: Pro
         <div className="matching-result-card__identity">
           <div className="matching-result-card__name">
             {!detail.is_viewed && (
-              <span className="matching-result-card__unviewed-dot" aria-label="새 결과" />
+              <span className="matching-result-card__unviewed-dot" role="img" aria-label="새 결과" />
             )}
             <span>{user.username}</span>
           </div>
@@ -102,9 +117,17 @@ export function MatchingResultCard({ result, onViewed, existingConnection }: Pro
           </div>
         </div>
 
-        <div className={`matching-score-badge matching-score-badge--${scoreTier(totalScore)}`}>
-          <span className="matching-score-badge__value">{totalScore}</span>
-          <span className="matching-score-badge__unit">점</span>
+        <div
+          className={`matching-score-badge matching-score-badge--${tier}`}
+          role="img"
+          aria-label={`매칭 점수 ${totalScore}점, ${TIER_LABELS[tier]}`}
+        >
+          <span className="matching-score-badge__value" aria-hidden="true">
+            {totalScore}
+          </span>
+          <span className="matching-score-badge__unit" aria-hidden="true">
+            점
+          </span>
         </div>
       </div>
 
@@ -146,20 +169,55 @@ export function MatchingResultCard({ result, onViewed, existingConnection }: Pro
           </button>
         )}
 
-        <button type="button" className="matching-result-card__toggle" onClick={handleToggle}>
+        <button
+          type="button"
+          className="matching-result-card__toggle"
+          onClick={handleToggle}
+          aria-expanded={expanded}
+          aria-controls={detailsId}
+        >
           {expanded ? '접기' : '자세히 보기'}
         </button>
       </div>
 
       {expanded && (
-        <div className="matching-result-card__details">
-          <dl>
-            <dt>관심사 일치</dt>
-            <dd>{Math.round(Number(detail.interest_score))}점</dd>
-            <dt>성격 궁합</dt>
-            <dd>{Math.round(Number(detail.personality_score))}점</dd>
-            <dt>지역 일치</dt>
-            <dd>{Math.round(Number(detail.location_score))}점</dd>
+        <div className="matching-result-card__details" id={detailsId}>
+          {/* 관심사(코랄 50%)·성격(바이올렛 30%)·위치(틸 20%) — DESIGN.md의
+              Weighted Color Rule을 이 화면에서 실제로 적용하는 유일한 자리.
+              막대 자체는 장식(aria-hidden)이고, 접근성 정보는 아래 dl의
+              텍스트가 그대로 담당한다. */}
+          <div className="matching-score-breakdown">
+            <div className="matching-score-breakdown__bar" aria-hidden="true">
+              <span
+                className="matching-score-breakdown__segment matching-score-breakdown__segment--interest"
+                style={{ flexGrow: Math.max(interestScore, 2) }}
+              />
+              <span
+                className="matching-score-breakdown__segment matching-score-breakdown__segment--personality"
+                style={{ flexGrow: Math.max(personalityScore, 2) }}
+              />
+              <span
+                className="matching-score-breakdown__segment matching-score-breakdown__segment--location"
+                style={{ flexGrow: Math.max(locationScore, 2) }}
+              />
+            </div>
+            <dl className="matching-score-breakdown__list">
+              <div className="matching-score-breakdown__item matching-score-breakdown__item--interest">
+                <dt>관심사 일치</dt>
+                <dd>{interestScore}점</dd>
+              </div>
+              <div className="matching-score-breakdown__item matching-score-breakdown__item--personality">
+                <dt>성격 궁합</dt>
+                <dd>{personalityScore}점</dd>
+              </div>
+              <div className="matching-score-breakdown__item matching-score-breakdown__item--location">
+                <dt>지역 일치</dt>
+                <dd>{locationScore}점</dd>
+              </div>
+            </dl>
+          </div>
+
+          <dl className="matching-result-card__meta-list">
             {user.personality?.mbti && (
               <>
                 <dt>MBTI</dt>

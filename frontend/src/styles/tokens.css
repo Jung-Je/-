@@ -44,6 +44,20 @@
   --color-danger-bg: #fbe7ed;
   --color-focus-ring: #5b46cc;
 
+  /* 매칭 점수 배지 등급(골드/실버/브론즈) — 코랄/바이올렛/틸과는 의도적으로
+     분리된 독립 팔레트다(매칭 화면 CSS의 설명 참고). "카드 등급" 은유라
+     Weighted Color Rule의 세 역할색과 절대 헷갈리면 안 돼서 여기 토큰으로
+     따로 관리한다. */
+  --matching-tier-high-1: #866313;
+  --matching-tier-high-2: #674c0f;
+  --matching-tier-high-3: #47350a;
+  --matching-tier-mid-1: #5c6984;
+  --matching-tier-mid-2: #495469;
+  --matching-tier-mid-3: #363e4e;
+  --matching-tier-low-1: #864a27;
+  --matching-tier-low-2: #67391e;
+  --matching-tier-low-3: #472715;
+
   /* 타이포 */
   --font-ui:
     'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont,

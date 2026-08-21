@@ -1,7 +1,11 @@
 /**
  * 워드마크 옆에 놓는 스택 카드 모티프.
- * 관심사(코랄)·성격(바이올렛)·위치(틸) 3장이 살짝 부채꼴로 겹쳐,
+ * 관심사(코랄)·성격(바이올렛)·위치(틸) 3장이 부채꼴로 겹쳐,
  * "사람은 모으는 카드다"라는 방향 테제를 로그인 화면 첫 진입에서부터 알린다.
+ *
+ * 뒤 두 장(틸·바이올렛)은 앞 카드(코랄)보다 살짝 크게, 회전폭도 넓게
+ * 잡아서 40px 실제 렌더 크기에서도 모서리가 뚜렷이 삐져나오게 했다 —
+ * 이전 버전은 세 장이 거의 같은 크기라 코랄 뒤로 완전히 가려졌었다.
  */
 export function CardStackMark({ size = 40 }: { size?: number }) {
   return (
@@ -14,27 +18,27 @@ export function CardStackMark({ size = 40 }: { size?: number }) {
       aria-label="매칭 카드 스택 로고"
     >
       <rect
-        x="10"
-        y="4"
-        width="20"
-        height="27"
-        rx="4"
-        transform="rotate(-8 20 17.5)"
+        x="8"
+        y="6"
+        width="24"
+        height="30"
+        rx="4.5"
+        transform="rotate(-16 20 21)"
         fill="var(--color-teal)"
       />
       <rect
-        x="10"
-        y="5"
-        width="20"
-        height="27"
-        rx="4"
-        transform="rotate(6 20 18.5)"
+        x="8"
+        y="6"
+        width="24"
+        height="30"
+        rx="4.5"
+        transform="rotate(13 20 21)"
         fill="var(--color-violet)"
       />
-      <rect x="9" y="6" width="22" height="29" rx="4.5" fill="var(--color-coral)" />
+      <rect x="9" y="5" width="22" height="29" rx="4.5" fill="var(--color-coral)" />
       <rect
         x="13"
-        y="11"
+        y="10"
         width="14"
         height="3"
         rx="1.5"
@@ -43,7 +47,7 @@ export function CardStackMark({ size = 40 }: { size?: number }) {
       />
       <rect
         x="13"
-        y="17"
+        y="16"
         width="9"
         height="2.5"
         rx="1.25"

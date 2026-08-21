@@ -21,7 +21,10 @@
 }
 
 .auth-brand h1 {
-  font-size: 22px;
+  /* DESIGN.md 타이포 스케일에 없는 임의값(22px) 대신 title 스케일을
+     재사용 — 브랜드 마크도 본문/라벨/타이틀 3단 위계 안에 있어야 한다.
+     font-weight은 index.css의 전역 h1 규칙(700)을 그대로 물려받는다. */
+  font-size: 26px;
 }
 
 .auth-card {
@@ -31,7 +34,7 @@
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
   border-top: 2px solid rgba(255, 90, 54, 0.45);
-  padding: var(--space-7) var(--space-6) var(--space-6);
+  padding: var(--space-7) var(--space-6) var(--space-5);
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
@@ -122,10 +125,6 @@
 .auth-field__hint {
   font-size: 13px;
   color: var(--color-ink-placeholder);
-}
-
-.auth-field__hint--error {
-  color: var(--color-danger);
 }
 
 /* 이메일 인증(SignupForm) — "인증코드 받기"/"확인"/"재전송" 등 보조
@@ -283,27 +282,41 @@
   }
 }
 
-/* 카카오 소셜 로그인/가입 버튼 — 카카오 브랜드 컬러(#FEE500)로 기존
-   auth-submit(코랄)과 시각적으로 구분해서 "다른 방식"임을 바로 알아채게 */
+/* 카카오 소셜 로그인/가입 버튼. "코랄 CTA 하나만 강하게 튀는" 절제-강조
+   원칙을 지키려고 채움색이 아니라 아웃라인 톤으로 낮춰서 auth-submit과
+   같은 화면에서 시선을 겨루지 않게 하고, 카카오 브랜드색(#FEE500)은
+   식별용 스와치로만 남긴다 — "다른 방식"이라는 신호는 여전히 준다. */
 .auth-kakao-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
   width: 100%;
-  padding: 13px 20px;
-  font-size: 16px;
-  font-weight: 700;
-  border: none;
+  padding: 12px 20px;
+  font-size: 15px;
+  font-weight: 600;
+  border: 1.5px solid var(--color-border-strong);
   border-radius: var(--radius-control);
-  background: #fee500;
-  color: #191919;
+  background: var(--color-surface);
+  color: var(--color-ink);
   cursor: pointer;
-  transition: filter 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.auth-kakao-button::before {
+  content: '';
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  background: #fee500;
 }
 
 .auth-kakao-button:hover:not(:disabled) {
-  filter: brightness(0.96);
+  border-color: rgba(27, 29, 41, 0.32);
+  background: var(--color-bg);
 }
 
 .auth-divider {

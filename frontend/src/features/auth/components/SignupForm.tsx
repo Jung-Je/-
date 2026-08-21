@@ -264,8 +264,9 @@ export function SignupForm() {
           )}
 
           {emailError && (
-            <p className="auth-field__hint auth-field__hint--error" id={errorId} role="alert">
-              {emailError}
+            <p className="auth-error" id={errorId} role="alert">
+              <AlertIcon />
+              <span>{emailError}</span>
             </p>
           )}
           {emailPhase === 'code-sent' && !emailError && (

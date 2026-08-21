@@ -7,12 +7,15 @@ import { PersonalityStep } from './PersonalityStep'
 import { ProfileStep } from './ProfileStep'
 import './OnboardingWizard.css'
 
-type Step = 'profile' | 'personality' | 'interests' | 'done'
+type Step = 'interests' | 'personality' | 'profile' | 'done'
 
+// 매칭 가중치(관심사 50% > 성격 30% > 위치 20% — DESIGN.md의 Weighted
+// Color Rule)와 같은 순서로 진행한다. 색 등장 순서가 화면을 막론하고
+// 뒤바뀌지 않는다는 규칙을 스텝 순서에도 그대로 적용했다.
 const STEPS: { key: Step; label: string }[] = [
-  { key: 'profile', label: '프로필' },
-  { key: 'personality', label: '성격' },
   { key: 'interests', label: '관심사' },
+  { key: 'personality', label: '성격' },
+  { key: 'profile', label: '프로필' },
 ]
 
 /**
@@ -43,7 +46,7 @@ function Wizard({ userId, dateOfBirth }: { userId: number; dateOfBirth: string |
   // 항상 방금 막 완료한 축하 상태 하나뿐이다 — 예전엔 "이미 완성된
   // 카드를 재방문"과 "방금 완성"을 여기서 구분해야 했지만, 그 구분은
   // 이제 라우팅(has_completed_onboarding)에서 이미 끝난 뒤라 필요 없다.
-  const [step, setStep] = useState<Step>('profile')
+  const [step, setStep] = useState<Step>('interests')
 
   const activeIndex = STEPS.findIndex((s) => s.key === step)
   const cardModifier = step === 'done' ? ' onboarding-card--celebrate' : ` onboarding-card--${step}`
@@ -62,7 +65,7 @@ function Wizard({ userId, dateOfBirth }: { userId: number; dateOfBirth: string |
               {index > 0 && <span className="onboarding-progress__rule" aria-hidden="true" />}
               <span
                 className={
-                  'onboarding-progress__step' +
+                  `onboarding-progress__step onboarding-progress__step--${s.key}` +
                   (index < activeIndex
                     ? ' onboarding-progress__step--done'
                     : index === activeIndex
@@ -81,18 +84,17 @@ function Wizard({ userId, dateOfBirth }: { userId: number; dateOfBirth: string |
       )}
 
       <div className={`onboarding-card${cardModifier}`}>
+        {step === 'interests' && <InterestsStep onNext={() => setStep('personality')} />}
+        {step === 'personality' && (
+          <PersonalityStep onNext={() => setStep('profile')} onBack={() => setStep('interests')} />
+        )}
         {step === 'profile' && (
           <ProfileStep
             userId={userId}
             dateOfBirth={dateOfBirth}
-            onNext={() => setStep('personality')}
+            onNext={() => setStep('done')}
+            onBack={() => setStep('personality')}
           />
-        )}
-        {step === 'personality' && (
-          <PersonalityStep onNext={() => setStep('interests')} onBack={() => setStep('profile')} />
-        )}
-        {step === 'interests' && (
-          <InterestsStep onNext={() => setStep('done')} onBack={() => setStep('personality')} />
         )}
         {step === 'done' && (
           <div className="onboarding-done onboarding-done--celebrate">

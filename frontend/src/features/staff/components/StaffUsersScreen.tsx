@@ -113,7 +113,6 @@ function Screen({ currentUserId }: { currentUserId: number }) {
                 <th>매칭풀</th>
                 <th>계정 상태</th>
                 <th>권한</th>
-                <th>가입일</th>
                 <th>액션</th>
               </tr>
             </thead>
@@ -123,7 +122,24 @@ function Screen({ currentUserId }: { currentUserId: number }) {
                 const isExpanded = expandedId === row.id
                 return (
                   <>
-                    <tr key={row.id} onClick={() => setExpandedId(isExpanded ? null : row.id)}>
+                    <tr
+                      key={row.id}
+                      className="staff-row-clickable"
+                      tabIndex={0}
+                      role="button"
+                      aria-expanded={isExpanded}
+                      onClick={() => setExpandedId(isExpanded ? null : row.id)}
+                      onKeyDown={(event) => {
+                        // event.target !== currentTarget면 액션 셀 안의 버튼
+                        // 같은 자식 요소에서 올라온 keydown이라, 행 확장이
+                        // 아니라 그 버튼 자신의 동작이어야 한다.
+                        if (event.target !== event.currentTarget) return
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault()
+                          setExpandedId(isExpanded ? null : row.id)
+                        }
+                      }}
+                    >
                       <td>{row.username}</td>
                       <td>{row.email}</td>
                       <td>
@@ -155,7 +171,6 @@ function Screen({ currentUserId }: { currentUserId: number }) {
                           '—'
                         )}
                       </td>
-                      <td>{new Date(row.date_joined).toLocaleDateString('ko-KR')}</td>
                       <td onClick={(event) => event.stopPropagation()}>
                         <div className="staff-confirm-group">
                           <ConfirmButton
@@ -177,8 +192,10 @@ function Screen({ currentUserId }: { currentUserId: number }) {
                     </tr>
                     {isExpanded && (
                       <tr className="staff-row-detail" key={`${row.id}-detail`}>
-                        <td colSpan={9}>
+                        <td colSpan={8}>
                           <dl className="staff-detail-card__row">
+                            <dt>가입일</dt>
+                            <dd>{new Date(row.date_joined).toLocaleDateString('ko-KR')}</dd>
                             <dt>자기소개</dt>
                             <dd>{row.bio || '—'}</dd>
                           </dl>
@@ -209,7 +226,7 @@ function Screen({ currentUserId }: { currentUserId: number }) {
         </div>
       )}
 
-      <StaffPagination data={data} onPageChange={setPage} unit="명" />
+      <StaffPagination data={data} page={page} onPageChange={setPage} unit="명" />
     </StaffLayout>
   )
 }

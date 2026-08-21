@@ -189,7 +189,21 @@ function Screen() {
                 const interests = interestsByCategory[category.id]
                 return (
                   <>
-                    <tr key={category.id} onClick={() => toggleExpand(category.id)}>
+                    <tr
+                      key={category.id}
+                      className="staff-row-clickable"
+                      tabIndex={0}
+                      role="button"
+                      aria-expanded={isExpanded}
+                      onClick={() => toggleExpand(category.id)}
+                      onKeyDown={(event) => {
+                        if (event.target !== event.currentTarget) return
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault()
+                          toggleExpand(category.id)
+                        }
+                      }}
+                    >
                       <td>{category.icon || '—'}</td>
                       <td>{category.name}</td>
                       <td>{category.description || '—'}</td>
@@ -276,7 +290,7 @@ function Screen() {
         </div>
       )}
 
-      <StaffPagination data={data} onPageChange={setPage} unit="건" />
+      <StaffPagination data={data} page={page} onPageChange={setPage} unit="건" />
     </StaffLayout>
   )
 }

@@ -117,7 +117,7 @@ function Screen() {
         </div>
       )}
 
-      <StaffPagination data={data} onPageChange={setPage} unit="건" />
+      <StaffPagination data={data} page={page} onPageChange={setPage} unit="건" />
     </StaffLayout>
   )
 }

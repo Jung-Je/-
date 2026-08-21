@@ -237,7 +237,21 @@ function Screen() {
                 const comments = commentsByPost[row.id]
                 return (
                   <>
-                    <tr key={row.id} onClick={() => toggleExpand(row.id)}>
+                    <tr
+                      key={row.id}
+                      className="staff-row-clickable"
+                      tabIndex={0}
+                      role="button"
+                      aria-expanded={isExpanded}
+                      onClick={() => toggleExpand(row.id)}
+                      onKeyDown={(event) => {
+                        if (event.target !== event.currentTarget) return
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault()
+                          toggleExpand(row.id)
+                        }
+                      }}
+                    >
                       <td>{row.category_name}</td>
                       <td>{row.title}</td>
                       <td>
@@ -302,7 +316,7 @@ function Screen() {
         </div>
       )}
 
-      <StaffPagination data={data} onPageChange={setPage} unit="건" />
+      <StaffPagination data={data} page={page} onPageChange={setPage} unit="건" />
     </StaffLayout>
   )
 }

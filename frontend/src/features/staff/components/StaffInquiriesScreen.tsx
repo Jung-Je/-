@@ -130,7 +130,21 @@ function Screen() {
                 const isExpanded = expandedId === row.id
                 return (
                   <>
-                    <tr key={row.id} onClick={() => setExpandedId(isExpanded ? null : row.id)}>
+                    <tr
+                      key={row.id}
+                      className="staff-row-clickable"
+                      tabIndex={0}
+                      role="button"
+                      aria-expanded={isExpanded}
+                      onClick={() => setExpandedId(isExpanded ? null : row.id)}
+                      onKeyDown={(event) => {
+                        if (event.target !== event.currentTarget) return
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault()
+                          setExpandedId(isExpanded ? null : row.id)
+                        }
+                      }}
+                    >
                       <td>{row.category_display}</td>
                       <td>{row.title}</td>
                       <td>
@@ -174,7 +188,7 @@ function Screen() {
         </div>
       )}
 
-      <StaffPagination data={data} onPageChange={setPage} unit="건" />
+      <StaffPagination data={data} page={page} onPageChange={setPage} unit="건" />
     </StaffLayout>
   )
 }

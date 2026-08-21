@@ -38,7 +38,13 @@ describe('usePaginatedList', () => {
 
   it('setData로 로컬 낙관적 갱신을 할 수 있다', async () => {
     const fetcher = vi.fn().mockResolvedValue(page([{ id: 1, active: false }]))
-    const { result } = renderHook(() => usePaginatedList(fetcher, [], '실패'))
+    // vi.fn()의 반환 타입이 제네릭 추론 없이는 unknown으로 좁혀져서(vitest
+    // Mock 타입 특성), usePaginatedList<T>의 T가 안 잡히고 아래 setData의
+    // row가 unknown이 돼 스프레드가 막힌다(TS2698) — 여기서만 명시적으로
+    // 타입 인자를 준다.
+    const { result } = renderHook(() =>
+      usePaginatedList<{ id: number; active: boolean }>(fetcher, [], '실패'),
+    )
 
     await waitFor(() => expect(result.current.data).not.toBeNull())
 
